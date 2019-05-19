@@ -63,11 +63,6 @@ class Command(BaseCommand):
             migration_name=self.migration_name,
         )
 
-        # Remove any migrations that don't belong to you
-        # TODO: There needs to be a better way of doing this..
-        changes = {app: value for app, value in changes.items()
-                   if not ('site-packages' in apps.get_app_config(app).path or app in kwargs['exclude_apps'])}
-
         replacing_migrations = 0
         for migration in itertools.chain.from_iterable(changes.values()):
             replacing_migrations += len(migration.replaces)

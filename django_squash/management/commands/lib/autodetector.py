@@ -1,10 +1,12 @@
 import ast
 import inspect
 import itertools
+import os
 import sys
 import types
 from collections import defaultdict
 
+from django.apps import apps
 from django.conf import settings
 from django.db import migrations as migration_module
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
@@ -153,7 +155,21 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         return self.migrations
 
     def squash(self, loader, trim_to_apps=None, convert_apps=None, migration_name=None):
+        project_path = os.path.abspath(os.curdir)
         new_graph = MigrationGraph()  # Don't care what the tree is, we want a blank slate
+
+        def strip_nodes(nodes):
+            data = {}
+            for key, value in nodes.items():
+                module = apps.get_app_config(key[0]).module
+                app_path = inspect.getsourcefile(module)
+                if not app_path.startswith(project_path):
+                    data[key] = value
+            return data
+
+        new_graph.nodes = strip_nodes(loader.graph.nodes)
+        new_graph.node_map = strip_nodes(loader.graph.node_map)
+
         changes = super().changes(new_graph, trim_to_apps, convert_apps, migration_name)
 
         graph = loader.graph
