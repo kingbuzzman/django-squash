@@ -1,5 +1,6 @@
 __pycache__
 *.pyc
-.eggs
 *.egg-info
 *.sqlite3
+.eggs
+.coverage

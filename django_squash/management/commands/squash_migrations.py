@@ -1,3 +1,4 @@
+import itertools
 import os
 import sys
 from collections import defaultdict
@@ -101,6 +102,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         return changes
 
+
 class NonInteractiveMigrationQuestioner(NonInteractiveMigrationQuestionerBase):
     def ask_initial(self, *args, **kwargs):
         # Ensures that the 0001_initial will always be generated
@@ -143,12 +145,20 @@ class Command(BaseCommand):
             ProjectState.from_apps(apps),
             questioner,
         )
+
         changes = autodetector.squash(
             graph=loader.graph,
             trim_to_apps=app_labels or None,
             convert_apps=app_labels or None,
             migration_name=self.migration_name,
         )
+
+        replacing_migrations = 0
+        for migration in itertools.chain.from_iterable(changes.values()):
+            replacing_migrations += len(migration.replaces)
+
+        if not replacing_migrations:
+            raise CommandError("There are no migrations to squash.")
 
         MakeMigrationsCommand.write_migration_files(self, changes)
 

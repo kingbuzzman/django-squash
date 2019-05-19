@@ -77,7 +77,7 @@ def load_migration_module(path):
     return module
 
 
-class MigrationTest(MigrationTestBase):
+class SquashMigrationTest(MigrationTestBase):
     available_apps = ['app', 'app2', 'django_squash']
 
     def test_squashing_migration_simple(self):
@@ -121,8 +121,16 @@ class MigrationTest(MigrationTestBase):
 
             self.assertEqual(app2_squash.Migration.replaces, [('app2', '0001_initial')])
 
+    def test_squashing_migration_empty(self):
+        class Person(models.Model):
+            name = models.CharField(max_length=10)
+            dob = models.DateField()
 
-        # with self.temporary_migration_module(module="app.test_empty", app_label='app') as xx, \
-        #      self.temporary_migration_module(module="app2.test_empty", app_label='app2', join=True) as yy:
-        #     # call_command("makemigrations", "app", interactive=False, stdout=out)
-        #     call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+            class Meta:
+                app_label = "app"
+
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
+        catch_error = self.assertRaisesMessage(CommandError, "There are no migrations to squash.")
+        with patch_app_migrations as migration_app_dir, catch_error:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
