@@ -8,3 +8,8 @@ django-squash is a migration squashing replacement based on a internal need that
 pip install -e '.[test]'
 python setup.py test
 ```
+
+```
+coverage run setup.py test
+coverage report -m
+```
