@@ -331,10 +331,17 @@ class Command(BaseCommand):
             help='Specify the app label(s) to create migrations for.',
         )
 
+        parser.add_argument(
+            '--exclude-apps', metavar='exclude_apps', default='',
+            help='Specify the app label(s) you want to exclude migrations for.',
+        )
+
     def handle(self, *app_labels, **kwargs):
         self.verbosity = 1
         self.include_header = False
         self.dry_run = False
+
+        kwargs['exclude_apps'] = kwargs['exclude_apps'].split(',')
 
         # Make sure the app they asked for exists
         app_labels = set(app_labels)
@@ -366,6 +373,11 @@ class Command(BaseCommand):
             convert_apps=app_labels or None,
             migration_name=self.migration_name,
         )
+
+        # Remove any migrations that don't belong to you
+        # TODO: There needs to be a better way of doing this..
+        changes = {app: value for app, value in changes.items()
+                   if not ('site-packages' in apps.get_app_config(app).path or app in kwargs['exclude_apps'])}
 
         replacing_migrations = 0
         for migration in itertools.chain.from_iterable(changes.values()):
