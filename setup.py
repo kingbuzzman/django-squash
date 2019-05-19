@@ -5,7 +5,7 @@ import io
 import os
 import sys
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -64,7 +64,7 @@ setup(
     author_email='buzzi.javier@gmail.com',
     url='https://github.com/kingbuzzman/django-squashing',
     license='MIT License',
-    packages=['django_squash'],
+    packages=find_packages(exclude=['tests*']),
     platforms=['any'],
     zip_safe=True,
     python_requires='!=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
