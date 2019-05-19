@@ -11,7 +11,7 @@ from django.db import DEFAULT_DB_ALIAS, connection, connections, router
 from django.db.migrations import Migration as MigrationBase
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 from django.db.migrations.graph import MigrationGraph
-from django.db.migrations.loader import MigrationLoader as MigrationLoaderBase
+from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.questioner import (
     InteractiveMigrationQuestioner, MigrationQuestioner,
     NonInteractiveMigrationQuestioner as NonInteractiveMigrationQuestionerBase,
@@ -21,17 +21,7 @@ from django.db.migrations.utils import get_migration_name_timestamp
 from django.db.migrations.writer import MigrationWriter
 
 
-class MigrationLoader(MigrationLoaderBase):
-    pass
-    # def load_disk(self):
-    #     """Load the migrations from all INSTALLED_APPS from disk."""
-    #     self.disk_migrations = {}
-    #     self.unmigrated_apps = set()
-    #     self.migrated_apps = set()
-
 class Migration(MigrationBase):
-    # def __repr__(self):
-    #     return (self.app_label, self.name)
 
     def __getitem__(self, index):
         return (self.app_label, self.name)[index]
@@ -47,17 +37,24 @@ class Migration(MigrationBase):
 
 
 class SquashMigrationAutodetector(MigrationAutodetectorBase):
-    # pass
 
     def replace_current_migrations(self, graph, changes):
+        """
+        Adds 'replaces' to the squash migrations with all the current apps we have.
+        """
         migrations_by_app = defaultdict(list)
         for app, migration in graph.node_map:
             migrations_by_app[app].append((app, migration))
 
         for app, migrations in changes.items():
-            migrations[0].replaces = migrations_by_app[app]
+            for migration in migrations:
+                # TODO: maybe use use a proper order???
+                migration.replaces = sorted(migrations_by_app[app])
 
     def rename_migrations(self, graph, changes, migration_name=None):
+        """
+        Continues the numbering from whats there now.
+        """
         current_counters_by_app = defaultdict(int)
         for app, migration in graph.node_map:
             current_counters_by_app[app] = max([int(migration[:4]), current_counters_by_app[app]])
@@ -72,7 +69,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
     def _detect_changes(self, convert_apps=None, graph=None):
         """
-        Swap django.db.migrations.Migration with a custom one that has a __iter__
+        Swap django.db.migrations.Migration with a custom one that behaves like a tuple.
         """
         super()._detect_changes(convert_apps=convert_apps, graph=graph)
 
@@ -96,10 +93,9 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         return self.migrations
 
     def squash(self, graph, trim_to_apps=None, convert_apps=None, migration_name=None):
-        new_graph = MigrationGraph()
-        # import ipdb; ipdb.set_trace()
+        new_graph = MigrationGraph()  # Don't care what the tree is, we want a blank slate
         changes = super().changes(new_graph, trim_to_apps, convert_apps, migration_name)
-        # import ipdb; ipdb.set_trace()
+
         self.rename_migrations(graph, changes, migration_name)
         self.replace_current_migrations(graph, changes)
 
@@ -143,9 +139,7 @@ class Command(BaseCommand):
         questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
         # Set up autodetector
         autodetector = SquashMigrationAutodetector(
-            # loader.project_state(),
             ProjectState(),
-            # ProjectState.from_apps(apps),
             ProjectState.from_apps(apps),
             questioner,
         )
@@ -156,7 +150,6 @@ class Command(BaseCommand):
             migration_name=self.migration_name,
         )
 
-        import ipdb; ipdb.set_trace()
         MakeMigrationsCommand.write_migration_files(self, changes)
 
 

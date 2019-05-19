@@ -1,3 +1,4 @@
+import importlib.util
 import io
 import os
 import shutil
@@ -69,20 +70,16 @@ class MigrationTestBase(TransactionTestCase):
                     yield target_migrations_dir
 
 
+def load_migration_module(path):
+    spec = importlib.util.spec_from_file_location("__module__", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class MigrationTest(MigrationTestBase):
     available_apps = ['app', 'app2', 'django_squash']
-    # databases = {'default'}
 
-    # @override_settings(MIGRATION_MODULES={'app': 'app.test_simple_migrations'})
-    # def test_normal_migration(self):
-    #     # No tables are created
-    #     self.assertTableNotExists('app_person')
-    #
-    #     stdout = io.StringIO()
-    #     call_command('migrate', 'app', verbosity=1, stdout=stdout, no_color=True)
-    #     self.assertTableExists('app_person')
-
-    # @override_settings(MIGRATION_MODULES={'app': 'app.test_simple_migrations'})
     def test_squashing_migration_simple(self):
         class Person(models.Model):
             name = models.CharField(max_length=10)
@@ -115,6 +112,14 @@ class MigrationTest(MigrationTestBase):
             files_in_app2 = os.listdir(migration_app2_dir)
             self.assertIn('0004_squashed.py', files_in_app)
             self.assertIn('0002_squashed.py', files_in_app2)
+
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+            app2_squash = load_migration_module(os.path.join(migration_app2_dir, '0002_squashed.py'))
+
+            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'), ('app', '0002_person_age'),
+                                                             ('app', '0003_auto_20190518_1524')])
+
+            self.assertEqual(app2_squash.Migration.replaces, [('app2', '0001_initial')])
 
 
         # with self.temporary_migration_module(module="app.test_empty", app_label='app') as xx, \
