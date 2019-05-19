@@ -80,6 +80,35 @@ def load_migration_module(path):
 class SquashMigrationTest(MigrationTestBase):
     available_apps = ['app', 'app2', 'django_squash']
 
+    def test_squashing_elidable_migration_simple(self):
+        class Person(models.Model):
+            name = models.CharField(max_length=10)
+            dob = models.DateField()
+
+            class Meta:
+                app_label = "app"
+
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_elidable_migrations", app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+            files_in_app = os.listdir(migration_app_dir)
+            self.assertIn('0004_squashed.py', files_in_app)
+            print()
+            print(open(os.path.join(migration_app_dir, '0004_squashed.py')).read())
+            # import ipdb; ipdb.set_trace()
+
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+
+            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
+                                                             ('app', '0002_person_age'),
+                                                             ('app', '0003_add_dob')])
+
+            actual = ['%s(%s)' % (type(x).__name__, getattr(x, 'code', object).__name__)
+                      for x in app_squash.Migration.operations]
+            self.assertEqual(actual, ['CreateModel(object)', 'RunPython(create_admin_MUST_ALWAYS_EXIST)'])
+
     def test_squashing_migration_simple(self):
         class Person(models.Model):
             name = models.CharField(max_length=10)
@@ -116,7 +145,8 @@ class SquashMigrationTest(MigrationTestBase):
             app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
             app2_squash = load_migration_module(os.path.join(migration_app2_dir, '0002_squashed.py'))
 
-            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'), ('app', '0002_person_age'),
+            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
+                                                             ('app', '0002_person_age'),
                                                              ('app', '0003_auto_20190518_1524')])
 
             self.assertEqual(app2_squash.Migration.replaces, [('app2', '0001_initial')])
@@ -132,5 +162,5 @@ class SquashMigrationTest(MigrationTestBase):
         out = io.StringIO()
         patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
         catch_error = self.assertRaisesMessage(CommandError, "There are no migrations to squash.")
-        with patch_app_migrations as migration_app_dir, catch_error:
+        with patch_app_migrations, catch_error:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
