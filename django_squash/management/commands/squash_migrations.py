@@ -1,17 +1,20 @@
 import os
 import sys
+from collections import defaultdict
 from itertools import takewhile
 
 from django.apps import apps
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError, no_translations
+from django.core.management.commands.makemigrations import Command as MakeMigrationsCommand
 from django.db import DEFAULT_DB_ALIAS, connection, connections, router
-from django.db.migrations import Migration
+from django.db.migrations import Migration as MigrationBase
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 from django.db.migrations.graph import MigrationGraph
 from django.db.migrations.loader import MigrationLoader as MigrationLoaderBase
 from django.db.migrations.questioner import (
-    InteractiveMigrationQuestioner, MigrationQuestioner, NonInteractiveMigrationQuestioner,
+    InteractiveMigrationQuestioner, MigrationQuestioner,
+    NonInteractiveMigrationQuestioner as NonInteractiveMigrationQuestionerBase,
 )
 from django.db.migrations.state import ProjectState
 from django.db.migrations.utils import get_migration_name_timestamp
@@ -20,18 +23,92 @@ from django.db.migrations.writer import MigrationWriter
 
 class MigrationLoader(MigrationLoaderBase):
     pass
-    def load_disk(self):
-        """Load the migrations from all INSTALLED_APPS from disk."""
-        self.disk_migrations = {}
-        self.unmigrated_apps = set()
-        self.migrated_apps = set()
+    # def load_disk(self):
+    #     """Load the migrations from all INSTALLED_APPS from disk."""
+    #     self.disk_migrations = {}
+    #     self.unmigrated_apps = set()
+    #     self.migrated_apps = set()
 
-class MigrationAutodetector(MigrationAutodetectorBase):
-    pass
+class Migration(MigrationBase):
+    # def __repr__(self):
+    #     return (self.app_label, self.name)
+
+    def __getitem__(self, index):
+        return (self.app_label, self.name)[index]
+
+    def __iter__(self):
+        yield from (self.app_label, self.name)
+
+    @classmethod
+    def from_migration(cls, migration):
+        new = Migration(name=migration.name, app_label=migration.app_label)
+        new.__dict__ = migration.__dict__.copy()
+        return new
+
+
+class SquashMigrationAutodetector(MigrationAutodetectorBase):
+    # pass
+
+    def replace_current_migrations(self, graph, changes):
+        migrations_by_app = defaultdict(list)
+        for app, migration in graph.node_map:
+            migrations_by_app[app].append((app, migration))
+
+        for app, migrations in changes.items():
+            migrations[0].replaces = migrations_by_app[app]
+
+    def rename_migrations(self, graph, changes, migration_name=None):
+        current_counters_by_app = defaultdict(int)
+        for app, migration in graph.node_map:
+            current_counters_by_app[app] = max([int(migration[:4]), current_counters_by_app[app]])
+
+        for app, migrations in changes.items():
+            for migration in migrations:
+                next_number = current_counters_by_app[app] + 1
+                migration.name = "%04i_%s" % (
+                    next_number,
+                    migration_name or 'squashed',
+                )
+
+    def _detect_changes(self, convert_apps=None, graph=None):
+        """
+        Swap django.db.migrations.Migration with a custom one that has a __iter__
+        """
+        super()._detect_changes(convert_apps=convert_apps, graph=graph)
+
+        # First pass, swapping the objects
+        migrations_by_name = {}
+        for key in self.migrations:
+            new_migrations = []
+            for migration in self.migrations[key]:
+                new_migration = Migration.from_migration(migration)
+                new_migrations.append(new_migration)
+                migrations_by_name.setdefault(tuple(new_migration), new_migration)
+            self.migrations[key] = new_migrations
+
+        # Second pass, replace the tuples with the newly created objects
+        for migration in migrations_by_name.values():
+            new_dependencies = []
+            for dependency in migration.dependencies:
+                new_dependencies.append(migrations_by_name[dependency])
+            migration.dependencies = new_dependencies
+
+        return self.migrations
 
     def squash(self, graph, trim_to_apps=None, convert_apps=None, migration_name=None):
-        changes = super().changes(graph, trim_to_apps, convert_apps, migration_name)
+        new_graph = MigrationGraph()
+        # import ipdb; ipdb.set_trace()
+        changes = super().changes(new_graph, trim_to_apps, convert_apps, migration_name)
+        # import ipdb; ipdb.set_trace()
+        self.rename_migrations(graph, changes, migration_name)
+        self.replace_current_migrations(graph, changes)
+
         return changes
+
+class NonInteractiveMigrationQuestioner(NonInteractiveMigrationQuestionerBase):
+    def ask_initial(self, *args, **kwargs):
+        # Ensures that the 0001_initial will always be generated
+        return True
 
 
 class Command(BaseCommand):
@@ -43,6 +120,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *app_labels, **kwargs):
+        self.verbosity = 1
+        self.include_header = False
+        self.dry_run = False
+
         # Make sure the app they asked for exists
         app_labels = set(app_labels)
         has_bad_labels = False
@@ -61,7 +142,7 @@ class Command(BaseCommand):
 
         questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
         # Set up autodetector
-        autodetector = MigrationAutodetector(
+        autodetector = SquashMigrationAutodetector(
             # loader.project_state(),
             ProjectState(),
             # ProjectState.from_apps(apps),
@@ -74,7 +155,9 @@ class Command(BaseCommand):
             convert_apps=app_labels or None,
             migration_name=self.migration_name,
         )
+
         import ipdb; ipdb.set_trace()
+        MakeMigrationsCommand.write_migration_files(self, changes)
 
 
 #

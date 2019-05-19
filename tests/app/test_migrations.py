@@ -83,7 +83,7 @@ class MigrationTest(MigrationTestBase):
     #     self.assertTableExists('app_person')
 
     # @override_settings(MIGRATION_MODULES={'app': 'app.test_simple_migrations'})
-    def test_squashing_migration(self):
+    def test_squashing_migration_simple(self):
         class Person(models.Model):
             name = models.CharField(max_length=10)
             dob = models.DateField()
@@ -92,20 +92,32 @@ class MigrationTest(MigrationTestBase):
             class Meta:
                 app_label = "app"
 
-        # class Address(models.Model):
-        #     person = models.ForeignKey('app.Person', on_delete=models.deletion.CASCADE)
-        #     address1 = models.CharField(max_length=100)
-        #     address2 = models.CharField(max_length=100)
-        #     city = models.CharField(max_length=50)
-        #     postal_code = models.CharField(max_length=50)
-        #     province = models.CharField(max_length=50)
-        #     country = models.CharField(max_length=50)
-        #
-        #     class Meta:
-        #         app_label = "app2"
+        class Address(models.Model):
+            person = models.ForeignKey('app.Person', on_delete=models.deletion.CASCADE)
+            address1 = models.CharField(max_length=100)
+            address2 = models.CharField(max_length=100)
+            city = models.CharField(max_length=50)
+            postal_code = models.CharField(max_length=50)
+            province = models.CharField(max_length=50)
+            country = models.CharField(max_length=50)
+
+            class Meta:
+                app_label = "app2"
 
         out = io.StringIO()
-        with self.temporary_migration_module(module="app.test_simple_migrations", app_label='app') as xx: #, \
-             # self.temporary_migration_module(module="app2.test_foreignKey_migrations", app_label='app2', join=True) as yy:
-            # call_command("makemigrations", "app", interactive=False, stdout=out)
+        patch_app_migrations = self.temporary_migration_module(module="app.test_simple_migrations", app_label='app')
+        patch_app2_migrations = self.temporary_migration_module(module="app2.test_foreignKey_migrations",
+                                                                app_label='app2', join=True)
+        with patch_app_migrations as migration_app_dir, patch_app2_migrations as migration_app2_dir:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+            files_in_app = os.listdir(migration_app_dir)
+            files_in_app2 = os.listdir(migration_app2_dir)
+            self.assertIn('0004_squashed.py', files_in_app)
+            self.assertIn('0002_squashed.py', files_in_app2)
+
+
+        # with self.temporary_migration_module(module="app.test_empty", app_label='app') as xx, \
+        #      self.temporary_migration_module(module="app2.test_empty", app_label='app2', join=True) as yy:
+        #     # call_command("makemigrations", "app", interactive=False, stdout=out)
+        #     call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
