@@ -11,17 +11,21 @@ from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.db import connections, models
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import TransactionTestCase
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
 
 
 class MigrationTestBase(TransactionTestCase):
+    """
+    Partial copy from the django source, can't subclass it
+    https://github.com/django/django/blob/b9cf764be62e77b4777b3a75ec256f6209a57671/tests/migrations/test_base.py#L15  # noqa
+    """
 
     def tearDown(self):
         # Reset applied-migrations state.
         for db in connections:
-            recorder = MigrationRecorder(connections[db])
+            recorder = MigrationRecorder(connections[db])  # noqa
 
     def assertTableExists(self, table, using='default'):
         with connections[using].cursor() as cursor:
@@ -95,9 +99,6 @@ class SquashMigrationTest(MigrationTestBase):
 
             files_in_app = os.listdir(migration_app_dir)
             self.assertIn('0004_squashed.py', files_in_app)
-            print()
-            print(open(os.path.join(migration_app_dir, '0004_squashed.py')).read())
-            # import ipdb; ipdb.set_trace()
 
             app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
 
