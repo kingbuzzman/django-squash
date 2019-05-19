@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from django import get_version
 from django.apps import apps
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import migrations as migration_module
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
@@ -236,9 +237,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 module = sys.modules[migration.__module__]
                 imports.extend(get_imports(module))
                 for operation in all_custom_operations(migration.operations):
-                    operation.code = copy_func(operation.code)
-                    # TODO: get a better name?
-                    operation.code.__module__ = 'DELETEMEPLEASE'
+                    if isinstance(operation, migration_module.RunPython):
+                        operation.code = copy_func(operation.code)
+                        # TODO: get a better name?
+                        operation.code.__module__ = 'DELETEMEPLEASE'
                     operations.append(operation)
 
             migration = changes[app][-1]
@@ -282,7 +284,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         # First pass, swapping the objects
         migrations_by_name = {}
-        for key in self.migrations:
+        for key in self.migrations.keys():
             new_migrations = []
             for migration in self.migrations[key]:
                 new_migration = Migration.from_migration(migration)
@@ -294,6 +296,9 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         for migration in migrations_by_name.values():
             new_dependencies = []
             for dependency in migration.dependencies:
+                if dependency[0] == "__setting__":
+                    dependency = getattr(settings, dependency[1]).split('.')[0], 'auto_1'
+                migration = migrations_by_name[dependency]
                 new_dependencies.append(migrations_by_name[dependency])
             migration.dependencies = new_dependencies
 
