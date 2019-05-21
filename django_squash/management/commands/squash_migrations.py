@@ -1,6 +1,7 @@
 import itertools
 import os
 import sys
+import inspect
 
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
@@ -10,6 +11,15 @@ from django.db.migrations.state import ProjectState
 from .lib.autodetector import SquashMigrationAutodetector
 from .lib.questioner import NonInteractiveMigrationQuestioner
 from .lib.writer import MigrationWriter
+from .lib.loader import SquashMigrationLoader
+
+from django.db.migrations.loader import MigrationLoader
+from django.apps import apps
+import os
+import inspect, copy
+import tempfile
+from contextlib import ExitStack
+from django.conf import settings
 
 
 class Command(BaseCommand):
@@ -46,22 +56,76 @@ class Command(BaseCommand):
 
         self.migration_name = ''
 
-        loader = MigrationLoader(None, ignore_no_migrations=True)
+        # loader = SquashMigrationLoader(None, ignore_no_migrations=True)
+        #
+        # # project_path = os.path.abspath(os.curdir)
+        # #
+        # # def strip_nodes(nodes):
+        # #     data = {}
+        # #     for model_name, value in nodes.items():
+        # #         module = apps.get_model(*model_name)._meta.app_config.module
+        # #         app_path = inspect.getsourcefile(module)
+        # #         if not app_path.startswith(project_path):
+        # #             data[model_name] = value
+        # #     return data
+        # #
+        # # real_state = loader.project_state()
+        # #
+        # # import ipdb; ipdb.set_trace()
+        # #
+        # # from_state = ProjectState()
+        # # from_state.models = strip_nodes(real_state.models)
+        # # from_state.real_apps = real_state.real_apps
+        # import ipdb; ipdb.set_trace()
+        #
+        # questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
+        # # Set up autodetector
+        # autodetector = SquashMigrationAutodetector(
+        #     loader.project_state(),
+        #     ProjectState.from_apps(apps),
+        #     questioner,
+        # )
+        #
+        # changes = autodetector.squash(
+        #     loader=loader,
+        #     trim_to_apps=app_labels or None,
+        #     convert_apps=app_labels or None,
+        #     migration_name=self.migration_name,
+        # )
 
-        questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
-        # Set up autodetector
-        autodetector = SquashMigrationAutodetector(
-            ProjectState(),
-            ProjectState.from_apps(apps),
-            questioner,
-        )
+        project_path = os.path.abspath(os.curdir)
+        original_migration_modules = settings.MIGRATION_MODULES.copy()
 
-        changes = autodetector.squash(
-            loader=loader,
-            trim_to_apps=app_labels or None,
-            convert_apps=app_labels or None,
-            migration_name=self.migration_name,
-        )
+        with ExitStack() as stack:
+            for app_config in apps.get_app_configs():
+                module = app_config.module
+                app_path = inspect.getsourcefile(module)
+                if app_path.startswith(project_path):
+                    temp_dir = stack.enter_context(tempfile.TemporaryDirectory())
+                    settings.MIGRATION_MODULES[app_config.label] = temp_dir
+                    # # If there is no __init__.py django refuses to pick it up or even attempt to write to it.
+                    # open(os.path.join(temp_dir, '__init__.py'), 'a').close()
+
+            loader = SquashMigrationLoader(None, ignore_no_migrations=True)
+
+            questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
+            # Set up autodetector
+            autodetector = SquashMigrationAutodetector(
+                loader.project_state(),
+                ProjectState.from_apps(apps),
+                questioner,
+            )
+
+            changes = autodetector.squash(
+                loader=loader,
+                trim_to_apps=app_labels or None,
+                convert_apps=app_labels or None,
+                migration_name=self.migration_name,
+            )
+
+        import ipdb; ipdb.set_trace()
+
+        settings.MIGRATION_MODULES = original_migration_modules
 
         replacing_migrations = 0
         for migration in itertools.chain.from_iterable(changes.values()):

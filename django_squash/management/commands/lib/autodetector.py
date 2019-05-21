@@ -155,24 +155,27 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         return self.migrations
 
     def squash(self, loader, trim_to_apps=None, convert_apps=None, migration_name=None):
-        project_path = os.path.abspath(os.curdir)
-        new_graph = MigrationGraph()  # Don't care what the tree is, we want a blank slate
+        # project_path = os.path.abspath(os.curdir)
+        # new_graph = MigrationGraph()  # Don't care what the tree is, we want a blank slate
 
-        def strip_nodes(nodes):
-            data = {}
-            for key, value in nodes.items():
-                module = apps.get_app_config(key[0]).module
-                app_path = inspect.getsourcefile(module)
-                if not app_path.startswith(project_path):
-                    data[key] = value
-            return data
+        # def strip_nodes(nodes):
+        #     data = {}
+        #     for key, value in nodes.items():
+        #         module = apps.get_app_config(key[0]).module
+        #         app_path = inspect.getsourcefile(module)
+        #         if not app_path.startswith(project_path):
+        #             data[key] = value
+        #     return data
+        #
+        # new_graph.nodes = strip_nodes(loader.graph.nodes)
+        # new_graph.node_map = strip_nodes(loader.graph.node_map)
+        #
+        # import ipdb; ipdb.set_trace()
 
-        new_graph.nodes = strip_nodes(loader.graph.nodes)
-        new_graph.node_map = strip_nodes(loader.graph.node_map)
-
-        changes = super().changes(new_graph, trim_to_apps, convert_apps, migration_name)
-
+        # changes2 = super().changes(loader.graph, trim_to_apps, convert_apps, migration_name)
         graph = loader.graph
+        import ipdb; ipdb.set_trace()
+        changes = super().changes(graph, trim_to_apps, convert_apps, migration_name)
 
         self.rename_migrations(graph, changes, migration_name)
         self.replace_current_migrations(graph, changes)
