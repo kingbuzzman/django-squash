@@ -99,9 +99,11 @@ class Command(BaseCommand):
         with ExitStack() as stack:
             for app_config in apps.get_app_configs():
                 module = app_config.module
-                app_path = inspect.getsourcefile(module)
+                app_path = os.path.dirname(inspect.getsourcefile(module))
+
                 if app_path.startswith(project_path):
-                    temp_dir = stack.enter_context(tempfile.TemporaryDirectory())
+                    temp_dir = stack.enter_context(tempfile.TemporaryDirectory(prefix='migrations_', dir=app_path))
+                    import ipdb; print("\a"); ipdb.sset_trace()
                     settings.MIGRATION_MODULES[app_config.label] = temp_dir
                     # # If there is no __init__.py django refuses to pick it up or even attempt to write to it.
                     # open(os.path.join(temp_dir, '__init__.py'), 'a').close()
