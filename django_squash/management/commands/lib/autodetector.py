@@ -174,7 +174,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         # changes2 = super().changes(loader.graph, trim_to_apps, convert_apps, migration_name)
         graph = loader.graph
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         changes = super().changes(graph, trim_to_apps, convert_apps, migration_name)
 
         self.rename_migrations(graph, changes, migration_name)
