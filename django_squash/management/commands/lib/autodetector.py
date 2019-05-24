@@ -117,7 +117,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         for app, migrations in changes.items():
             for migration in migrations:
-                next_number = current_counters_by_app[app] + 1
+                next_number = current_counters_by_app[app] = current_counters_by_app[app] + 1
                 migration.name = "%04i_%s" % (
                     next_number,
                     migration_name or 'squashed',
@@ -152,7 +152,9 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             new_dependencies = []
             for dependency in migration.dependencies:
                 if dependency[0] == "__setting__":
-                    dependency = getattr(settings, dependency[1]).split('.')[0], 'auto_1'
+                    app_label = getattr(settings, dependency[1]).split('.')[0]
+                    migrations = [migration for (app, _), migration in migrations_by_name.items() if app == app_label]
+                    dependency = tuple(migrations[-1])
                 elif dependency[1] == "__first__":
                     dependency = original.graph.root_nodes(dependency[0])[0]
                 elif dependency[1] == "__latest__":
