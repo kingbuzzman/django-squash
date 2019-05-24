@@ -74,8 +74,8 @@ def copy_func(f, name=None):
 
 class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
-    def add_non_elidables(self, loader, changes):
-        replacing_migrations_by_app = {app: [loader.disk_migrations[r]
+    def add_non_elidables(self, original, loader, changes):
+        replacing_migrations_by_app = {app: [original.disk_migrations[r]
                                              for r in itertools.chain.from_iterable([m.replaces for m in migrations])]
                                        for app, migrations in changes.items()}
 
@@ -97,12 +97,12 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             migration.operations += operations
             migration.extra_imports = imports
 
-    def replace_current_migrations(self, graph, changes):
+    def replace_current_migrations(self, original, graph, changes):
         """
         Adds 'replaces' to the squash migrations with all the current apps we have.
         """
         migrations_by_app = defaultdict(list)
-        for app, migration in graph.node_map:
+        for app, migration in original.graph.node_map:
             migrations_by_app[app].append((app, migration))
 
         for app, migrations in changes.items():
@@ -110,12 +110,12 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 # TODO: maybe use use a proper order???
                 migration.replaces = sorted(migrations_by_app[app])
 
-    def rename_migrations(self, graph, changes, migration_name=None):
+    def rename_migrations(self, original, graph, changes, migration_name=None):
         """
         Continues the numbering from whats there now.
         """
         current_counters_by_app = defaultdict(int)
-        for app, migration in graph.node_map:
+        for app, migration in original.graph.node_map:
             current_counters_by_app[app] = max([int(migration[:4]), current_counters_by_app[app]])
 
         for app, migrations in changes.items():
@@ -154,7 +154,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         return self.migrations
 
-    def squash(self, loader, trim_to_apps=None, convert_apps=None, migration_name=None):
+    def squash(self, original, loader, trim_to_apps=None, convert_apps=None, migration_name=None):
         # project_path = os.path.abspath(os.curdir)
         # new_graph = MigrationGraph()  # Don't care what the tree is, we want a blank slate
 
@@ -177,8 +177,8 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         # import ipdb; ipdb.set_trace()
         changes = super().changes(graph, trim_to_apps, convert_apps, migration_name)
 
-        self.rename_migrations(graph, changes, migration_name)
-        self.replace_current_migrations(graph, changes)
-        self.add_non_elidables(loader, changes)
+        self.rename_migrations(original, graph, changes, migration_name)
+        self.replace_current_migrations(original, graph, changes)
+        self.add_non_elidables(original, loader, changes)
 
         return changes

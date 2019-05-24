@@ -100,6 +100,22 @@ class Command(BaseCommand):
 
         questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
 
+        loader = MigrationLoader(None, ignore_no_migrations=True)
+
+        # Set up autodetector
+        autodetector = MigrationAutodetector(
+            loader.project_state(),
+            ProjectState.from_apps(apps),
+            questioner,
+        )
+
+        # changes = autodetector.changes(
+        #     loader.graph,
+        #     trim_to_apps=app_labels or None,
+        #     convert_apps=app_labels or None,
+        #     migration_name=self.migration_name,
+        # )
+
         with ExitStack() as stack:
             for app_config in apps.get_app_configs():
                 module = app_config.module
@@ -121,6 +137,7 @@ class Command(BaseCommand):
             )
 
             squashed_changes = autodetector.squash(
+                original=loader,
                 loader=squash_loader,
                 trim_to_apps=app_labels or None,
                 convert_apps=app_labels or None,
@@ -129,34 +146,19 @@ class Command(BaseCommand):
 
         settings.MIGRATION_MODULES = original_migration_modules
 
-        loader = MigrationLoader(None, ignore_no_migrations=True)
-
-        # Set up autodetector
-        autodetector = MigrationAutodetector(
-            loader.project_state(),
-            ProjectState.from_apps(apps),
-            questioner,
-        )
-
-        changes = autodetector.changes(
-            loader.graph,
-            trim_to_apps=app_labels or None,
-            convert_apps=app_labels or None,
-            migration_name=self.migration_name,
-        )
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
         replacing_migrations = 0
 
-        for migration in itertools.groupby(loader.disk_migrations, lambda x: x):
+        # for migration in itertools.groupby(loader.disk_migrations, lambda x: x):
 
-        for migration in itertools.chain.from_iterable(changes.values()):
+        for migration in itertools.chain.from_iterable(squashed_changes.values()):
             replacing_migrations += len(migration.replaces)
 
         if not replacing_migrations:
             raise CommandError("There are no migrations to squash.")
 
-        self.write_migration_files(changes)
+        self.write_migration_files(squashed_changes)
 
     def write_migration_files(self, changes):
         """
