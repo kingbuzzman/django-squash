@@ -1,17 +1,14 @@
-import inspect
 import itertools
 import os
 import sys
-import tempfile
-from contextlib import ExitStack
 
 from django.apps import apps
-from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
 from .lib.autodetector import SquashMigrationAutodetector
+from .lib.loader import SquashMigrationLoader
 from .lib.questioner import NonInteractiveMigrationQuestioner
 from .lib.writer import MigrationWriter
 
@@ -50,50 +47,28 @@ class Command(BaseCommand):
 
         self.migration_name = ''
 
-        project_path = os.path.abspath(os.curdir)
-        original_migration_modules = settings.MIGRATION_MODULES.copy()
-
         questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
 
         loader = MigrationLoader(None, ignore_no_migrations=True)
+        squash_loader = SquashMigrationLoader(None, ignore_no_migrations=True)
 
-        with ExitStack() as stack:
-            # Find each app that belongs to the user and are not in the site-packages. Create a fake temporary
-            # directory inside each app that will tell django we don't have any migrations at all.
-            for app_config in apps.get_app_configs():
-                module = app_config.module
-                app_path = os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
+        # Set up autodetector
+        autodetector = SquashMigrationAutodetector(
+            squash_loader.project_state(),
+            ProjectState.from_apps(apps),
+            questioner,
+        )
 
-                if app_config.models and app_path.startswith(project_path):
-                    temp_dir = stack.enter_context(tempfile.TemporaryDirectory(prefix='migrations_', dir=app_path))
-                    settings.MIGRATION_MODULES[app_config.label] = '%s.%s' % (app_config.module.__name__,
-                                                                              os.path.basename(temp_dir))
+        squashed_changes = autodetector.squash(
+            real_loader=loader,
+            squash_loader=squash_loader,
+            trim_to_apps=app_labels or None,
+            convert_apps=app_labels or None,
+            migration_name=self.migration_name,
+        )
 
-            squash_loader = MigrationLoader(None, ignore_no_migrations=True)
-
-            # Set up autodetector
-            autodetector = SquashMigrationAutodetector(
-                squash_loader.project_state(),
-                ProjectState.from_apps(apps),
-                questioner,
-            )
-
-            squashed_changes = autodetector.squash(
-                real_loader=loader,
-                squash_loader=squash_loader,
-                trim_to_apps=app_labels or None,
-                convert_apps=app_labels or None,
-                migration_name=self.migration_name,
-            )
-
-        settings.MIGRATION_MODULES = original_migration_modules
-
-        # import ipdb; ipdb.set_trace()
 
         replacing_migrations = 0
-
-        # for migration in itertools.groupby(loader.disk_migrations, lambda x: x):
-
         for migration in itertools.chain.from_iterable(squashed_changes.values()):
             replacing_migrations += len(migration.replaces)
 
