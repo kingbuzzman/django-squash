@@ -153,6 +153,11 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             for dependency in migration.dependencies:
                 if dependency[0] == "__setting__":
                     dependency = getattr(settings, dependency[1]).split('.')[0], 'auto_1'
+                elif dependency[1] == "__first__":
+                    dependency = original.graph.root_nodes(dependency[0])[0]
+                elif dependency[1] == "__latest__":
+                    dependency = original.graph.leaf_nodes(dependency[0])[0]
+
                 new_dependencies.append(migrations_by_name[dependency])
             migration.dependencies = new_dependencies
 
