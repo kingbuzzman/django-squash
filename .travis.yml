@@ -1,7 +1,6 @@
 language: python
 python:
-  - "3.6"
-install:
+  - "3.7
   - pip install -e '.[test]'
 script:
   - python setup.py test
