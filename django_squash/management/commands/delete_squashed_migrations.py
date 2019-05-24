@@ -70,6 +70,10 @@ def remove_old_migration_replace(migration_module):
         f.write('\n'.join(output) + '\n')
 
 
+def source_directory(module):
+    return os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
+
+
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
@@ -101,11 +105,12 @@ class Command(BaseCommand):
         loader = MigrationLoader(None, ignore_no_migrations=True)
 
         project_path = os.path.abspath(os.curdir)
+        project_apps = [app.label for app in apps.get_app_configs()
+                        if source_directory(app.module).startswith(project_path) and
+                        app.label not in kwargs['exclude_apps']]
 
         real_migrations = (loader.disk_migrations[key] for key in loader.graph.node_map.keys())
-        project_migrations = [migration for migration in real_migrations
-                              if inspect.getsourcefile(migration.__class__).startswith(project_path) and
-                              migration.app_label not in kwargs['exclude_apps']]
+        project_migrations = [migration for migration in real_migrations if migration.app_label in project_apps]
         replaced_migrations = [migration for migration in project_migrations if migration.replaces]
         migrations_to_delete = set([inspect.getsourcefile(loader.disk_migrations[y].__class__)
                                     for x in replaced_migrations for y in x.replaces])

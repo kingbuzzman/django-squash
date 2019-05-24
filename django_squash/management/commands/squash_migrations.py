@@ -67,7 +67,6 @@ class Command(BaseCommand):
             migration_name=self.migration_name,
         )
 
-
         replacing_migrations = 0
         for migration in itertools.chain.from_iterable(squashed_changes.values()):
             replacing_migrations += len(migration.replaces)
