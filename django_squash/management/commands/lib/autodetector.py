@@ -123,38 +123,44 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                     migration_name or 'squashed',
                 )
 
-    def _detect_changes(self, convert_apps=None, graph=None):
+    def convert_migration_references_to_objects(self, original, graph, changes):
         """
-        Swap django.db.migrations.Migration with a custom one that behaves like a tuple.
+        Swap django.db.migrations.Migration with a custom one that behaves like a tuple when read, but is still an
+        object for the purpose of easy renames.
         """
-        super()._detect_changes(convert_apps=convert_apps, graph=graph)
-
-        # First pass, swapping the objects
         migrations_by_name = {}
-        for key in self.migrations.keys():
+        # First pass, swapping existing migration objects
+        for (app, _), migrations in itertools.groupby(original.disk_migrations.items(), lambda x: x[0]):
+            for _, migration in migrations:
+                new_migration = Migration.from_migration(migration)
+                migrations_by_name.setdefault(tuple(new_migration), new_migration)
+
+        # Second pass, swapping new objects
+        for key in changes.keys():
             new_migrations = []
             for migration in self.migrations[key]:
-                new_migration = Migration.from_migration(migration)
+                migration_id = migration.app_label, migration.name
+                new_migration = migrations_by_name.get(migration_id)
+                if not new_migration:
+                    new_migration = Migration.from_migration(migration)
+                    migrations_by_name.setdefault(migration_id, new_migration)
                 new_migrations.append(new_migration)
-                migrations_by_name.setdefault(tuple(new_migration), new_migration)
-            self.migrations[key] = new_migrations
+            changes[key] = new_migrations
 
-        # Second pass, replace the tuples with the newly created objects
+        # Third pass, replace the tuples with the newly created objects
         for migration in migrations_by_name.values():
             new_dependencies = []
             for dependency in migration.dependencies:
                 if dependency[0] == "__setting__":
                     dependency = getattr(settings, dependency[1]).split('.')[0], 'auto_1'
-                migration = migrations_by_name[dependency]
                 new_dependencies.append(migrations_by_name[dependency])
             migration.dependencies = new_dependencies
-
-        return self.migrations
 
     def squash(self, real_loader, squash_loader, trim_to_apps=None, convert_apps=None, migration_name=None):
         graph = squash_loader.graph
         changes = super().changes(graph, trim_to_apps, convert_apps, migration_name)
 
+        self.convert_migration_references_to_objects(real_loader, graph, changes)
         self.rename_migrations(real_loader, graph, changes, migration_name)
         self.replace_current_migrations(real_loader, graph, changes)
         self.add_non_elidables(real_loader, squash_loader, changes)
