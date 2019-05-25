@@ -4,3 +4,5 @@ __pycache__
 *.sqlite3
 .eggs
 .coverage
+build
+dist
