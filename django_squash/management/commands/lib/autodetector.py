@@ -9,6 +9,8 @@ from django.conf import settings
 from django.db import migrations as migration_module
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
+from .operators import RunPython, RunSQL
+
 
 class Migration(migration_module.Migration):
 
@@ -34,8 +36,10 @@ def all_custom_operations(operations):
         if operation.elidable:
             continue
 
-        if isinstance(operation, migration_module.RunSQL) or isinstance(operation, migration_module.RunPython):
-            yield operation
+        if isinstance(operation, migration_module.RunSQL):
+            yield RunSQL.from_operation(operation)
+        elif isinstance(operation, migration_module.RunPython):
+            yield RunPython.from_operation(operation)
         elif isinstance(operation, migration_module.SeparateDatabaseAndState):
             yield from all_custom_operations(operation.state_operations)
             # Just in case we added something in here incorrectly
@@ -86,8 +90,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 for operation in all_custom_operations(migration.operations):
                     if isinstance(operation, migration_module.RunPython):
                         operation.code = copy_func(operation.code)
-                        # TODO: get a better name?
-                        operation.code.__module__ = 'DELETEMEPLEASE'
+                        operation.code.__module__ = 'DELETEMEPLEASE'  # TODO: get a better name?
+                        if operation.reverse_code:
+                            operation.reverse_code = copy_func(operation.reverse_code)
+                            operation.reverse_code.__module__ = 'DELETEMEPLEASE'  # TODO: get a better name?
                     operations.append(operation)
 
             migration = changes[app][-1]

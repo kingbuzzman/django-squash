@@ -9,7 +9,7 @@ from importlib import import_module
 from django.apps import apps
 from django.conf import settings
 from django.core.management import CommandError, call_command
-from django.db import connections, models
+from django.db import connections, migrations as migrations_module, models
 from django.db.migrations.recorder import MigrationRecorder
 from django.test import TransactionTestCase
 from django.test.utils import extend_sys_path
@@ -118,6 +118,19 @@ class DeleteSquashMigrationTest(MigrationTestBase):
             self.assertEqual(['0004_squashed.py', '__init__.py'], files_in_app)
 
 
+def pretty_operation(operation):
+    kwargs = {}
+    if isinstance(operation, migrations_module.RunSQL):
+        kwargs['elidable'] = operation.elidable
+        raise NotImplementedError
+    elif isinstance(operation, migrations_module.RunPython):
+        kwargs['code'] = operation.code.__name__
+        if operation.reverse_code:
+            kwargs['reverse_code'] = operation.reverse_code.__name__
+        kwargs['elidable'] = operation.elidable
+    return '%s(%s)' % (type(operation).__name__, ', '.join('%s=%s' % (k, v) for k, v in kwargs.items()))
+
+
 class SquashMigrationTest(MigrationTestBase):
     available_apps = ['app', 'app2', 'django_squash']
 
@@ -139,13 +152,19 @@ class SquashMigrationTest(MigrationTestBase):
 
             app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
 
+            self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
+                             '\n    This is a test doc string\n    ')
+
+            self.assertEqual(app_squash.rollback_admin_MUST_ALWAYS_EXIST.__doc__, 'Single comments')
+
             self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
                                                              ('app', '0002_person_age'),
                                                              ('app', '0003_add_dob')])
 
-            actual = ['%s(%s)' % (type(x).__name__, getattr(x, 'code', object).__name__)
-                      for x in app_squash.Migration.operations]
-            self.assertEqual(actual, ['CreateModel(object)', 'RunPython(create_admin_MUST_ALWAYS_EXIST)'])
+            actual = [pretty_operation(migration) for migration in app_squash.Migration.operations]
+            self.assertEqual(actual, ['CreateModel()',
+                                      ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
+                                       'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')])
 
     def test_squashing_migration_simple(self):
         class Person(models.Model):

@@ -141,6 +141,8 @@ class Migration(migrations.Migration):
         for operation in self.migration.operations:
             if isinstance(operation, migration_module.RunPython):
                 functions.append(inspect.getsource(operation.code))
+                if operation.reverse_code:
+                    functions.append(inspect.getsource(operation.reverse_code))
 
         kwargs['operations'] = kwargs['operations'].replace('DELETEMEPLEASE.', '')
         kwargs['imports'] = kwargs['imports'].replace('import DELETEMEPLEASE\n', '')
