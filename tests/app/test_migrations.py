@@ -121,8 +121,12 @@ class DeleteSquashMigrationTest(MigrationTestBase):
 def pretty_operation(operation):
     kwargs = {}
     if isinstance(operation, migrations_module.RunSQL):
+        sql = operation.sql.strip()
+        kwargs['sql'] = sql[:10] + '..' if len(sql) > 10 else sql
+        if operation.reverse_sql:
+            reverse_sql = operation.reverse_sql.strip()
+            kwargs['reverse_sql'] = reverse_sql[:10] + '..' if len(reverse_sql) > 10 else reverse_sql
         kwargs['elidable'] = operation.elidable
-        raise NotImplementedError
     elif isinstance(operation, migrations_module.RunPython):
         kwargs['code'] = operation.code.__name__
         if operation.reverse_code:
@@ -164,7 +168,8 @@ class SquashMigrationTest(MigrationTestBase):
             actual = [pretty_operation(migration) for migration in app_squash.Migration.operations]
             self.assertEqual(actual, ['CreateModel()',
                                       ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
-                                       'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')])
+                                       'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)'),
+                                      'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'])
 
     def test_squashing_migration_simple(self):
         class Person(models.Model):

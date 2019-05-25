@@ -33,6 +33,19 @@ def rollback_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
     print('Ignoring, there is no need to do this.')
 
 
+important_sql = """
+select 1
+"""
+
+important_rollback_sql = """
+select 2
+"""
+
+not_important_sql = """
+select 3
+"""
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -42,6 +55,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST,
                              elidable=False),
+        migrations.RunSQL(not_important_sql, elidable=True),
         migrations.AddField(
             model_name='person',
             name='dob',
@@ -49,6 +63,7 @@ class Migration(migrations.Migration):
             preserve_default=False,
         ),
         migrations.RunPython(update_dob, elidable=True),
+        migrations.RunSQL(important_sql, reverse_sql=important_rollback_sql, elidable=False),
         migrations.RemoveField(
             model_name='person',
             name='age',
