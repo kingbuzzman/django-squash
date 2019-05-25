@@ -151,9 +151,13 @@ class Migration(migrations.Migration):
                     variables.append(self.template_variable % (operation.reverse_sql.name,
                                      operation.reverse_sql.value))
 
-        kwargs['operations'] = kwargs['operations'].replace('DELETEMEPLEASE.', '')
-        kwargs['imports'] = kwargs['imports'].replace('import DELETEMEPLEASE\n', '')
         kwargs['functions'] = ('\n\n' if functions else '') + '\n\n'.join(functions)
         kwargs['variables'] = ('\n\n' if variables else '') + '\n\n'.join(variables)
+        kwargs['operations'] = kwargs['operations'].replace('DELETEMEPLEASE.', '')
+        kwargs['imports'] = kwargs['imports'].replace('import DELETEMEPLEASE\n', '')
+
+        imports = (x for x in set(kwargs['imports'].split('\n') + self.migration.extra_imports) if x)
+        sorted_imports = sorted(imports, key=lambda i: i.split()[1])
+        kwargs["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
 
         return kwargs

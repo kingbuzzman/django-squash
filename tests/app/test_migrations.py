@@ -156,6 +156,10 @@ class SquashMigrationTest(MigrationTestBase):
 
             app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
 
+            # Test imports
+            self.assertTrue(hasattr(app_squash, 'randrange'))
+            self.assertTrue(hasattr(app_squash, 'itertools'))
+
             self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
                              '\n    This is a test doc string\n    ')
 
