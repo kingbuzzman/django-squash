@@ -32,12 +32,14 @@ def all_custom_operations(operations):
     Generator that loops over all the operations and traverses sub-operations such as those inside a -
     SeparateDatabaseAndState class.
     """
+    sql_variable_count = 0
     for operation in operations:
         if operation.elidable:
             continue
 
         if isinstance(operation, migration_module.RunSQL):
-            yield RunSQL.from_operation(operation)
+            sql_variable_count = sql_variable_count + 1
+            yield RunSQL.from_operation(operation, sql_variable_count)
         elif isinstance(operation, migration_module.RunPython):
             yield RunPython.from_operation(operation)
         elif isinstance(operation, migration_module.SeparateDatabaseAndState):

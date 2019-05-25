@@ -120,7 +120,7 @@ class ReplacementMigrationWriter(MigrationWriterBase):
 
 class MigrationWriter(ReplacementMigrationWriter):
     template_class = """\
-%(migration_header)s%(imports)s%(functions)s
+%(migration_header)s%(imports)s%(functions)s%(variables)s
 
 class Migration(migrations.Migration):
 %(replaces_str)s%(initial_str)s
@@ -133,19 +133,27 @@ class Migration(migrations.Migration):
     ]
 """
 
+    template_variable = '''%s = """%s"""'''
+
     def get_kwargs(self):
         kwargs = super().get_kwargs()
 
         functions = []
-
+        variables = []
         for operation in self.migration.operations:
             if isinstance(operation, migration_module.RunPython):
                 functions.append(inspect.getsource(operation.code))
                 if operation.reverse_code:
                     functions.append(inspect.getsource(operation.reverse_code))
+            elif isinstance(operation, migration_module.RunSQL):
+                variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
+                if operation.reverse_sql:
+                    variables.append(self.template_variable % (operation.reverse_sql.name,
+                                     operation.reverse_sql.value))
 
         kwargs['operations'] = kwargs['operations'].replace('DELETEMEPLEASE.', '')
         kwargs['imports'] = kwargs['imports'].replace('import DELETEMEPLEASE\n', '')
         kwargs['functions'] = ('\n\n' if functions else '') + '\n\n'.join(functions)
+        kwargs['variables'] = ('\n\n' if variables else '') + '\n\n'.join(variables)
 
         return kwargs

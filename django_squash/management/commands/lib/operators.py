@@ -1,6 +1,15 @@
 from django.db.migrations import RunPython as RunPythonBase, RunSQL as RunSQLBase
 
 
+class Variable:
+    """
+    Wrapper type to be able to format the variable name correctly inside a migration
+    """
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+
 class RunPython(RunPythonBase):
 
     def deconstruct(self):
@@ -22,6 +31,8 @@ class RunSQL(RunSQLBase):
         return name, args, kwargs
 
     @classmethod
-    def from_operation(cls, operation):
-        return cls(sql=operation.sql, reverse_sql=operation.reverse_sql, state_operations=operation.state_operations,
-                   hints=operation.hints, elidable=operation.elidable)
+    def from_operation(cls, operation, num):
+        return cls(sql=Variable('SQL_%s' % num, operation.sql),
+                   reverse_sql=Variable('SQL_%s_ROLLBACK' % num, operation.reverse_sql),
+                   state_operations=operation.state_operations, hints=operation.hints,
+                   elidable=operation.elidable)
