@@ -156,7 +156,7 @@ class Migration(migrations.Migration):
         kwargs['operations'] = kwargs['operations'].replace('DELETEMEPLEASE.', '')
         kwargs['imports'] = kwargs['imports'].replace('import DELETEMEPLEASE\n', '')
 
-        imports = (x for x in set(kwargs['imports'].split('\n') + self.migration.extra_imports) if x)
+        imports = (x for x in set(kwargs['imports'].split('\n') + getattr(self.migration, 'extra_imports', [])) if x)
         sorted_imports = sorted(imports, key=lambda i: i.split()[1])
         kwargs["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
 
