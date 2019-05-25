@@ -15,6 +15,10 @@ class DjangoSquashConfig(AppConfig):
             # If django < 2.2
             from django.db.migrations import serializer
 
+            if hasattr(serializer, '_serializer_factory'):
+                # We already patched it.
+                return
+
             def patch_old_serializer_factory(value):
                 if isinstance(value, Variable):
                     return VariableSerializer(value)
