@@ -6,6 +6,6 @@ python:
 script:
   - pip install -e '.[test]'
   - coverage run setup.py test
-  - coverage report -m --fail-under=90
+  - coverage report -m --fail-under=85
   - flake8
   - isort --check-only
