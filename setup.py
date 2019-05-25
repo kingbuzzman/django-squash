@@ -14,21 +14,24 @@ with io.open(os.path.join(here, 'README.rst'), encoding='utf-8') as fp:
 
 
 class DjangoTest(TestCommand):
+    command_consumes_arguments = True
 
     def initialize_options(self):
-        TestCommand.initialize_options(self)
+        self.args = None
+        super().initialize_options()
 
     def run_tests(self):
         from tests.runtests import django_tests
 
         sys.path.insert(0, 'tests')
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings')
+
         django_tests(verbosity=3,
                      interactive=False,
                      failfast=True,
                      keepdb=False,
                      reverse=False,
-                     test_labels=[],
+                     test_labels=[os.path.normpath(labels) for labels in self.args],
                      debug_sql=False,
                      parallel=False,
                      tags=[],
