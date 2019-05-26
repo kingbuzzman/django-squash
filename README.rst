@@ -1,7 +1,7 @@
 django-squash
 ===========
 
-|Travis CI|
+|Travis CI| |codecov|
 
 django-squash is a migration squashing replacement that cares more about keeping migrations small and precise.
 
@@ -57,4 +57,6 @@ Run tests
 
 .. |Travis CI| image:: https://travis-ci.com/kingbuzzman/django-squash.svg?branch=develop
    :target: https://travis-ci.com/kingbuzzman/django-squash
- 
+
+.. |codecov| image:: https://codecov.io/gh/kingbuzzman/django-squash/branch/develop/graph/badge.svg
+  :target: https://codecov.io/gh/kingbuzzman/django-squash
