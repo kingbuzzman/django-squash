@@ -66,7 +66,7 @@ setup(
     author='Javier Buzzi',
     author_email='buzzi.javier@gmail.com',
     url='https://github.com/kingbuzzman/django-squashing',
-    license='MIT License',
+    license="MIT",
     packages=find_packages(exclude=['tests*']),
     platforms=['any'],
     zip_safe=True,
