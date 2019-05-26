@@ -57,3 +57,4 @@ Run tests
 
 .. |Travis CI| image:: https://travis-ci.com/kingbuzzman/django-squash.svg?branch=develop
    :target: https://travis-ci.com/kingbuzzman/django-squash
+ 
