@@ -11,6 +11,7 @@ env:
   - DJANGO_VERSION=2.2
 
 script:
+  - pip install codecov
   - pip install -q django==$DJANGO_VERSION
   - pip install -e '.[test]'
   - coverage run setup.py test
