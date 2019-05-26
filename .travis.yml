@@ -1,0 +1,24 @@
+language: python
+dist: xenial
+
+python:
+  - "3.6"
+  - "3.7"
+
+env:
+  - DJANGO_VERSION=2.0
+  - DJANGO_VERSION=2.1
+  - DJANGO_VERSION=2.2
+
+script:
+  - pip install codecov
+  - pip install -q django==$DJANGO_VERSION
+  - pip install -e '.[test]'
+  - coverage run setup.py test
+  - coverage report -m --fail-under=85
+  - flake8
+  - isort --check-only
+
+# Push the results back to codecov
+after_success:
+  - codecov
