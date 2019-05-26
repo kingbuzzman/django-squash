@@ -65,7 +65,7 @@ setup(
     keywords='django migration squashing squash',
     author='Javier Buzzi',
     author_email='buzzi.javier@gmail.com',
-    url='https://github.com/kingbuzzman/django-squashing',
+    url='https://github.com/kingbuzzman/django-squash',
     license="MIT",
     packages=find_packages(exclude=['tests*']),
     platforms=['any'],
