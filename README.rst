@@ -1,5 +1,5 @@
 django-squash
-===========
+========================
 
 |Travis CI| |codecov|
 
