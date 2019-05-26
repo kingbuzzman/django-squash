@@ -6,6 +6,16 @@ django-squash
 django-squash is a migration squashing replacement that cares more about keeping migrations small and precise.
 
 
+Setup
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+1. ``pip install django-squash``
+
+2. Add ``django_squash`` to your ``INSTALLED_APPS``.
+
+3. Profit!
+
+
 What this does
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
