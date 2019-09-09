@@ -1,6 +1,5 @@
 import itertools
 import os
-import sys
 
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
@@ -15,44 +14,14 @@ from .lib.writer import MigrationWriter
 
 class Command(BaseCommand):
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            'args', metavar='app_label', nargs='*',
-            help='Specify the app label(s) to create migrations for.',
-        )
-
-        parser.add_argument(
-            '--dont-clean', metavar='exclude_apps', default='',
-            help='Specify the app label(s) you want to exclude migrations for.',
-        )
-
-        parser.add_argument(
-            '--exclude-apps', metavar='exclude_apps', default='',
-            help='Specify the app label(s) you want to exclude migrations for.',
-        )
-
-    def handle(self, *app_labels, **kwargs):
+    def handle(self, **kwargs):
         self.verbosity = 1
         self.include_header = False
         self.dry_run = False
 
-        kwargs['exclude_apps'] = kwargs['exclude_apps'].split(',')
-
-        # Make sure the app they asked for exists
-        app_labels = set(app_labels)
-        has_bad_labels = False
-        for app_label in app_labels:
-            try:
-                apps.get_app_config(app_label)
-            except LookupError as err:
-                self.stderr.write(str(err))
-                has_bad_labels = True
-        if has_bad_labels:
-            sys.exit(2)
-
         self.migration_name = ''
 
-        questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
+        questioner = NonInteractiveMigrationQuestioner(specified_apps=None, dry_run=False)
 
         loader = MigrationLoader(None, ignore_no_migrations=True)
         squash_loader = SquashMigrationLoader(None, ignore_no_migrations=True)
@@ -69,8 +38,8 @@ class Command(BaseCommand):
         squashed_changes = autodetector.squash(
             real_loader=loader,
             squash_loader=squash_loader,
-            trim_to_apps=app_labels or None,
-            convert_apps=app_labels or None,
+            trim_to_apps=None,
+            convert_apps=None,
             migration_name=self.migration_name,
         )
 
