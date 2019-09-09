@@ -1,6 +1,3 @@
-import ast
-import inspect
-import os
 import sys
 
 from django.apps import apps
@@ -8,8 +5,8 @@ from django.core.management.base import BaseCommand
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
-from .lib.questioner import NonInteractiveMigrationQuestioner
 from .lib.autodetector import SquashMigrationAutodetector
+from .lib.questioner import NonInteractiveMigrationQuestioner
 
 
 class Command(BaseCommand):
