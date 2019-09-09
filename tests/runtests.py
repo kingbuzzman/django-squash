@@ -18,21 +18,6 @@ tempfile.tempdir = os.environ['TMPDIR'] = TMPDIR
 # Removing the temporary TMPDIR.
 atexit.register(shutil.rmtree, TMPDIR)
 
-# RUNTESTS_DIR = os.path.abspath(os.path.dirname(__file__))
-
-
-# def get_test_modules():
-#     modules = []
-#     discovery_paths = [(None, RUNTESTS_DIR)]
-#
-#     for modpath, dirpath in discovery_paths:
-#         for f in os.scandir(dirpath):
-#             if ('.' not in f.name and
-#                     not f.is_file() and
-#                     os.path.exists(os.path.join(f.path, '__init__.py'))):
-#                 modules.append((modpath, f.name))
-#     return modules
-
 
 def setup(test_labels):
     # Reduce the given test labels to just the app module path.
@@ -79,26 +64,6 @@ def setup(test_labels):
 
     # Load all the ALWAYS_INSTALLED_APPS.
     django.setup()
-
-    # Load all the test model apps.
-    # test_modules = get_test_modules()
-
-    # for modpath, module_name in test_modules:
-    #     if modpath:
-    #         module_label = modpath + '.' + module_name
-    #     else:
-    #         module_label = module_name
-    #     # if the module (or an ancestor) was named on the command line, or
-    #     # no modules were named (i.e., run all), import
-    #     # this module and add it to INSTALLED_APPS.
-    #     module_found_in_labels = not test_labels or any(
-    #         # exact match or ancestor match
-    #         module_label == label or module_label.startswith(label + '.')
-    #         for label in test_labels_set
-    #     )
-    #
-    #     if module_name in CONTRIB_TESTS_TO_APPS and module_found_in_labels:
-    #         settings.INSTALLED_APPS.append(CONTRIB_TESTS_TO_APPS[module_name])
 
     apps.set_installed_apps(settings.INSTALLED_APPS)
 

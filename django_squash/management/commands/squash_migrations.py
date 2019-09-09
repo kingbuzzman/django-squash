@@ -22,6 +22,11 @@ class Command(BaseCommand):
         )
 
         parser.add_argument(
+            '--dont-clean', metavar='exclude_apps', default='',
+            help='Specify the app label(s) you want to exclude migrations for.',
+        )
+
+        parser.add_argument(
             '--exclude-apps', metavar='exclude_apps', default='',
             help='Specify the app label(s) you want to exclude migrations for.',
         )

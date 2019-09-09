@@ -42,7 +42,7 @@ class DjangoTest(TestCommand):
 setup(
     name='django_squash',
     version='0.0.1',
-    description="A migration squasher that doesn't care how humpty dumpty was put together.",
+    description="A migration squasher that doesn't care how Humpty Dumpty was put together.",
     long_description=README,
     classifiers=[
         # See https://pypi.org/pypi?%3Aaction=list_classifiers

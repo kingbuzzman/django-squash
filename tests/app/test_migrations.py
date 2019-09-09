@@ -19,13 +19,13 @@ from django.utils.module_loading import module_dir
 class MigrationTestBase(TransactionTestCase):
     """
     Partial copy from the django source, can't subclass it
-    https://github.com/django/django/blob/b9cf764be62e77b4777b3a75ec256f6209a57671/tests/migrations/test_base.py#L15  # noqa
+    https://github.com/django/django/blob/b9cf764be62e77b4777b3a75ec256f6209a57671/tests/migrations/test_base.py#L15
     """
 
     def tearDown(self):
         # Reset applied-migrations state.
         for db in connections:
-            recorder = MigrationRecorder(connections[db])  # noqa
+            MigrationRecorder(connections[db])
 
     def assertTableExists(self, table, using='default'):
         with connections[using].cursor() as cursor:
@@ -98,7 +98,7 @@ class DeleteSquashMigrationTest(MigrationTestBase):
             call_command('delete_squashed_migrations', verbosity=1, stdout=out, no_color=True)
 
             files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-            self.assertEqual(['0001_initial.py', '0002_person_age.py', '0003_add_dob.py', '__init__.py'], files_in_app)
+        self.assertEqual(['0001_initial.py', '0002_person_age.py', '0003_add_dob.py', '__init__.py'], files_in_app)
 
     def test_simple_delete_squashing_migrations(self):
         class Person(models.Model):
@@ -115,7 +115,7 @@ class DeleteSquashMigrationTest(MigrationTestBase):
             call_command('delete_squashed_migrations', verbosity=1, stdout=out, no_color=True)
 
             files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-            self.assertEqual(['0004_squashed.py', '__init__.py'], files_in_app)
+        self.assertEqual(['0004_squashed.py', '__init__.py'], files_in_app)
 
 
 def pretty_operation(operation):
@@ -156,24 +156,24 @@ class SquashMigrationTest(MigrationTestBase):
 
             app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
 
-            # Test imports
-            self.assertTrue(hasattr(app_squash, 'randrange'))
-            self.assertTrue(hasattr(app_squash, 'itertools'))
+        # Test imports
+        self.assertTrue(hasattr(app_squash, 'randrange'))
+        self.assertTrue(hasattr(app_squash, 'itertools'))
 
-            self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
-                             '\n    This is a test doc string\n    ')
+        self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
+                         '\n    This is a test doc string\n    ')
 
-            self.assertEqual(app_squash.rollback_admin_MUST_ALWAYS_EXIST.__doc__, 'Single comments')
+        self.assertEqual(app_squash.rollback_admin_MUST_ALWAYS_EXIST.__doc__, 'Single comments')
 
-            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
-                                                             ('app', '0002_person_age'),
-                                                             ('app', '0003_add_dob')])
+        self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
+                                                         ('app', '0002_person_age'),
+                                                         ('app', '0003_add_dob')])
 
-            actual = [pretty_operation(migration) for migration in app_squash.Migration.operations]
-            self.assertEqual(actual, ['CreateModel()',
-                                      ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
-                                       'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)'),
-                                      'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'])
+        actual = [pretty_operation(migration) for migration in app_squash.Migration.operations]
+        self.assertEqual(actual, ['CreateModel()',
+                                  ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
+                                   'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)'),
+                                  'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'])
 
     def test_squashing_migration_simple(self):
         class Person(models.Model):
