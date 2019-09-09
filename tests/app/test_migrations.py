@@ -81,43 +81,6 @@ def load_migration_module(path):
     return module
 
 
-class DeleteSquashMigrationTest(MigrationTestBase):
-    available_apps = ['app', 'app2', 'django_squash']
-
-    def test_simple_delete_squashing_migrations_noop(self):
-        class Person(models.Model):
-            name = models.CharField(max_length=10)
-            dob = models.DateField()
-
-            class Meta:
-                app_label = "app"
-
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app.test_elidable_migrations", app_label='app')
-        with patch_app_migrations as migration_app_dir:
-            call_command('delete_squashed_migrations', verbosity=1, stdout=out, no_color=True)
-
-            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-        self.assertEqual(['0001_initial.py', '0002_person_age.py', '0003_add_dob.py', '__init__.py'], files_in_app)
-
-    def test_simple_delete_squashing_migrations(self):
-        class Person(models.Model):
-            name = models.CharField(max_length=10)
-            dob = models.DateField()
-
-            class Meta:
-                app_label = "app"
-
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app.test_delete_replaced_migrations",
-                                                               app_label='app')
-        with patch_app_migrations as migration_app_dir:
-            call_command('delete_squashed_migrations', verbosity=1, stdout=out, no_color=True)
-
-            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-        self.assertEqual(['0004_squashed.py', '__init__.py'], files_in_app)
-
-
 def pretty_operation(operation):
     kwargs = {}
     if isinstance(operation, migrations_module.RunSQL):

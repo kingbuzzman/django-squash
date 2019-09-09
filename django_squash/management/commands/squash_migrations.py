@@ -64,6 +64,8 @@ class Command(BaseCommand):
             questioner,
         )
 
+        autodetector.delete_old_squashed(loader)
+
         squashed_changes = autodetector.squash(
             real_loader=loader,
             squash_loader=squash_loader,
