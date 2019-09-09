@@ -193,3 +193,46 @@ class SquashMigrationTest(MigrationTestBase):
         catch_error = self.assertRaisesMessage(CommandError, "There are no migrations to squash.")
         with patch_app_migrations, catch_error:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+    def test_simple_delete_squashing_migrations_noop(self):
+        class Person(models.Model):
+            name = models.CharField(max_length=10)
+            dob = models.DateField()
+
+            class Meta:
+                app_label = "app"
+
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_elidable_migrations", app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+        expected = ['0001_initial.py', '0002_person_age.py', '0003_add_dob.py', '0004_squashed.py', '__init__.py']
+        self.assertEqual(files_in_app, expected)
+
+    def test_simple_delete_squashing_migrations(self):
+        class Person(models.Model):
+            name = models.CharField(max_length=10)
+            dob = models.DateField()
+
+            class Meta:
+                app_label = "app"
+
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_delete_replaced_migrations",
+                                                               app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            original_app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+            self.assertEqual(original_app_squash.Migration.replaces, [('app', '0001_initial'),
+                                                                      ('app', '0002_person_age'),
+                                                                      ('app', '0003_add_dob')])
+
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+
+        # We altered an existing file, and removed all the "replaces" items
+        self.assertEqual(app_squash.Migration.replaces, [])
+        self.assertEqual(files_in_app, ['0004_squashed.py', '0005_squashed.py', '__init__.py'])
