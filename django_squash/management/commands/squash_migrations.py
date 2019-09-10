@@ -1,6 +1,5 @@
 import itertools
 import os
-import sys
 
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
@@ -32,16 +31,15 @@ class Command(BaseCommand):
         self.migration_name = kwargs.get('squashed_name')
 
         ignore_apps = []
-        has_bad_labels = False
-        for app_label in itertools.chain.from_iterable(kwargs['ignore_app']):
+        bad_apps = []
+        for app_label in itertools.chain.from_iterable(kwargs['ignore_app'] or []):
             try:
                 apps.get_app_config(app_label)
                 ignore_apps.append(app_label)
-            except LookupError as err:
-                self.stderr.write(str(err))
-                has_bad_labels = True
-        if has_bad_labels:
-            sys.exit(2)
+            except LookupError:
+                bad_apps.append(app_label)
+        if bad_apps:
+            raise CommandError("The following apps are not valid: %s" % (', '.join(bad_apps)))
 
         questioner = NonInteractiveMigrationQuestioner(specified_apps=None, dry_run=False)
 
