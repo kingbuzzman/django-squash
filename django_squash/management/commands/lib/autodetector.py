@@ -254,9 +254,12 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             instance.replaces = migrations
             changes[app_label] = [instance]
 
-    def squash(self, real_loader, squash_loader, trim_to_apps=None, convert_apps=None, migration_name=None):
+    def squash(self, real_loader, squash_loader, ignore_apps=None, migration_name=None):
         graph = squash_loader.graph
-        changes = super().changes(graph, trim_to_apps, convert_apps, migration_name)
+        changes = super().changes(graph, trim_to_apps=None, convert_apps=None, migration_name=None)
+
+        for app in ignore_apps:
+            changes.pop(app, None)
 
         self.create_deleted_models_migrations(real_loader, changes)
         self.convert_migration_references_to_objects(real_loader, graph, changes)
@@ -266,16 +269,18 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         return changes
 
-    def delete_old_squashed(self, loader):
+    def delete_old_squashed(self, loader, ignore_apps=None):
         project_path = os.path.abspath(os.curdir)
         project_apps = [app.label for app in apps.get_app_configs()
                         if source_directory(app.module).startswith(project_path)]
 
         real_migrations = (loader.disk_migrations[key] for key in loader.graph.node_map.keys())
-        project_migrations = [migration for migration in real_migrations if migration.app_label in project_apps]
+        project_migrations = [migration for migration in real_migrations
+                              if migration.app_label in project_apps and migration.app_label not in ignore_apps or []]
         replaced_migrations = [migration for migration in project_migrations if migration.replaces]
-        migrations_to_delete = set([inspect.getsourcefile(loader.disk_migrations[y].__class__)
-                                    for x in replaced_migrations for y in x.replaces])
+        migrations_to_delete = set(inspect.getsourcefile(loader.disk_migrations[y].__class__)
+                                   for x in replaced_migrations for y in x.replaces
+                                   if y[0] not in ignore_apps or [])
 
         for migration in replaced_migrations:
             remove_old_migration_replace(sys.modules[migration.__class__.__module__])

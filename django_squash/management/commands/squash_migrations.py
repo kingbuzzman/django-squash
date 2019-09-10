@@ -1,5 +1,6 @@
 import itertools
 import os
+import sys
 
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
@@ -14,12 +15,33 @@ from .lib.writer import MigrationWriter
 
 class Command(BaseCommand):
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--ignore-app',  action='append', nargs='*',
+            help='Ignore app name from quashing, ensure that there is nothing dependent on these apps.',
+        )
+        parser.add_argument(
+            '--squashed-name',
+            help='Sets the name of the new squashed migration. (default: "squashed" -> "xxxx_squashed")',
+        )
+
     def handle(self, **kwargs):
         self.verbosity = 1
         self.include_header = False
         self.dry_run = False
+        self.migration_name = kwargs.get('squashed_name')
 
-        self.migration_name = ''
+        ignore_apps = []
+        has_bad_labels = False
+        for app_label in itertools.chain.from_iterable(kwargs['ignore_app']):
+            try:
+                apps.get_app_config(app_label)
+                ignore_apps.append(app_label)
+            except LookupError as err:
+                self.stderr.write(str(err))
+                has_bad_labels = True
+        if has_bad_labels:
+            sys.exit(2)
 
         questioner = NonInteractiveMigrationQuestioner(specified_apps=None, dry_run=False)
 
@@ -33,13 +55,12 @@ class Command(BaseCommand):
             questioner,
         )
 
-        autodetector.delete_old_squashed(loader)
+        autodetector.delete_old_squashed(loader, ignore_apps)
 
         squashed_changes = autodetector.squash(
             real_loader=loader,
             squash_loader=squash_loader,
-            trim_to_apps=None,
-            convert_apps=None,
+            ignore_apps=ignore_apps,
             migration_name=self.migration_name,
         )
 
