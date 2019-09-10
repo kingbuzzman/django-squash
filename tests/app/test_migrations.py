@@ -99,7 +99,7 @@ def pretty_operation(operation):
 
 
 class SquashMigrationTest(MigrationTestBase):
-    available_apps = ['app', 'app2', 'django_squash']
+    available_apps = ['app', 'app2', 'app3', 'django_squash']
 
     def test_squashing_elidable_migration_simple(self):
         class Person(models.Model):
@@ -236,3 +236,22 @@ class SquashMigrationTest(MigrationTestBase):
         # We altered an existing file, and removed all the "replaces" items
         self.assertEqual(app_squash.Migration.replaces, [])
         self.assertEqual(files_in_app, ['0004_squashed.py', '0005_squashed.py', '__init__.py'])
+
+    def test_empty_models_migrations(self):
+        """
+        If apps are moved but migrations remain, a fake migration must be made that does nothing and replaces the
+        existing migrations, that way django doesn't throw errors when trying to do the same work again.
+        """
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app3.test_moved_migrations",
+                                                               app_label='app3')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+            self.assertIn('0004_squashed.py', files_in_app)
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+        expected_files = ['0001_initial.py', '0002_person_age.py', '0003_moved.py', '0004_squashed.py', '__init__.py']
+        self.assertEqual(files_in_app, expected_files)
+        self.assertEqual(app_squash.Migration.replaces, [('app3', '0001_initial'),
+                                                         ('app3', '0002_person_age'),
+                                                         ('app3', '0003_moved')])

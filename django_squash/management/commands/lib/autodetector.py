@@ -239,10 +239,26 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 new_dependencies.append(migrations_by_name[dependency])
             migration.dependencies = new_dependencies
 
+    def create_deleted_models_migrations(self, loader, changes):
+        migrations_by_label = defaultdict(list)
+        for (app, ident), _ in itertools.groupby(loader.disk_migrations.items(), lambda x: x[0]):
+            migrations_by_label[app].append(ident)
+
+        for app_config in loader.project_state().apps.get_app_configs():
+            if app_config.models and app_config.label in migrations_by_label:
+                migrations_by_label.pop(app_config.label)
+
+        for app_label, migrations in migrations_by_label.items():
+            subclass = type("Migration", (Migration,), {"operations": [], "dependencies": []})
+            instance = subclass("temp", app_label)
+            instance.replaces = migrations
+            changes[app_label] = [instance]
+
     def squash(self, real_loader, squash_loader, trim_to_apps=None, convert_apps=None, migration_name=None):
         graph = squash_loader.graph
         changes = super().changes(graph, trim_to_apps, convert_apps, migration_name)
 
+        self.create_deleted_models_migrations(real_loader, changes)
         self.convert_migration_references_to_objects(real_loader, graph, changes)
         self.rename_migrations(real_loader, graph, changes, migration_name)
         self.replace_current_migrations(real_loader, graph, changes)
