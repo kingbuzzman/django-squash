@@ -6,6 +6,8 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
+from django_squash import settings
+
 from .lib.autodetector import SquashMigrationAutodetector
 from .lib.loader import SquashMigrationLoader
 from .lib.questioner import NonInteractiveMigrationQuestioner
@@ -14,25 +16,14 @@ from .lib.writer import MigrationWriter
 
 class Command(BaseCommand):
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--ignore-app',  action='append', nargs='*',
-            help='Ignore app name from quashing, ensure that there is nothing dependent on these apps.',
-        )
-        parser.add_argument(
-            '--squashed-name',
-            help='Sets the name of the new squashed migration. (default: "squashed" -> "xxxx_squashed")',
-        )
-
     def handle(self, **kwargs):
         self.verbosity = 1
         self.include_header = False
         self.dry_run = False
-        self.migration_name = kwargs.get('squashed_name')
 
         ignore_apps = []
         bad_apps = []
-        for app_label in itertools.chain.from_iterable(kwargs['ignore_app'] or []):
+        for app_label in settings.DJANGO_SQUASH_IGNORE_APPS:
             try:
                 apps.get_app_config(app_label)
                 ignore_apps.append(app_label)
@@ -53,13 +44,19 @@ class Command(BaseCommand):
             questioner,
         )
 
-        autodetector.delete_old_squashed(loader, ignore_apps)
+        deleted_changes = autodetector.delete_old_squashed(loader, ignore_apps)
+        for app_label, migrations in deleted_changes.items():
+            self.stdout.write(self.style.MIGRATE_HEADING("Migrations for '%s':" % app_label) + "\n")
+            for migration_string, changes in migrations.items():
+                self.stdout.write("  %s\n" % (self.style.MIGRATE_LABEL(migration_string),))
+                for change in changes:
+                    self.stdout.write("    - %s\n" % change)
 
         squashed_changes = autodetector.squash(
             real_loader=loader,
             squash_loader=squash_loader,
             ignore_apps=ignore_apps,
-            migration_name=self.migration_name,
+            migration_name=settings.DJANGO_SQUASH_MIGRATION_NAME
         )
 
         replacing_migrations = 0

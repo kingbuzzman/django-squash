@@ -270,6 +270,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         return changes
 
     def delete_old_squashed(self, loader, ignore_apps=None):
+        changes = defaultdict(lambda: defaultdict(set))
         project_path = os.path.abspath(os.curdir)
         project_apps = [app.label for app in apps.get_app_configs()
                         if source_directory(app.module).startswith(project_path)]
@@ -278,12 +279,36 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         project_migrations = [migration for migration in real_migrations
                               if migration.app_label in project_apps and migration.app_label not in ignore_apps or []]
         replaced_migrations = [migration for migration in project_migrations if migration.replaces]
-        migrations_to_delete = set(inspect.getsourcefile(loader.disk_migrations[y].__class__)
-                                   for x in replaced_migrations for y in x.replaces
-                                   if y[0] not in ignore_apps or [])
+
+        migrations_to_delete = set()
+        migrations_to_remove = set()
+        for migration in (y for x in replaced_migrations for y in x.replaces if y[0] not in ignore_apps or []):
+            migrations_to_remove.add(migration)
+            migration_file_path = inspect.getsourcefile(loader.disk_migrations[migration].__class__)
+            changes[migration[0]][migration_file_path.replace(project_path + '/', '')].add('Deleted')
+            migrations_to_delete.add(inspect.getsourcefile(loader.disk_migrations[migration].__class__))
+
+        # Remove all the old dependencies that will be removed
+        for migration in project_migrations:
+            new_dependencies = [migration for migration in migration.dependencies
+                                if migration not in migrations_to_remove]
+            if new_dependencies == migration.dependencies:
+                # There is no need to write anything
+                continue
+            migration_file_path = inspect.getsourcefile(loader.disk_migrations[migration.app_label,
+                                                                               migration.name].__class__)
+            change = changes[migration.app_label][migration_file_path.replace(project_path + '/', '')]
+            change.add('Removed old dependencies')
+            replace_migration_attribute(sys.modules[migration.__class__.__module__], 'dependencies', new_dependencies)
 
         for migration in replaced_migrations:
-            remove_old_migration_replace(sys.modules[migration.__class__.__module__])
+            migration_file_path = inspect.getsourcefile(loader.disk_migrations[migration.app_label,
+                                                                               migration.name].__class__)
+            change = changes[migration.app_label][migration_file_path.replace(project_path + '/', '')]
+            change.add('Removed old replaces')
+            replace_migration_attribute(sys.modules[migration.__class__.__module__], 'replaces', [])
 
         for path in migrations_to_delete:
             os.remove(path)
+
+        return changes
