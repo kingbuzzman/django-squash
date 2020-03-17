@@ -20,7 +20,7 @@ class SquashMigrationLoader(MigrationLoader):
                 module = app_config.module
                 app_path = os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
 
-                if app_config.models and app_path.startswith(project_path):
+                if app_path.startswith(project_path):
                     temp_dir = stack.enter_context(tempfile.TemporaryDirectory(prefix='migrations_', dir=app_path))
                     # Need to make this directory a proper python module otherwise django will refuse to recognize it
                     open(os.path.join(temp_dir, '__init__.py'), 'a').close()

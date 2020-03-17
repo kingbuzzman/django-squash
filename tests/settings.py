@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'django_squash',
     'app',
     'app2',
+    'app3',
 ]
 
 MIDDLEWARE = []

@@ -1,11 +1,12 @@
 import itertools
 import os
-import sys
 
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
+
+from django_squash import settings
 
 from .lib.autodetector import SquashMigrationAutodetector
 from .lib.loader import SquashMigrationLoader
@@ -14,40 +15,39 @@ from .lib.writer import MigrationWriter
 
 
 class Command(BaseCommand):
-
     def add_arguments(self, parser):
         parser.add_argument(
-            'args', metavar='app_label', nargs='*',
-            help='Specify the app label(s) to create migrations for.',
+            '--ignore-app',  action='append', nargs='*', default=settings.DJANGO_SQUASH_IGNORE_APPS,
+            help='Ignore app name from quashing, ensure that there is nothing dependent on these apps. '
+                 '(default: %(default)s)',
         )
-
         parser.add_argument(
-            '--exclude-apps', metavar='exclude_apps', default='',
-            help='Specify the app label(s) you want to exclude migrations for.',
+            '--dry-run', action='store_true', dest='dry_run',
+            help="Just show what migrations would be made; don't actually write them.",
+        )
+        parser.add_argument(
+            '--squashed-name', default=settings.DJANGO_SQUASH_MIGRATION_NAME,
+            help='Sets the name of the new squashed migration. Also accepted are the standard datetime parse '
+                 'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
         )
 
-    def handle(self, *app_labels, **kwargs):
+    def handle(self, **kwargs):
         self.verbosity = 1
         self.include_header = False
-        self.dry_run = False
+        self.dry_run = kwargs['dry_run']
 
-        kwargs['exclude_apps'] = kwargs['exclude_apps'].split(',')
-
-        # Make sure the app they asked for exists
-        app_labels = set(app_labels)
-        has_bad_labels = False
-        for app_label in app_labels:
+        ignore_apps = []
+        bad_apps = []
+        for app_label in kwargs['ignore_app']:
             try:
                 apps.get_app_config(app_label)
-            except LookupError as err:
-                self.stderr.write(str(err))
-                has_bad_labels = True
-        if has_bad_labels:
-            sys.exit(2)
+                ignore_apps.append(app_label)
+            except (LookupError, TypeError):
+                bad_apps.append(str(app_label))
+        if bad_apps:
+            raise CommandError("The following apps are not valid: %s" % (', '.join(bad_apps)))
 
-        self.migration_name = ''
-
-        questioner = NonInteractiveMigrationQuestioner(specified_apps=app_labels, dry_run=False)
+        questioner = NonInteractiveMigrationQuestioner(specified_apps=None, dry_run=False)
 
         loader = MigrationLoader(None, ignore_no_migrations=True)
         squash_loader = SquashMigrationLoader(None, ignore_no_migrations=True)
@@ -62,9 +62,8 @@ class Command(BaseCommand):
         squashed_changes = autodetector.squash(
             real_loader=loader,
             squash_loader=squash_loader,
-            trim_to_apps=app_labels or None,
-            convert_apps=app_labels or None,
-            migration_name=self.migration_name,
+            ignore_apps=ignore_apps,
+            migration_name=kwargs['squashed_name']
         )
 
         replacing_migrations = 0
@@ -97,8 +96,12 @@ class Command(BaseCommand):
                     if migration_string.startswith('..'):
                         migration_string = writer.path
                     self.stdout.write("  %s\n" % (self.style.MIGRATE_LABEL(migration_string),))
-                    for operation in migration.operations:
-                        self.stdout.write("    - %s\n" % operation.describe())
+                    if hasattr(migration, 'is_migration_level') and migration.is_migration_level:
+                        for operation in migration.describe():
+                            self.stdout.write("    - %s\n" % operation)
+                    else:
+                        for operation in migration.operations:
+                            self.stdout.write("    - %s\n" % operation.describe())
                 if not self.dry_run:
                     # Write the migrations file to the disk.
                     migrations_directory = os.path.dirname(writer.path)
@@ -110,6 +113,9 @@ class Command(BaseCommand):
                         # We just do this once per app
                         directory_created[app_label] = True
                     migration_string = writer.as_string()
+                    if migration_string is None:
+                        # File was deleted
+                        continue
                     with open(writer.path, "w", encoding='utf-8') as fh:
                         fh.write(migration_string)
                 elif self.verbosity == 3:

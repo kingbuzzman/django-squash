@@ -19,13 +19,13 @@ from django.utils.module_loading import module_dir
 class MigrationTestBase(TransactionTestCase):
     """
     Partial copy from the django source, can't subclass it
-    https://github.com/django/django/blob/b9cf764be62e77b4777b3a75ec256f6209a57671/tests/migrations/test_base.py#L15  # noqa
+    https://github.com/django/django/blob/b9cf764be62e77b4777b3a75ec256f6209a57671/tests/migrations/test_base.py#L15
     """
 
     def tearDown(self):
         # Reset applied-migrations state.
         for db in connections:
-            recorder = MigrationRecorder(connections[db])  # noqa
+            MigrationRecorder(connections[db])
 
     def assertTableExists(self, table, using='default'):
         with connections[using].cursor() as cursor:
@@ -81,43 +81,6 @@ def load_migration_module(path):
     return module
 
 
-class DeleteSquashMigrationTest(MigrationTestBase):
-    available_apps = ['app', 'app2', 'django_squash']
-
-    def test_simple_delete_squashing_migrations_noop(self):
-        class Person(models.Model):
-            name = models.CharField(max_length=10)
-            dob = models.DateField()
-
-            class Meta:
-                app_label = "app"
-
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app.test_elidable_migrations", app_label='app')
-        with patch_app_migrations as migration_app_dir:
-            call_command('delete_squashed_migrations', verbosity=1, stdout=out, no_color=True)
-
-            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-            self.assertEqual(['0001_initial.py', '0002_person_age.py', '0003_add_dob.py', '__init__.py'], files_in_app)
-
-    def test_simple_delete_squashing_migrations(self):
-        class Person(models.Model):
-            name = models.CharField(max_length=10)
-            dob = models.DateField()
-
-            class Meta:
-                app_label = "app"
-
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app.test_delete_replaced_migrations",
-                                                               app_label='app')
-        with patch_app_migrations as migration_app_dir:
-            call_command('delete_squashed_migrations', verbosity=1, stdout=out, no_color=True)
-
-            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-            self.assertEqual(['0004_squashed.py', '__init__.py'], files_in_app)
-
-
 def pretty_operation(operation):
     kwargs = {}
     if isinstance(operation, migrations_module.RunSQL):
@@ -136,7 +99,7 @@ def pretty_operation(operation):
 
 
 class SquashMigrationTest(MigrationTestBase):
-    available_apps = ['app', 'app2', 'django_squash']
+    available_apps = ['app', 'app2', 'app3', 'django_squash']
 
     def test_squashing_elidable_migration_simple(self):
         class Person(models.Model):
@@ -156,24 +119,24 @@ class SquashMigrationTest(MigrationTestBase):
 
             app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
 
-            # Test imports
-            self.assertTrue(hasattr(app_squash, 'randrange'))
-            self.assertTrue(hasattr(app_squash, 'itertools'))
+        # Test imports
+        self.assertTrue(hasattr(app_squash, 'randrange'))
+        self.assertTrue(hasattr(app_squash, 'itertools'))
 
-            self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
-                             '\n    This is a test doc string\n    ')
+        self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
+                         '\n    This is a test doc string\n    ')
 
-            self.assertEqual(app_squash.rollback_admin_MUST_ALWAYS_EXIST.__doc__, 'Single comments')
+        self.assertEqual(app_squash.rollback_admin_MUST_ALWAYS_EXIST.__doc__, 'Single comments')
 
-            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
-                                                             ('app', '0002_person_age'),
-                                                             ('app', '0003_add_dob')])
+        self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
+                                                         ('app', '0002_person_age'),
+                                                         ('app', '0003_add_dob')])
 
-            actual = [pretty_operation(migration) for migration in app_squash.Migration.operations]
-            self.assertEqual(actual, ['CreateModel()',
-                                      ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
-                                       'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)'),
-                                      'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'])
+        actual = [pretty_operation(migration) for migration in app_squash.Migration.operations]
+        self.assertEqual(actual, ['CreateModel()',
+                                  ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
+                                   'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)'),
+                                  'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'])
 
     def test_squashing_migration_simple(self):
         class Person(models.Model):
@@ -230,3 +193,75 @@ class SquashMigrationTest(MigrationTestBase):
         catch_error = self.assertRaisesMessage(CommandError, "There are no migrations to squash.")
         with patch_app_migrations, catch_error:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+    def test_invalid_apps(self):
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
+        catch_error = self.assertRaisesMessage(CommandError, "The following apps are not valid: a, b")
+        with patch_app_migrations, catch_error:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True, ignore_app=['a', 'b'])
+
+    def test_simple_delete_squashing_migrations_noop(self):
+        class Person(models.Model):
+            name = models.CharField(max_length=10)
+            dob = models.DateField()
+
+            class Meta:
+                app_label = "app"
+
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_elidable_migrations", app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+        expected = ['0001_initial.py', '0002_person_age.py', '0003_add_dob.py', '0004_squashed.py', '__init__.py']
+        self.assertEqual(files_in_app, expected)
+
+    def test_simple_delete_squashing_migrations(self):
+        class Person(models.Model):
+            name = models.CharField(max_length=10)
+            dob = models.DateField()
+
+            class Meta:
+                app_label = "app"
+
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_delete_replaced_migrations",
+                                                               app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            original_app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+            self.assertEqual(original_app_squash.Migration.replaces, [('app', '0001_initial'),
+                                                                      ('app', '0002_person_age'),
+                                                                      ('app', '0003_add_dob')])
+
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+            old_app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+            new_app_squash = load_migration_module(os.path.join(migration_app_dir, '0005_squashed.py'))
+
+        # We altered an existing file, and removed all the "replaces" items
+        self.assertEqual(old_app_squash.Migration.replaces, [])
+        # The new squashed migration replaced the old one now
+        self.assertEqual(new_app_squash.Migration.replaces, [('app', '0004_squashed')])
+        self.assertEqual(files_in_app, ['0004_squashed.py', '0005_squashed.py', '__init__.py'])
+
+    def test_empty_models_migrations(self):
+        """
+        If apps are moved but migrations remain, a fake migration must be made that does nothing and replaces the
+        existing migrations, that way django doesn't throw errors when trying to do the same work again.
+        """
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app3.test_moved_migrations",
+                                                               app_label='app3')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+            self.assertIn('0004_squashed.py', files_in_app)
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+        expected_files = ['0001_initial.py', '0002_person_age.py', '0003_moved.py', '0004_squashed.py', '__init__.py']
+        self.assertEqual(files_in_app, expected_files)
+        self.assertEqual(app_squash.Migration.replaces, [('app3', '0001_initial'),
+                                                         ('app3', '0002_person_age'),
+                                                         ('app3', '0003_moved')])

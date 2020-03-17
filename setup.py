@@ -41,8 +41,8 @@ class DjangoTest(TestCommand):
 
 setup(
     name='django_squash',
-    version='0.0.1',
-    description="A migration squasher that doesn't care how humpty dumpty was put together.",
+    version='0.0.2',
+    description="A migration squasher that doesn't care how Humpty Dumpty was put together.",
     long_description=README,
     classifiers=[
         # See https://pypi.org/pypi?%3Aaction=list_classifiers
@@ -55,6 +55,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Software Development :: Libraries :: Python Modules',
@@ -65,7 +66,7 @@ setup(
     keywords='django migration squashing squash',
     author='Javier Buzzi',
     author_email='buzzi.javier@gmail.com',
-    url='https://github.com/kingbuzzman/django-squashing',
+    url='https://github.com/kingbuzzman/django-squash',
     license="MIT",
     packages=find_packages(exclude=['tests*']),
     platforms=['any'],

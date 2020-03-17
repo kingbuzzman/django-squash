@@ -1,4 +1,6 @@
+import ast
 import inspect
+import os
 import re
 
 from django import get_version
@@ -27,6 +29,62 @@ class Migration(migrations.Migration):
 %(operations)s\
     ]
 """
+
+
+def find_brackets(line, p_count, b_count):
+    for char in line:
+        if char == '(':
+            p_count += 1
+        elif char == ')':
+            p_count -= 1
+        elif char == '[':
+            b_count += 1
+        elif char == ']':
+            b_count -= 1
+    return p_count, b_count
+
+
+def replace_migration_attribute(source, attr, value):
+    tree = ast.parse(source)
+    # Skip this file if it is not a migration.
+    migration_node = None
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == 'Migration':
+            migration_node = node
+            break
+    else:
+        return
+
+    # Find the `attr` variable.
+    comment_out_nodes = {}
+    for node in migration_node.body:
+        if isinstance(node, ast.Assign) and node.targets[0].id == attr:
+            comment_out_nodes[node.lineno] = (node.targets[0].col_offset, node.targets[0].id,)
+
+    # Skip this migration if it does not contain the `attr` we're looking for
+    if not comment_out_nodes:
+        return
+
+    # Remove the lines that form the multi-line "replaces" statement.
+    p_count = 0
+    b_count = 0
+    col_offset = None
+    name = None
+    output = []
+    for lineno, line in enumerate(source.splitlines()):
+        if lineno + 1 in comment_out_nodes.keys():
+            output.append(' ' * comment_out_nodes[lineno + 1][0] + attr + ' = ' + str(value))
+            p_count = 0
+            b_count = 0
+            col_offset, name = comment_out_nodes[lineno + 1]
+            p_count, b_count = find_brackets(line, p_count, b_count)
+        elif p_count != 0 or b_count != 0:
+            p_count, b_count = find_brackets(line, p_count, b_count)
+        else:
+            output.append(line)
+
+    # Overwrite the existing migration file to update it.
+    return '\n'.join(output) + '\n'
 
 
 class ReplacementMigrationWriter(MigrationWriterBase):
@@ -134,6 +192,32 @@ class Migration(migrations.Migration):
 """
 
     template_variable = '''%s = """%s"""'''
+
+    def as_string(self):
+        if hasattr(self.migration, 'is_migration_level') and self.migration.is_migration_level:
+            return self.replace_in_migration()
+        else:
+            return super().as_string()
+
+    def replace_in_migration(self):
+        if self.migration._deleted:
+            os.remove(self.path)
+            return
+
+        changed = False
+        with open(self.path) as f:
+            source = f.read()
+
+        if self.migration._dependencies_change:
+            source = replace_migration_attribute(source, 'dependencies', self.migration.dependencies)
+            changed = True
+        if self.migration._replaces_change:
+            source = replace_migration_attribute(source, 'replaces', self.migration.replaces)
+            changed = True
+        if not changed:
+            raise NotImplementedError()
+
+        return source
 
     def get_kwargs(self):
         kwargs = super().get_kwargs()
