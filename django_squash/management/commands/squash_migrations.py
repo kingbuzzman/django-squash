@@ -15,20 +15,35 @@ from .lib.writer import MigrationWriter
 
 
 class Command(BaseCommand):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--ignore-app',  action='append', nargs='*', default=settings.DJANGO_SQUASH_IGNORE_APPS,
+            help='Ignore app name from quashing, ensure that there is nothing dependent on these apps. '
+                 '(default: %(default)s)',
+        )
+        parser.add_argument(
+            '--dry-run', action='store_true', dest='dry_run',
+            help="Just show what migrations would be made; don't actually write them.",
+        )
+        parser.add_argument(
+            '--squashed-name', default=settings.DJANGO_SQUASH_MIGRATION_NAME,
+            help='Sets the name of the new squashed migration. Also accepted are the standard datetime parse '
+                 'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
+        )
 
     def handle(self, **kwargs):
         self.verbosity = 1
         self.include_header = False
-        self.dry_run = False
+        self.dry_run = kwargs['dry_run']
 
         ignore_apps = []
         bad_apps = []
-        for app_label in settings.DJANGO_SQUASH_IGNORE_APPS:
+        for app_label in kwargs['ignore_app']:
             try:
                 apps.get_app_config(app_label)
                 ignore_apps.append(app_label)
-            except LookupError:
-                bad_apps.append(app_label)
+            except (LookupError, TypeError):
+                bad_apps.append(str(app_label))
         if bad_apps:
             raise CommandError("The following apps are not valid: %s" % (', '.join(bad_apps)))
 
@@ -44,19 +59,11 @@ class Command(BaseCommand):
             questioner,
         )
 
-        deleted_changes = autodetector.delete_old_squashed(loader, ignore_apps)
-        for app_label, migrations in deleted_changes.items():
-            self.stdout.write(self.style.MIGRATE_HEADING("Migrations for '%s':" % app_label) + "\n")
-            for migration_string, changes in migrations.items():
-                self.stdout.write("  %s\n" % (self.style.MIGRATE_LABEL(migration_string),))
-                for change in changes:
-                    self.stdout.write("    - %s\n" % change)
-
         squashed_changes = autodetector.squash(
             real_loader=loader,
             squash_loader=squash_loader,
             ignore_apps=ignore_apps,
-            migration_name=settings.DJANGO_SQUASH_MIGRATION_NAME
+            migration_name=kwargs['squashed_name']
         )
 
         replacing_migrations = 0
@@ -89,8 +96,12 @@ class Command(BaseCommand):
                     if migration_string.startswith('..'):
                         migration_string = writer.path
                     self.stdout.write("  %s\n" % (self.style.MIGRATE_LABEL(migration_string),))
-                    for operation in migration.operations:
-                        self.stdout.write("    - %s\n" % operation.describe())
+                    if hasattr(migration, 'is_migration_level') and migration.is_migration_level:
+                        for operation in migration.describe():
+                            self.stdout.write("    - %s\n" % operation)
+                    else:
+                        for operation in migration.operations:
+                            self.stdout.write("    - %s\n" % operation.describe())
                 if not self.dry_run:
                     # Write the migrations file to the disk.
                     migrations_directory = os.path.dirname(writer.path)
@@ -102,6 +113,9 @@ class Command(BaseCommand):
                         # We just do this once per app
                         directory_created[app_label] = True
                     migration_string = writer.as_string()
+                    if migration_string is None:
+                        # File was deleted
+                        continue
                     with open(writer.path, "w", encoding='utf-8') as fh:
                         fh.write(migration_string)
                 elif self.verbosity == 3:

@@ -199,7 +199,7 @@ class SquashMigrationTest(MigrationTestBase):
         patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
         catch_error = self.assertRaisesMessage(CommandError, "The following apps are not valid: a, b")
         with patch_app_migrations, catch_error:
-            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True, ignore_app=['a', ['b']])
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True, ignore_app=['a', 'b'])
 
     def test_simple_delete_squashing_migrations_noop(self):
         class Person(models.Model):
@@ -238,10 +238,13 @@ class SquashMigrationTest(MigrationTestBase):
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
 
             files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-            app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+            old_app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+            new_app_squash = load_migration_module(os.path.join(migration_app_dir, '0005_squashed.py'))
 
         # We altered an existing file, and removed all the "replaces" items
-        self.assertEqual(app_squash.Migration.replaces, [])
+        self.assertEqual(old_app_squash.Migration.replaces, [])
+        # The new squashed migration replaced the old one now
+        self.assertEqual(new_app_squash.Migration.replaces, [('app', '0004_squashed')])
         self.assertEqual(files_in_app, ['0004_squashed.py', '0005_squashed.py', '__init__.py'])
 
     def test_empty_models_migrations(self):

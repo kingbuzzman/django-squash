@@ -1,4 +1,5 @@
 import ast
+import datetime
 import inspect
 import itertools
 import os
@@ -14,73 +15,27 @@ from django.db.migrations.autodetector import MigrationAutodetector as Migration
 from .operators import RunPython, RunSQL
 
 
-def find_brackets(line, p_count, b_count):
-    for char in line:
-        if char == '(':
-            p_count += 1
-        elif char == ')':
-            p_count -= 1
-        elif char == '[':
-            b_count += 1
-        elif char == ']':
-            b_count -= 1
-    return p_count, b_count
-
-
-def remove_old_migration_replace(migration_module):
-    """
-    Remove the 'replaces' statement in squashING migration files.
-    """
-    source = inspect.getsource(migration_module)
-    path = inspect.getsourcefile(migration_module)
-
-    tree = ast.parse(source)
-    # Skip this file if it is not a migration.
-    migration_node = None
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == 'Migration':
-            migration_node = node
-            break
-    else:
-        return
-
-    # Find the "replaces" statement.
-    comment_out_nodes = {}
-    for node in migration_node.body:
-        if isinstance(node, ast.Assign) and node.targets[0].id == 'replaces':
-            comment_out_nodes[node.lineno] = (node.targets[0].col_offset, node.targets[0].id,)
-
-    # Skip this migration if it does not replace (AKA squash) other migrations.
-    if not comment_out_nodes:
-        return
-
-    # Remove the lines that form the multi-line "replaces" statement.
-    p_count = 0
-    b_count = 0
-    col_offset = None
-    name = None
-    output = []
-    for lineno, line in enumerate(source.splitlines()):
-        if lineno + 1 in comment_out_nodes.keys():
-            p_count = 0
-            b_count = 0
-            col_offset, name = comment_out_nodes[lineno + 1]
-            p_count, b_count = find_brackets(line, p_count, b_count)
-        elif p_count != 0 or b_count != 0:
-            p_count, b_count = find_brackets(line, p_count, b_count)
-        else:
-            output.append(line)
-
-    # Overwrite the existing migration file to update it.
-    with open(path, 'w') as f:
-        f.write('\n'.join(output) + '\n')
-
-
 def source_directory(module):
     return os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
 
 
 class Migration(migration_module.Migration):
+
+    _deleted = False
+    _dependencies_change = False
+    _replaces_change = False
+
+    def describe(self):
+        if self._deleted:
+            yield 'Deleted'
+        if self._dependencies_change:
+            yield '"dependencies" changed'
+        if self._replaces_change:
+            yield '"replaces" keyword removed'
+
+    @property
+    def is_migration_level(self):
+        return self._deleted or self._dependencies_change or self._replaces_change
 
     def __getitem__(self, index):
         return (self.app_label, self.name)[index]
@@ -92,6 +47,7 @@ class Migration(migration_module.Migration):
     def from_migration(cls, migration):
         new = Migration(name=migration.name, app_label=migration.app_label)
         new.__dict__ = migration.__dict__.copy()
+        new._original_migration = migration
         return new
 
 
@@ -180,10 +136,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         for app, migrations in changes.items():
             for migration in migrations:
-                # TODO: maybe use use a proper order???
+                # TODO: maybe use a proper order???
                 migration.replaces = sorted(migrations_by_app[app])
 
-    def rename_migrations(self, original, graph, changes, migration_name=None):
+    def rename_migrations(self, original, graph, changes, migration_name):
         """
         Continues the numbering from whats there now.
         """
@@ -194,6 +150,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         for app, migrations in changes.items():
             for migration in migrations:
                 next_number = current_counters_by_app[app] = current_counters_by_app[app] + 1
+                migration_name = datetime.datetime.now().strftime(migration_name)
                 migration.name = "%04i_%s" % (
                     next_number,
                     migration_name or 'squashed',
@@ -205,39 +162,39 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         object for the purpose of easy renames.
         """
         migrations_by_name = {}
-        # First pass, swapping existing migration objects
-        for (app, _), migrations in itertools.groupby(original.disk_migrations.items(), lambda x: x[0]):
-            for _, migration in migrations:
-                new_migration = Migration.from_migration(migration)
-                migrations_by_name.setdefault(tuple(new_migration), new_migration)
 
-        # Second pass, swapping new objects
-        for key in changes.keys():
+        # First pass, swapping new objects
+        for app_label, migrations in changes.items():
             new_migrations = []
-            for migration in self.migrations[key]:
+            for migration in migrations:
                 migration_id = migration.app_label, migration.name
-                new_migration = migrations_by_name.get(migration_id)
-                if not new_migration:
-                    new_migration = Migration.from_migration(migration)
-                    migrations_by_name.setdefault(migration_id, new_migration)
+                new_migration = Migration.from_migration(migration)
+                migrations_by_name[migration_id] = new_migration
                 new_migrations.append(new_migration)
-            changes[key] = new_migrations
+            changes[app_label] = new_migrations
 
-        # Third pass, replace the tuples with the newly created objects
-        for migration in migrations_by_name.values():
-            new_dependencies = []
-            for dependency in migration.dependencies:
-                if dependency[0] == "__setting__":
-                    app_label = getattr(settings, dependency[1]).split('.')[0]
-                    migrations = [migration for (app, _), migration in migrations_by_name.items() if app == app_label]
-                    dependency = tuple(migrations[-1])
-                elif dependency[1] == "__first__":
-                    dependency = original.graph.root_nodes(dependency[0])[0]
-                elif dependency[1] == "__latest__":
-                    dependency = original.graph.leaf_nodes(dependency[0])[0]
+        # Second pass, replace the tuples with the newly created objects
+        for app_label, migrations in changes.items():
+            for migration in migrations:
+                new_dependencies = []
+                for dependency in migration.dependencies:
+                    if dependency[0] == "__setting__":
+                        app_label = getattr(settings, dependency[1]).split('.')[0]
+                        migrations = [migration for (app, _), migration in migrations_by_name.items()
+                                      if app == app_label]
+                        dependency = tuple(migrations[-1])
+                    elif dependency[1] == "__first__":
+                        dependency = original.graph.root_nodes(dependency[0])[0]
+                    elif dependency[1] == "__latest__":
+                        dependency = original.graph.leaf_nodes(dependency[0])[0]
 
-                new_dependencies.append(migrations_by_name[dependency])
-            migration.dependencies = new_dependencies
+                    migration_id = dependency
+                    if migration_id not in migrations_by_name:
+                        new_migration = Migration.from_migration(original.disk_migrations[migration_id])
+                        migrations_by_name[migration_id] = new_migration
+                    new_dependencies.append(migrations_by_name[migration_id])
+
+                migration.dependencies = new_dependencies
 
     def create_deleted_models_migrations(self, loader, changes):
         migrations_by_label = defaultdict(list)
@@ -255,6 +212,8 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             changes[app_label] = [instance]
 
     def squash(self, real_loader, squash_loader, ignore_apps=None, migration_name=None):
+        changes_ = self.delete_old_squashed(real_loader, ignore_apps)
+
         graph = squash_loader.graph
         changes = super().changes(graph, trim_to_apps=None, convert_apps=None, migration_name=None)
 
@@ -267,26 +226,30 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         self.replace_current_migrations(real_loader, graph, changes)
         self.add_non_elidables(real_loader, squash_loader, changes)
 
+        for app, change in changes_.items():
+            changes[app].extend(change)
+
         return changes
 
     def delete_old_squashed(self, loader, ignore_apps=None):
-        changes = defaultdict(lambda: defaultdict(set))
+        changes = defaultdict(set)
         project_path = os.path.abspath(os.curdir)
         project_apps = [app.label for app in apps.get_app_configs()
                         if source_directory(app.module).startswith(project_path)]
 
-        real_migrations = (loader.disk_migrations[key] for key in loader.graph.node_map.keys())
+        real_migrations = (Migration.from_migration(loader.disk_migrations[key])
+                           for key in loader.graph.node_map.keys())
         project_migrations = [migration for migration in real_migrations
                               if migration.app_label in project_apps and migration.app_label not in ignore_apps or []]
-        replaced_migrations = [migration for migration in project_migrations if migration.replaces]
+        replaced_migrations = [Migration.from_migration(migration)
+                               for migration in project_migrations if migration.replaces]
 
-        migrations_to_delete = set()
         migrations_to_remove = set()
         for migration in (y for x in replaced_migrations for y in x.replaces if y[0] not in ignore_apps or []):
+            real_migration = Migration.from_migration(loader.disk_migrations[migration])
+            real_migration._deleted = True
             migrations_to_remove.add(migration)
-            migration_file_path = inspect.getsourcefile(loader.disk_migrations[migration].__class__)
-            changes[migration[0]][migration_file_path.replace(project_path + '/', '')].add('Deleted')
-            migrations_to_delete.add(inspect.getsourcefile(loader.disk_migrations[migration].__class__))
+            changes[migration[0]].add(real_migration)
 
         # Remove all the old dependencies that will be removed
         for migration in project_migrations:
@@ -295,20 +258,13 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             if new_dependencies == migration.dependencies:
                 # There is no need to write anything
                 continue
-            migration_file_path = inspect.getsourcefile(loader.disk_migrations[migration.app_label,
-                                                                               migration.name].__class__)
-            change = changes[migration.app_label][migration_file_path.replace(project_path + '/', '')]
-            change.add('Removed old dependencies')
-            replace_migration_attribute(sys.modules[migration.__class__.__module__], 'dependencies', new_dependencies)
+            migration._dependencies_change = True
+            changes[migration.app_label].add(migration)
+            setattr(migration, 'dependencies', new_dependencies)
 
         for migration in replaced_migrations:
-            migration_file_path = inspect.getsourcefile(loader.disk_migrations[migration.app_label,
-                                                                               migration.name].__class__)
-            change = changes[migration.app_label][migration_file_path.replace(project_path + '/', '')]
-            change.add('Removed old replaces')
-            replace_migration_attribute(sys.modules[migration.__class__.__module__], 'replaces', [])
-
-        for path in migrations_to_delete:
-            os.remove(path)
+            migration._replaces_change = True
+            changes[migration.app_label].add(migration)
+            setattr(migration, 'replaces', [])
 
         return changes
