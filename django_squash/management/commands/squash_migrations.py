@@ -2,7 +2,7 @@ import itertools
 import os
 
 from django.apps import apps
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand, CommandError, no_translations
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
@@ -31,6 +31,7 @@ class Command(BaseCommand):
                  'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
         )
 
+    @no_translations
     def handle(self, **kwargs):
         self.verbosity = 1
         self.include_header = False
