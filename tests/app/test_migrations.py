@@ -136,13 +136,13 @@ class SquashMigrationTest(MigrationTestBase):
                                                          ('app', '0002_person_age'),
                                                          ('app', '0003_add_dob')])
 
-        actual = [pretty_operation(migration) for migration in app_squash.Migration.operations]
+        actual = [(type(operation), pretty_operation(operation)) for operation in app_squash.Migration.operations]
         expected = [
-            'CreateModel()',
-            ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST, '
-             'elidable=False)'),
-            'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)',
-            'RunSQL(sql=select 4, elidable=False)'
+            (migrations_module.CreateModel, 'CreateModel()'),
+            (migrations_module.RunPython, ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
+                                     'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')),
+            (migrations_module.RunSQL, 'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'),
+            (migrations_module.RunSQL, 'RunSQL(sql=select 4, elidable=False)')
         ]
         self.assertEqual(expected, actual)
 

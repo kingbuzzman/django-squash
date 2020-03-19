@@ -14,6 +14,8 @@ class Variable:
 
 
 class RunPython(RunPythonBase):
+    # Fake the class so the OperationWriter thinks its the internal class and not a custom one
+    __class__ = RunPythonBase
 
     def deconstruct(self):
         name, args, kwargs = super().deconstruct()
@@ -27,6 +29,8 @@ class RunPython(RunPythonBase):
 
 
 class RunSQL(RunSQLBase):
+    # Fake the class so the OperationWriter thinks its the internal class and not a custom one
+    __class__ = RunSQLBase
 
     def deconstruct(self):
         name, args, kwargs = super().deconstruct()
