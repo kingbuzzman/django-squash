@@ -140,7 +140,7 @@ class SquashMigrationTest(MigrationTestBase):
         expected = [
             (migrations_module.CreateModel, 'CreateModel()'),
             (migrations_module.RunPython, ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
-                                     'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')),
+                                           'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')),
             (migrations_module.RunSQL, 'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'),
             (migrations_module.RunSQL, 'RunSQL(sql=select 4, elidable=False)')
         ]
