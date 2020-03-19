@@ -9,6 +9,9 @@ class Variable:
         self.name = name
         self.value = value
 
+    def __bool__(self):
+        return bool(self.value)
+
 
 class RunPython(RunPythonBase):
 
@@ -32,7 +35,8 @@ class RunSQL(RunSQLBase):
 
     @classmethod
     def from_operation(cls, operation, num):
-        return cls(sql=Variable('SQL_%s' % num, operation.sql),
-                   reverse_sql=Variable('SQL_%s_ROLLBACK' % num, operation.reverse_sql),
+        reverse_sql = Variable('SQL_%s_ROLLBACK' % num, operation.reverse_sql) if operation.reverse_sql else None
+
+        return cls(sql=Variable('SQL_%s' % num, operation.sql), reverse_sql=reverse_sql,
                    state_operations=operation.state_operations, hints=operation.hints,
                    elidable=operation.elidable)

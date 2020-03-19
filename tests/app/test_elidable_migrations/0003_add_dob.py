@@ -45,6 +45,10 @@ not_important_sql = """
 select 3
 """
 
+also_important_sql = """
+select 4
+"""
+
 
 class Migration(migrations.Migration):
 
@@ -68,4 +72,5 @@ class Migration(migrations.Migration):
             model_name='person',
             name='age',
         ),
+        migrations.RunSQL(also_important_sql, elidable=False),
     ]
