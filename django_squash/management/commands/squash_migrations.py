@@ -13,6 +13,24 @@ from .lib.loader import SquashMigrationLoader
 from .lib.questioner import NonInteractiveMigrationQuestioner
 from .lib.writer import MigrationWriter
 
+try:
+    from django.core.management.base import no_translations
+except ImportError:
+    # Backport for django 2.0
+    def no_translations(handle_func):
+        """Decorator that forces a command to run with translations deactivated."""
+        def wrapped(*args, **kwargs):
+            from django.utils import translation
+            saved_locale = translation.get_language()
+            translation.deactivate_all()
+            try:
+                res = handle_func(*args, **kwargs)
+            finally:
+                if saved_locale is not None:
+                    translation.activate(saved_locale)
+            return res
+        return wrapped
+
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
@@ -31,6 +49,7 @@ class Command(BaseCommand):
                  'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
         )
 
+    @no_translations
     def handle(self, **kwargs):
         self.verbosity = 1
         self.include_header = False
