@@ -3,6 +3,13 @@
 from django.db import migrations, models
 
 
+def same_name(apps, schema_editor):
+    """
+    Content not important, testing same function name in multiple migrations
+    """
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,6 +17,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(same_name, elidable=False),
         migrations.AddField(
             model_name='person',
             name='age',

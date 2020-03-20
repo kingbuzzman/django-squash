@@ -51,26 +51,36 @@ class Migration(migration_module.Migration):
         return new
 
 
-def all_custom_operations(operations):
+class UniqueVariableName:
+    def __init__(self):
+        self.names = defaultdict(int)
+
+    def __call__(self, name, force_number=False):
+        self.names[name] += 1
+        count = self.names[name]
+        if not force_number and count == 1:
+            return name
+        else:
+            return '%s_%s' % (name, count)
+
+
+def all_custom_operations(operations, unique_names):
     """
     Generator that loops over all the operations and traverses sub-operations such as those inside a -
     SeparateDatabaseAndState class.
     """
-    sql_variable_count = 0
+
     for operation in operations:
         if operation.elidable:
             continue
 
         if isinstance(operation, migration_module.RunSQL):
-            sql_variable_count = sql_variable_count + 1
-            yield RunSQL.from_operation(operation, sql_variable_count)
+            yield RunSQL.from_operation(operation, unique_names)
         elif isinstance(operation, migration_module.RunPython):
-            yield RunPython.from_operation(operation)
+            yield RunPython.from_operation(operation, unique_names)
         elif isinstance(operation, migration_module.SeparateDatabaseAndState):
-            yield from all_custom_operations(operation.state_operations)
-            # Just in case we added something in here incorrectly
-            # This should always return nothing since it should NEVER have any RunSQL / RunPython
-            yield from all_custom_operations(operation.database_operations)
+            # A valid use case for this should be given before any work is done.
+            pass
 
 
 def get_imports(module):
@@ -95,13 +105,17 @@ def get_imports(module):
 
 
 def copy_func(f, name=None):
-    return types.FunctionType(f.__code__, f.__globals__, name or f.__name__,
+    func = types.FunctionType(f.__code__, f.__globals__, name or f.__qualname__,
                               f.__defaults__, f.__closure__)
+    func.__qualname__ = f.__qualname__
+    func.__original_qualname__ = f.__original_qualname__
+    return func
 
 
 class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
     def add_non_elidables(self, original, loader, changes):
+        unique_names = UniqueVariableName()
         replacing_migrations_by_app = {app: [original.disk_migrations[r]
                                              for r in itertools.chain.from_iterable([m.replaces for m in migrations])]
                                        for app, migrations in changes.items()}
@@ -113,7 +127,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             for migration in replacing_migrations_by_app[app]:
                 module = sys.modules[migration.__module__]
                 imports.extend(get_imports(module))
-                for operation in all_custom_operations(migration.operations):
+                for operation in all_custom_operations(migration.operations, unique_names):
                     if isinstance(operation, migration_module.RunPython):
                         operation.code = copy_func(operation.code)
                         operation.code.__module__ = 'DELETEMEPLEASE'  # TODO: get a better name?
