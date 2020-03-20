@@ -78,6 +78,6 @@ setup(
     ],
     tests_require=[],
     extras_require={
-        'test':  ['isort', 'flake8', 'ipdb', 'coverage', 'twine'],
+        'test':  ['isort', 'flake8', 'ipdb', 'coverage'],
     }
 )
