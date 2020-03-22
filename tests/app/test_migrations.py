@@ -12,9 +12,11 @@ from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.db import connections, migrations as migrations_module, models
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import TransactionTestCase
+from django.test import TestCase, TransactionTestCase
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
+
+from django_squash.management.commands.lib.autodetector import UniqueVariableName
 
 
 class MigrationTestBase(TransactionTestCase):
@@ -143,9 +145,10 @@ class SquashMigrationTest(MigrationTestBase):
             expected = [
                 (migrations_module.CreateModel, 'CreateModel()'),
                 (migrations_module.RunPython, 'RunPython(code=same_name, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)'),
                 (migrations_module.RunPython, ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
                                                'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')),
-                (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=same_name_2_2, elidable=False)'),
                 (migrations_module.RunSQL, 'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'),
                 (migrations_module.RunSQL, 'RunSQL(sql=select 4, elidable=False)')
             ]
@@ -160,10 +163,17 @@ class SquashMigrationTest(MigrationTestBase):
 
             self.assertEqual('''def same_name_2(apps, schema_editor):
     """
+    Content not important, testing same function name in multiple migrations, nasty
+    """
+    pass
+''', inspect.getsource(app_squash.Migration.operations[2].code))
+
+            self.assertEqual('''def same_name_2_2(apps, schema_editor):
+    """
     Content not important, testing same function name in multiple migrations, second function
     """
     pass
-''', inspect.getsource(app_squash.Migration.operations[3].code))
+''', inspect.getsource(app_squash.Migration.operations[4].code))
 
     def test_squashing_migration_simple(self):
         class Person(models.Model):
@@ -292,3 +302,11 @@ class SquashMigrationTest(MigrationTestBase):
         self.assertEqual(app_squash.Migration.replaces, [('app3', '0001_initial'),
                                                          ('app3', '0002_person_age'),
                                                          ('app3', '0003_moved')])
+
+
+class TestUtils(TestCase):
+    def test_unique_names(self):
+        names = UniqueVariableName()
+        self.assertEqual('var', names('var'))
+        self.assertEqual('var_2', names('var'))
+        self.assertEqual('var_2_2', names('var_2'))

@@ -10,6 +10,13 @@ def same_name(apps, schema_editor):
     pass
 
 
+def same_name_2(apps, schema_editor):
+    """
+    Content not important, testing same function name in multiple migrations, nasty
+    """
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -18,6 +25,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(same_name, elidable=False),
+        migrations.RunPython(same_name_2, elidable=False),
         migrations.AddField(
             model_name='person',
             name='age',

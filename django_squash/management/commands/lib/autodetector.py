@@ -61,7 +61,10 @@ class UniqueVariableName:
         if not force_number and count == 1:
             return name
         else:
-            return '%s_%s' % (name, count)
+            new_name = '%s_%s' % (name, count)
+            # Make sure that the function name is fully unique
+            # You can potentially have the same name already defined.
+            return self(new_name)
 
 
 def all_custom_operations(operations, unique_names):
