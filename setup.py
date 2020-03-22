@@ -41,7 +41,7 @@ class DjangoTest(TestCommand):
 
 setup(
     name='django_squash',
-    version='0.0.3',
+    version='0.0.4',
     description="A migration squasher that doesn't care how Humpty Dumpty was put together.",
     long_description=README,
     classifiers=[
@@ -78,6 +78,6 @@ setup(
     ],
     tests_require=[],
     extras_require={
-        'test':  ['isort', 'flake8', 'ipdb', 'coverage', 'twine'],
+        'test':  ['isort', 'flake8', 'ipdb', 'coverage'],
     }
 )

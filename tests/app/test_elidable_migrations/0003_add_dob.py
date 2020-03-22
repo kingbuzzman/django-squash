@@ -16,6 +16,13 @@ def update_dob(apps, schema_editor):
         person.save()
 
 
+def same_name(apps, schema_editor):
+    """
+    Content not important, testing same function name in multiple migrations, second function
+    """
+    pass
+
+
 def create_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
     """
     This is a test doc string
@@ -67,6 +74,7 @@ class Migration(migrations.Migration):
             preserve_default=False,
         ),
         migrations.RunPython(update_dob, elidable=True),
+        migrations.RunPython(same_name, elidable=False),
         migrations.RunSQL(important_sql, reverse_sql=important_rollback_sql, elidable=False),
         migrations.RemoveField(
             model_name='person',

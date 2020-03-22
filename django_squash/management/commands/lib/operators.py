@@ -23,7 +23,12 @@ class RunPython(RunPythonBase):
         return name, args, kwargs
 
     @classmethod
-    def from_operation(cls, operation):
+    def from_operation(cls, operation, unique_names):
+        operation.code.__original_qualname__ = operation.code.__qualname__
+        operation.code.__qualname__ = unique_names(operation.code.__qualname__)
+        if operation.reverse_code:
+            operation.reverse_code.__original_qualname__ = operation.reverse_code.__qualname__
+            operation.reverse_code.__qualname__ = unique_names(operation.reverse_code.__qualname__)
         return cls(code=operation.code, reverse_code=operation.reverse_code, atomic=operation.atomic,
                    hints=operation.hints, elidable=operation.elidable)
 
@@ -38,9 +43,10 @@ class RunSQL(RunSQLBase):
         return name, args, kwargs
 
     @classmethod
-    def from_operation(cls, operation, num):
-        reverse_sql = Variable('SQL_%s_ROLLBACK' % num, operation.reverse_sql) if operation.reverse_sql else None
+    def from_operation(cls, operation, unique_names):
+        name = unique_names('SQL', force_number=True)
+        reverse_sql = Variable('%s_ROLLBACK' % name, operation.reverse_sql) if operation.reverse_sql else None
 
-        return cls(sql=Variable('SQL_%s' % num, operation.sql), reverse_sql=reverse_sql,
+        return cls(sql=Variable(name, operation.sql), reverse_sql=reverse_sql,
                    state_operations=operation.state_operations, hints=operation.hints,
                    elidable=operation.elidable)

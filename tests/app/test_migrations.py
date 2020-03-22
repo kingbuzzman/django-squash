@@ -1,4 +1,5 @@
 import importlib.util
+import inspect
 import io
 import os
 import shutil
@@ -11,9 +12,11 @@ from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.db import connections, migrations as migrations_module, models
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import TransactionTestCase
+from django.test import TestCase, TransactionTestCase
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
+
+from django_squash.management.commands.lib.autodetector import UniqueVariableName
 
 
 class MigrationTestBase(TransactionTestCase):
@@ -105,6 +108,8 @@ def pretty_operation(operation):
 class SquashMigrationTest(MigrationTestBase):
     available_apps = ['app', 'app2', 'app3', 'django_squash']
 
+    maxDiff = None
+
     def test_squashing_elidable_migration_simple(self):
         class Person(models.Model):
             name = models.CharField(max_length=10)
@@ -123,28 +128,52 @@ class SquashMigrationTest(MigrationTestBase):
 
             app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
 
-        # Test imports
-        self.assertTrue(hasattr(app_squash, 'randrange'))
-        self.assertTrue(hasattr(app_squash, 'itertools'))
+            # Test imports
+            self.assertTrue(hasattr(app_squash, 'randrange'))
+            self.assertTrue(hasattr(app_squash, 'itertools'))
 
-        self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
-                         '\n    This is a test doc string\n    ')
+            self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
+                             '\n    This is a test doc string\n    ')
 
-        self.assertEqual(app_squash.rollback_admin_MUST_ALWAYS_EXIST.__doc__, 'Single comments')
+            self.assertEqual(app_squash.rollback_admin_MUST_ALWAYS_EXIST.__doc__, 'Single comments')
 
-        self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
-                                                         ('app', '0002_person_age'),
-                                                         ('app', '0003_add_dob')])
+            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
+                                                             ('app', '0002_person_age'),
+                                                             ('app', '0003_add_dob')])
 
-        actual = [(type(operation), pretty_operation(operation)) for operation in app_squash.Migration.operations]
-        expected = [
-            (migrations_module.CreateModel, 'CreateModel()'),
-            (migrations_module.RunPython, ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
-                                           'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')),
-            (migrations_module.RunSQL, 'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'),
-            (migrations_module.RunSQL, 'RunSQL(sql=select 4, elidable=False)')
-        ]
-        self.assertEqual(expected, actual)
+            actual = [(type(operation), pretty_operation(operation)) for operation in app_squash.Migration.operations]
+            expected = [
+                (migrations_module.CreateModel, 'CreateModel()'),
+                (migrations_module.RunPython, 'RunPython(code=same_name, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)'),
+                (migrations_module.RunPython, ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
+                                               'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')),
+                (migrations_module.RunPython, 'RunPython(code=same_name_2_2, elidable=False)'),
+                (migrations_module.RunSQL, 'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'),
+                (migrations_module.RunSQL, 'RunSQL(sql=select 4, elidable=False)')
+            ]
+            self.assertEqual(expected, actual)
+
+            self.assertEqual('''def same_name(apps, schema_editor):
+    """
+    Content not important, testing same function name in multiple migrations
+    """
+    pass
+''', inspect.getsource(app_squash.Migration.operations[1].code))
+
+            self.assertEqual('''def same_name_2(apps, schema_editor):
+    """
+    Content not important, testing same function name in multiple migrations, nasty
+    """
+    pass
+''', inspect.getsource(app_squash.Migration.operations[2].code))
+
+            self.assertEqual('''def same_name_2_2(apps, schema_editor):
+    """
+    Content not important, testing same function name in multiple migrations, second function
+    """
+    pass
+''', inspect.getsource(app_squash.Migration.operations[4].code))
 
     def test_squashing_migration_simple(self):
         class Person(models.Model):
@@ -273,3 +302,11 @@ class SquashMigrationTest(MigrationTestBase):
         self.assertEqual(app_squash.Migration.replaces, [('app3', '0001_initial'),
                                                          ('app3', '0002_person_age'),
                                                          ('app3', '0003_moved')])
+
+
+class TestUtils(TestCase):
+    def test_unique_names(self):
+        names = UniqueVariableName()
+        self.assertEqual('var', names('var'))
+        self.assertEqual('var_2', names('var'))
+        self.assertEqual('var_2_2', names('var_2'))

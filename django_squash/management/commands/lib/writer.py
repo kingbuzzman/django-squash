@@ -219,6 +219,18 @@ class Migration(migrations.Migration):
 
         return source
 
+    @staticmethod
+    def extract_function(code):
+        function_source = inspect.getsource(code)
+        if code.__original_qualname__ == code.__qualname__:
+            return function_source
+
+        function_source = re.sub(rf'(def\s+){code.__original_qualname__}',
+                                 rf'\1{code.__qualname__}',
+                                 function_source,
+                                 1)
+        return function_source
+
     def get_kwargs(self):
         kwargs = super().get_kwargs()
 
@@ -226,9 +238,9 @@ class Migration(migrations.Migration):
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, migration_module.RunPython):
-                functions.append(inspect.getsource(operation.code))
+                functions.append(self.extract_function(operation.code))
                 if operation.reverse_code:
-                    functions.append(inspect.getsource(operation.reverse_code))
+                    functions.append(self.extract_function(operation.reverse_code))
             elif isinstance(operation, migration_module.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
                 if operation.reverse_sql:
