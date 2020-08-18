@@ -57,12 +57,16 @@ class Command(BaseCommand):
 
         ignore_apps = []
         bad_apps = []
-        for app_label in kwargs['ignore_app']:
-            try:
-                apps.get_app_config(app_label)
-                ignore_apps.append(app_label)
-            except (LookupError, TypeError):
-                bad_apps.append(str(app_label))
+
+
+        for app_labels in kwargs['ignore_app']:
+            for app_label in app_labels:
+                try:
+                    apps.get_app_config(app_label)
+                    ignore_apps.append(app_label)
+                except (LookupError, TypeError):
+                    bad_apps.append(str(app_label))
+
         if bad_apps:
             raise CommandError("The following apps are not valid: %s" % (', '.join(bad_apps)))
 
