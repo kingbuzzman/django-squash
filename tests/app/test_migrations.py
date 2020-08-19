@@ -236,7 +236,7 @@ class SquashMigrationTest(MigrationTestBase):
         patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
         catch_error = self.assertRaisesMessage(CommandError, "The following apps are not valid: a, b")
         with patch_app_migrations, catch_error:
-            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True, ignore_app=['a', 'b'])
+            call_command('squash_migrations', '--ignore-app', 'a', 'b', verbosity=1, stdout=out, no_color=True)
 
     def test_simple_delete_squashing_migrations_noop(self):
         class Person(models.Model):
