@@ -251,6 +251,19 @@ class SquashMigrationTest(MigrationTestBase):
                              no_color=True)
             self.assertEqual(set(squash_mock.call_args[1]['ignore_apps']), {'app2', 'app'})
 
+    def test_only_argument(self):
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
+
+        with unittest.mock.patch(
+         target="django_squash.management.commands.lib.autodetector.SquashMigrationAutodetector.squash",
+         autospec=True) as squash_mock, patch_app_migrations:
+            with self.assertRaisesMessage(CommandError, "There are no migrations to squash."):
+                call_command('squash_migrations', '--only', 'app2', 'app', verbosity=1, stdout=out,
+                             no_color=True)
+            self.assertEqual(set(squash_mock.call_args[1]['ignore_apps']),
+                             set(self.available_apps) - {'app', 'app2'})
+
     def test_simple_delete_squashing_migrations_noop(self):
         class Person(models.Model):
             name = models.CharField(max_length=10)
