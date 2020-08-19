@@ -7,6 +7,7 @@ from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
 from django_squash import settings
+
 from .lib.autodetector import SquashMigrationAutodetector
 from .lib.loader import SquashMigrationLoader
 from .lib.questioner import NonInteractiveMigrationQuestioner
