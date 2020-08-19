@@ -35,6 +35,9 @@ except ImportError:
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
+            '--only', action='append', nargs='*', help='Only squash the specified apps'
+        )
+        parser.add_argument(
             '--ignore-app',  action='append', nargs='*', default=settings.DJANGO_SQUASH_IGNORE_APPS,
             help='Ignore app name from quashing, ensure that there is nothing dependent on these apps. '
                  '(default: %(default)s)',
@@ -57,12 +60,30 @@ class Command(BaseCommand):
 
         ignore_apps = []
         bad_apps = []
-        for app_label in kwargs['ignore_app']:
-            try:
-                apps.get_app_config(app_label)
-                ignore_apps.append(app_label)
-            except (LookupError, TypeError):
-                bad_apps.append(str(app_label))
+
+        for app_labels in kwargs['ignore_app']:
+            for app_label in app_labels:
+                try:
+                    apps.get_app_config(app_label)
+                    ignore_apps.append(app_label)
+                except (LookupError, TypeError):
+                    bad_apps.append(str(app_label))
+
+        if kwargs['only']:
+            only_apps = []
+
+            for app_labels in kwargs['only']:
+                for app_label in app_labels:
+                    try:
+                        apps.get_app_config(app_label)
+                        only_apps.append(app_label)
+                    except (LookupError, TypeError):
+                        bad_apps.append(str(app_label))
+
+            for app_name in apps.app_configs.keys():
+                if app_name not in only_apps:
+                    ignore_apps.append(app_name)
+
         if bad_apps:
             raise CommandError("The following apps are not valid: %s" % (', '.join(bad_apps)))
 
