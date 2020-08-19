@@ -7,7 +7,6 @@ from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
 from django_squash import settings
-
 from .lib.autodetector import SquashMigrationAutodetector
 from .lib.loader import SquashMigrationLoader
 from .lib.questioner import NonInteractiveMigrationQuestioner
@@ -61,7 +60,6 @@ class Command(BaseCommand):
         ignore_apps = []
         bad_apps = []
 
-
         for app_labels in kwargs['ignore_app']:
             for app_label in app_labels:
                 try:
@@ -82,7 +80,7 @@ class Command(BaseCommand):
                         bad_apps.append(str(app_label))
 
             for app_name in apps.app_configs.keys():
-                if not app_name in only_apps:
+                if app_name not in only_apps:
                     ignore_apps.append(app_name)
 
         if bad_apps:
