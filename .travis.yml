@@ -19,7 +19,7 @@ script:
 - coverage run setup.py test
 - coverage report -m --fail-under=85
 - flake8
-- isort --check-only
+- isort --check .
 
 after_success:
 - codecov
