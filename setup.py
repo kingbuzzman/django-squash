@@ -41,7 +41,7 @@ class DjangoTest(TestCommand):
 
 setup(
     name='django_squash',
-    version='0.0.5',
+    version='0.0.6',
     description="A migration squasher that doesn't care how Humpty Dumpty was put together.",
     long_description=README,
     classifiers=[
@@ -49,17 +49,18 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Developers',
+        'Framework :: Django',
+        'Framework :: Django :: 2.2',
+        'Framework :: Django :: 3.0',
+        'Framework :: Django :: 3.1',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Software Development :: Testing',
         'Topic :: Utilities',
         'License :: OSI Approved :: MIT License',
     ],
@@ -71,10 +72,10 @@ setup(
     packages=find_packages(exclude=['tests*']),
     platforms=['any'],
     zip_safe=True,
-    python_requires='!=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
+    python_requires='>=3.6',
     cmdclass={'test': DjangoTest},
     install_requires=[
-        'django>=2.0',
+        'django>=2.2',
     ],
     tests_require=[],
     extras_require={
