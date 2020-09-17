@@ -1,0 +1,8 @@
+coverage:
+  range: 50..85
+
+  status:
+    project:
+      enabled: yes
+      target: auto
+      threshold: 5%
