@@ -2,14 +2,15 @@ language: python
 dist: xenial
 
 python:
-- '3.6'
 - '3.7'
 - '3.8'
+- '3.9'
+- '3.10'
 
 env:
 - DJANGO_VERSION=2.2.*
-- DJANGO_VERSION=3.0.*
-- DJANGO_VERSION=3.1.*
+- DJANGO_VERSION=3.2.*
+- DJANGO_VERSION=4.0.*
 
 script:
 - pip install codecov
