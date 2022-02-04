@@ -40,6 +40,7 @@ jobs:
       run: coverage report -m --fail-under=85
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
+      run: ls -lsah
       with:
         fail_ci_if_error: true
         files: ./coverage.xml
