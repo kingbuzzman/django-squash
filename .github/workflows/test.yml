@@ -27,7 +27,6 @@ jobs:
         - { django-version: '4.0.*', python-version: '3.7' }
     steps:
     - uses: actions/checkout@v2
-    - uses: codecov/codecov-action@v2
     - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
@@ -39,7 +38,9 @@ jobs:
       run: coverage run setup.py test
     - name: Coverage check
       run: coverage report -m --fail-under=85
-    - name: Coverage check
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+    - name: Flake8 check
       run: flake8
     - name: iSort check
       run: isort --check .
