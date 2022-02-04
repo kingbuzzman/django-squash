@@ -38,13 +38,11 @@ jobs:
       run: coverage run setup.py test
     - name: Coverage check
       run: coverage report -m --fail-under=85
-    - name: check
-      run: ls -lsah
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
       with:
         fail_ci_if_error: true
-        files: ./coverage.xml
+        files: ./codecov.yml
     - name: Flake8 check
       run: flake8
     - name: iSort check
