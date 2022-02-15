@@ -5,8 +5,9 @@ import re
 
 from django import get_version
 from django.db import migrations as migration_module
-from django.db.migrations.writer import (MigrationWriter as MigrationWriterBase, OperationWriter,
-                                         MIGRATION_HEADER_TEMPLATE, MIGRATION_TEMPLATE)
+from django.db.migrations.writer import (
+    MIGRATION_HEADER_TEMPLATE, MIGRATION_TEMPLATE, MigrationWriter as MigrationWriterBase, OperationWriter,
+)
 from django.utils.timezone import now
 
 
