@@ -42,8 +42,8 @@ jobs:
       run: coverage run setup.py test
     - name: Coverage check
       run: coverage report -m --fail-under=85
-    - name: Where am i?
-      run: ls -lsah; pwd
+    - name: Coverage XML
+      run: coverage xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
       with:
