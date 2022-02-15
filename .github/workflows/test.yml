@@ -47,9 +47,7 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
       with:
-        directory: ..
         fail_ci_if_error: true
-        files: .coverage
     - name: Flake8 check
       run: flake8
     - name: iSort check
