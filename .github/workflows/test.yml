@@ -1,5 +1,9 @@
 name: Tests
 
+concurrency:
+  group: django-squash-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches:
