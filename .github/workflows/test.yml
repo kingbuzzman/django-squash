@@ -39,10 +39,11 @@ jobs:
     - name: Coverage check
       run: coverage report -m --fail-under=85
     - name: Where am i?
-      run: ls -lsah
+      run: ls -lsah; pwd
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
       with:
+        directory: ..
         fail_ci_if_error: true
         files: .coverage
     - name: Flake8 check
