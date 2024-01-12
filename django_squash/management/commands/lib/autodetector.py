@@ -5,6 +5,7 @@ import itertools
 import os
 import sys
 import types
+import re
 from collections import defaultdict
 
 from django.apps import apps
@@ -162,8 +163,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         """
         current_counters_by_app = defaultdict(int)
         for app, migration in original.graph.node_map:
-            current_counters_by_app[app] = max([int(migration[:4]), current_counters_by_app[app]])
-
+            number_match = re.match(r'^\d+', migration)
+            if not number_match:
+                raise ValueError('Improperly named migration! Migration names must start with a number.')
+            current_counters_by_app[app] = max([int(number_match[0]), current_counters_by_app[app]])
         for app, migrations in changes.items():
             for migration in migrations:
                 next_number = current_counters_by_app[app] = current_counters_by_app[app] + 1
