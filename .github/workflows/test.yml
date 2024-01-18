@@ -33,7 +33,7 @@ jobs:
           - { django-version: "5.0.*", python-version: "3.8" }
           - { django-version: "5.0.*", python-version: "3.9" }
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
@@ -48,7 +48,7 @@ jobs:
       - name: Coverage XML
         run: coverage xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
       - name: Flake8 check
@@ -56,7 +56,7 @@ jobs:
       - name: iSort check
         run: isort --check .
       - name: Publish package
-        if: github.event_name == 'push' && startsWith(github.head_ref, 'master')
+        # if: github.event_name == 'push' && startsWith(github.head_ref, 'master')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           user: __token__
