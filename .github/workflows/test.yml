@@ -62,6 +62,10 @@ jobs:
     # needs: tests
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 1.12
+      - run: python setup.py sdist
       - name: Publish package
         # if: github.event_name == 'push' && startsWith(github.head_ref, 'master')
         uses: pypa/gh-action-pypi-publish@release/v1
