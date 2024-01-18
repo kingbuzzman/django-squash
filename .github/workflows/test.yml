@@ -33,8 +33,8 @@ jobs:
           - { django-version: "5.0.*", python-version: "3.8" }
           - { django-version: "5.0.*", python-version: "3.9" }
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install prerequisites
@@ -48,16 +48,33 @@ jobs:
       - name: Coverage XML
         run: coverage xml
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
       - name: Flake8 check
         run: flake8
       - name: iSort check
         run: isort --check .
-      - name: Publish package
-        if: github.event_name == 'push' && startsWith(github.head_ref, 'master')
+
+  pypi-publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    needs: django-squash
+    if: github.event_name == 'push' && startsWith(github.head_ref, 'master')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - name: Install pypa/build
+        run: >-
+          python3 -m pip install build
+      - name: Build a binary wheel and a source tarball
+        run: python3 -m build
+      - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          verbose: true
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
