@@ -343,7 +343,8 @@ class SquashMigrationTest(MigrationTestBase):
 
     def test_squashing_migration_incorrect_name(self):
         out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app.test_incorrect_name_migrations", app_label='app')
+        patch_app_migrations = self.temporary_migration_module(module="app.test_incorrect_name_migrations",
+                                                               app_label='app')
         with patch_app_migrations as migration_app_dir:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
 
