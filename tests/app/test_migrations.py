@@ -341,6 +341,22 @@ class SquashMigrationTest(MigrationTestBase):
                                                          ('app3', '0002_person_age'),
                                                          ('app3', '0003_moved')])
 
+    def test_squashing_migration_incorrect_name(self):
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.test_incorrect_name_migrations", app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+
+            files_in_app = os.listdir(migration_app_dir)
+            self.assertIn('3001_squashed.py', files_in_app)
+
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '3001_squashed.py'))
+
+            self.assertEqual(app_squash.Migration.replaces, [('app', '2_person_age'),
+                                                             ('app', '3000_auto_20190518_1524'),
+                                                             ('app', 'bad_no_name'),
+                                                             ('app', 'initial')])
+
 
 class TestUtils(TestCase):
     def test_unique_names(self):
