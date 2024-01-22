@@ -342,6 +342,10 @@ class SquashMigrationTest(MigrationTestBase):
                                                          ('app3', '0003_moved')])
 
     def test_squashing_migration_incorrect_name(self):
+        """
+        If the app has incorrect migration numbers like: `app/migrations/initial.py` instead of `0001_initial.py`
+        it should not fail. Same goes for bad formats all around.
+        """
         out = io.StringIO()
         patch_app_migrations = self.temporary_migration_module(module="app.test_incorrect_name_migrations",
                                                                app_label='app')
