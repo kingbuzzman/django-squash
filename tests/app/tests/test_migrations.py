@@ -13,11 +13,9 @@ from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.db import connections, migrations as migrations_module, models
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import TestCase, TransactionTestCase
+from django.test import TransactionTestCase
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
-
-from django_squash.management.commands.lib.autodetector import UniqueVariableName
 
 
 class MigrationTestBase(TransactionTestCase):
@@ -341,15 +339,6 @@ class SquashMigrationTest(MigrationTestBase):
                                                          ('app3', '0002_person_age'),
                                                          ('app3', '0003_moved')])
 
-    def test_run_python_same_name_migrations(self):
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.run_python_noop",
-                                                               app_label='app')
-        with patch_app_migrations as migration_app_dir:
-            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
-            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-            app_squash = load_migration_module(os.path.join(migration_app_dir, '0003_squashed.py'))
-
     def test_squashing_migration_incorrect_name(self):
         """
         If the app has incorrect migration numbers like: `app/migrations/initial.py` instead of `0001_initial.py`
@@ -371,13 +360,24 @@ class SquashMigrationTest(MigrationTestBase):
                                                              ('app', 'bad_no_name'),
                                                              ('app', 'initial')])
 
+    def test_run_python_same_name_migrations(self):
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.run_python_noop",
+                                                               app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0003_squashed.py'))
 
             expected_files = ['0001_initial.py', '0002_run_python.py', '0003_squashed.py', '__init__.py']
             self.assertEqual(files_in_app, expected_files)
             self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
-                                                            ('app', '0002_run_python')])
+                                                             ('app', '0002_run_python')])
 
-            actual = [(type(operation), pretty_operation(operation)) for operation in app_squash.Migration.operations]
+            actual = [
+                (type(operation), pretty_operation(operation))
+                for operation in app_squash.Migration.operations
+            ]
             expected = [
                 (migrations_module.RunPython, 'RunPython(code=same_name, reverse_code=noop, elidable=False)'),
                 (migrations_module.RunPython, 'RunPython(code=noop, reverse_code=noop, elidable=False)'),

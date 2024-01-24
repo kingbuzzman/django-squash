@@ -3,10 +3,12 @@ from unittest import TestCase
 from django_squash.management.commands.lib.autodetector import UniqueVariableName
 
 
-func = lambda: 1
+func = lambda: 1  # noqa
+
 
 def func2():
     return 2
+
 
 def func2_impostor():
     return 21
@@ -20,10 +22,12 @@ class A:
     def func():
         return 3
 
+
 class B:
     @classmethod
     def func(cls):
         return 4
+
 
 class C:
     def func(self):
@@ -37,7 +41,6 @@ class TestUtils(TestCase):
         self.assertEqual('var', names('var'))
         self.assertEqual('var_2', names('var'))
         self.assertEqual('var_2_2', names('var_2'))
-
 
     def test_unique_function_names(self):
         names = UniqueVariableName()
