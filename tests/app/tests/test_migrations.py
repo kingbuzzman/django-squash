@@ -347,7 +347,7 @@ class SquashMigrationTest(MigrationTestBase):
         it should not fail. Same goes for bad formats all around.
         """
         out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app.test_incorrect_name_migrations",
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.incorrect_name",
                                                                app_label='app')
         with patch_app_migrations as migration_app_dir:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
