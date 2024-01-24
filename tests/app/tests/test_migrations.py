@@ -120,7 +120,7 @@ class SquashMigrationTest(MigrationTestBase):
                 app_label = "app"
 
         out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app._migrations.elidable", app_label='app')
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.elidable", app_label='app')
         with patch_app_migrations as migration_app_dir:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
 
@@ -198,8 +198,8 @@ class SquashMigrationTest(MigrationTestBase):
                 app_label = "app2"
 
         out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app._migrations.simple", app_label='app')
-        patch_app2_migrations = self.temporary_migration_module(module="app2._migrations.foreign_key",
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.simple", app_label='app')
+        patch_app2_migrations = self.temporary_migration_module(module="app2.tests.migrations.foreign_key",
                                                                 app_label='app2', join=True)
         with patch_app_migrations as migration_app_dir, patch_app2_migrations as migration_app2_dir:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
@@ -285,7 +285,7 @@ class SquashMigrationTest(MigrationTestBase):
                 app_label = "app"
 
         out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app._migrations.elidable", app_label='app')
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.elidable", app_label='app')
         with patch_app_migrations as migration_app_dir:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
 
@@ -302,7 +302,7 @@ class SquashMigrationTest(MigrationTestBase):
                 app_label = "app"
 
         out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app._migrations.delete_replaced",
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.delete_replaced",
                                                                app_label='app')
         with patch_app_migrations as migration_app_dir:
             original_app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
