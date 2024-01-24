@@ -162,7 +162,9 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         """
         current_counters_by_app = defaultdict(int)
         for app, migration in original.graph.node_map:
-            current_counters_by_app[app] = max([int(migration[:4]), current_counters_by_app[app]])
+            migration_number, _, _ = migration.partition('_')
+            if migration_number.isdigit():
+                current_counters_by_app[app] = max([int(migration_number), current_counters_by_app[app]])
 
         for app, migrations in changes.items():
             for migration in migrations:
