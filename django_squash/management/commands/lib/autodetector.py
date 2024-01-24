@@ -54,6 +54,32 @@ class Migration(migration_module.Migration):
 class UniqueVariableName:
     def __init__(self):
         self.names = defaultdict(int)
+        self.functions = []
+
+    def function(self, func):
+        if not callable(func):
+            raise ValueError('func must be a callable')
+
+        if isinstance(func, types.FunctionType) and func.__name__ == '<lambda>':
+            raise ValueError('func cannot be a lambda')
+
+        if inspect.ismethod(func) or inspect.signature(func).parameters.get('self') is not None:
+            raise ValueError('func cannot be part of an instance')
+
+        name = func.__qualname__
+        already_accounted = func in self.functions
+        if not already_accounted:
+            self.functions.append(func)
+            self.names[name] += 1
+        count = self.names[name]
+
+        if count == 1:
+            return name
+        else:
+            new_name = '%s_%s' % (name, count)
+            # Make sure that the function name is fully unique
+            # You can potentially have the same name already defined.
+            return self(new_name)
 
     def __call__(self, name, force_number=False):
         self.names[name] += 1
@@ -133,9 +159,11 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 for operation in all_custom_operations(migration.operations, unique_names):
                     if isinstance(operation, migration_module.RunPython):
                         operation.code = copy_func(operation.code)
+                        operation.code.__original_module__ = operation.code.__module__
                         operation.code.__module__ = 'DELETEMEPLEASE'  # TODO: get a better name?
                         if operation.reverse_code:
                             operation.reverse_code = copy_func(operation.reverse_code)
+                            operation.reverse_code.__original_module__ = operation.reverse_code.__module__
                             operation.reverse_code.__module__ = 'DELETEMEPLEASE'  # TODO: get a better name?
                     operations.append(operation)
 

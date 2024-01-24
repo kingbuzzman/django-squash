@@ -1,6 +1,7 @@
 import ast
 import inspect
 import os
+import pkgutil
 import re
 
 from django import get_version
@@ -22,6 +23,17 @@ def find_brackets(line, p_count, b_count):
         elif char == ']':
             b_count -= 1
     return p_count, b_count
+
+
+def is_code_in_site_packages(module_name):
+    # Find the module in the site-packages directory
+    loader = pkgutil.find_loader(module_name)
+
+    if loader is not None:
+        # Get the file path of the module
+        file_path = os.path.abspath(loader.get_filename())
+        return '/site-packages/' in file_path
+    return False
 
 
 def replace_migration_attribute(source, attr, value):
@@ -218,9 +230,11 @@ class Migration(migrations.Migration):
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, migration_module.RunPython):
-                functions.append(self.extract_function(operation.code))
+                if not is_code_in_site_packages(operation.code.__original_module__):
+                    functions.append(self.extract_function(operation.code))
                 if operation.reverse_code:
-                    functions.append(self.extract_function(operation.reverse_code))
+                    if not is_code_in_site_packages(operation.reverse_code.__original_module__):
+                        functions.append(self.extract_function(operation.reverse_code))
             elif isinstance(operation, migration_module.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
                 if operation.reverse_sql:

@@ -341,10 +341,54 @@ class SquashMigrationTest(MigrationTestBase):
                                                          ('app3', '0002_person_age'),
                                                          ('app3', '0003_moved')])
 
+    def test_run_python_same_name_migrations(self):
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.run_python_noop",
+                                                               app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0003_squashed.py'))
 
-class TestUtils(TestCase):
-    def test_unique_names(self):
-        names = UniqueVariableName()
-        self.assertEqual('var', names('var'))
-        self.assertEqual('var_2', names('var'))
-        self.assertEqual('var_2_2', names('var_2'))
+            expected_files = ['0001_initial.py', '0002_run_python.py', '0003_squashed.py', '__init__.py']
+            self.assertEqual(files_in_app, expected_files)
+            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
+                                                            ('app', '0002_run_python')])
+
+            actual = [(type(operation), pretty_operation(operation)) for operation in app_squash.Migration.operations]
+            expected = [
+                (migrations_module.RunPython, 'RunPython(code=same_name, reverse_code=noop, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=noop, reverse_code=noop, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=noop, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)')
+            ]
+            self.assertEqual(expected, actual)
+
+# import libcst
+# import black
+
+# def extract_operations(module, traverse):
+#     source_code = inspect.getsource(module)
+#     tree = libcst.parse_module(source_code).body
+
+#     for looking_for in traverse.split('.'):
+#         tree = traverse_node(tree, looking_for)
+
+#     import ipdb; print('\a'); ipdb.sset_trace()
+#     print(libcst.Module(body=[tree]).code)
+
+
+# def traverse_node(nodes, looking_for):
+#     if not isinstance(nodes, (list, tuple)):
+#         nodes = [nodes]
+
+#     for node in nodes:
+#         if isinstance(node, libcst.ClassDef) and node.name.value == looking_for:
+#             return node
+#         if isinstance(node, libcst.Assign) and looking_for in [n.target.value for n in node.targets]:
+#             return node
+
+#         for child in node.children:
+#             result = traverse_node(child, looking_for)
+#             if result:
+#                 return result
