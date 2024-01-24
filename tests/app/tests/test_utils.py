@@ -2,7 +2,6 @@ from unittest import TestCase
 
 from django_squash.management.commands.lib.autodetector import UniqueVariableName
 
-
 func = lambda: 1  # noqa
 
 

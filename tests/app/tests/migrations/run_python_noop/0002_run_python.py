@@ -4,7 +4,6 @@ from django.db import migrations
 from django.db.migrations.operations.special import RunPython
 
 
-
 def same_name(apps, schema_editor):
     # other function
     return
