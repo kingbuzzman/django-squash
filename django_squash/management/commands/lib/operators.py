@@ -13,13 +13,6 @@ class Variable:
         return bool(self.value)
 
 
-# def unique_name_wrapper(func, name, unique_names):
-#     if func.__qualname__ == 'RunPython.noop':
-#         return 'migrations.RunPython.noop'
-
-#     return unique_names(name)
-
-
 class RunPython(RunPythonBase):
     # Fake the class so the OperationWriter thinks its the internal class and not a custom one
     __class__ = RunPythonBase
@@ -31,8 +24,6 @@ class RunPython(RunPythonBase):
 
     @classmethod
     def from_operation(cls, operation, unique_names):
-        # if 'noop' in operation.code.__qualname__:
-        #     import ipdb; print('\a'); ipdb.sset_trace()
         operation.code.__original_qualname__ = operation.code.__qualname__
         operation.code.__qualname__ = unique_names.function(operation.code)
         if operation.reverse_code:
