@@ -48,6 +48,7 @@ jobs:
       - name: Coverage XML
         run: coverage xml
       - name: Upload coverage to Codecov
+        continue-on-error: true
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
