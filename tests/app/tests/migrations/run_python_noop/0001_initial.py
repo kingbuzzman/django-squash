@@ -3,9 +3,17 @@
 from django.db import migrations
 from django.db.migrations import RunPython
 
+OtherRunPython = RunPython
+noop = OtherRunPython.noop
+
 
 def same_name(apps, schema_editor):
     # original function
+    return
+
+
+def same_name_2(apps, schema_editor):
+    # original function 2
     return
 
 
@@ -17,5 +25,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(same_name, migrations.RunPython.noop),
-        migrations.RunPython(RunPython.noop, migrations.RunPython.noop),
+        migrations.RunPython(noop, OtherRunPython.noop),
+        migrations.RunPython(same_name_2),
     ]

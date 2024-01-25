@@ -97,11 +97,11 @@ def pretty_operation(operation):
             kwargs['reverse_sql'] = reverse_sql[:10] + '..' if len(reverse_sql) > 10 else reverse_sql
         kwargs['elidable'] = operation.elidable
     elif isinstance(operation, migrations_module.RunPython):
-        kwargs['code'] = operation.code.__name__
+        kwargs['code'] = operation.code.__qualname__
         if operation.reverse_code:
-            kwargs['reverse_code'] = operation.reverse_code.__name__
+            kwargs['reverse_code'] = operation.reverse_code.__qualname__
         kwargs['elidable'] = operation.elidable
-    return '%s(%s)' % (type(operation).__name__, ', '.join('%s=%s' % (k, v) for k, v in kwargs.items()))
+    return '%s(%s)' % (type(operation).__qualname__, ', '.join('%s=%s' % (k, v) for k, v in kwargs.items()))
 
 
 class SquashMigrationTest(MigrationTestBase):
@@ -379,10 +379,11 @@ class SquashMigrationTest(MigrationTestBase):
                 for operation in app_squash.Migration.operations
             ]
             expected = [
-                (migrations_module.RunPython, 'RunPython(code=same_name, reverse_code=noop, elidable=False)'),
-                (migrations_module.RunPython, 'RunPython(code=noop, reverse_code=noop, elidable=False)'),
-                (migrations_module.RunPython, 'RunPython(code=noop, elidable=False)'),
-                (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)')
+                (migrations_module.RunPython, 'RunPython(code=same_name, reverse_code=RunPython.noop, elidable=False)'),  # noqa
+                (migrations_module.RunPython, 'RunPython(code=RunPython.noop, reverse_code=RunPython.noop, elidable=False)'),  # noqa
+                (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=RunPython.noop, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=same_name_3, elidable=False)'),
             ]
             self.assertEqual(expected, actual)
 
