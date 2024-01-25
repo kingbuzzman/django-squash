@@ -44,6 +44,7 @@ class TestWriter(TestCase):
         self.assertTrue(is_code_in_site_packages(django.get_version.__module__))
         path = django_squash.management.commands.lib.writer.is_code_in_site_packages.__module__
         self.assertFalse(is_code_in_site_packages(path))
+        self.assertFalse(is_code_in_site_packages('bad.path'))
 
 
 class TestUtils(TestCase):
