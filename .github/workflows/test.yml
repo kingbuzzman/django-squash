@@ -48,6 +48,7 @@ jobs:
       - name: Coverage XML
         run: coverage xml
       - name: Upload coverage to Codecov
+        continue-on-error: true
         uses: codecov/codecov-action@v3
         with:
           fail_ci_if_error: true
@@ -60,7 +61,7 @@ jobs:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
     needs: django-squash
-    if: github.head_ref == 'master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
