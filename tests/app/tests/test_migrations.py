@@ -389,6 +389,8 @@ class SquashMigrationTest(MigrationTestBase):
 
 # import libcst
 # import black
+# import yapf
+# import difflib
 
 # def extract_operations(module, traverse):
 #     source_code = inspect.getsource(module)
@@ -397,8 +399,19 @@ class SquashMigrationTest(MigrationTestBase):
 #     for looking_for in traverse.split('.'):
 #         tree = traverse_node(tree, looking_for)
 
-#     import ipdb; print('\a'); ipdb.sset_trace()
-#     print(libcst.Module(body=[tree]).code)
+#     code = libcst.Module(body=[tree]).code
+#     print(code)
+
+#     # from yapf.yapflib.yapf_api import FormatCode
+#     style = {
+#         'based_on_style': 'pep8', 'indent_width': 1, 'column_limit': 10_000,
+#         'spaces_around_list_delimiters': True, 'split_complex_comprehension': False, 'use_tabs': True
+#     }
+#     # # import ipdb; print('\a'); ipdb.sset_trace()
+#     # new_code, changed = FormatCode(code, style_config=style)
+#     # assert new_code != code
+#     # import ipdb; print('\a'); ipdb.sset_trace()
+#     # print(changed, new_code)
 
 
 # def traverse_node(nodes, looking_for):
@@ -406,7 +419,7 @@ class SquashMigrationTest(MigrationTestBase):
 #         nodes = [nodes]
 
 #     for node in nodes:
-#         if isinstance(node, libcst.ClassDef) and node.name.value == looking_for:
+#         if isinstance(node, (libcst.ClassDef, libcst.FunctionDef)) and node.name.value == looking_for:
 #             return node
 #         if isinstance(node, libcst.Assign) and looking_for in [n.target.value for n in node.targets]:
 #             return node
