@@ -27,13 +27,13 @@ def find_brackets(line, p_count, b_count):
 
 def is_code_in_site_packages(module_name):
     # Find the module in the site-packages directory
-    loader = pkgutil.find_loader(module_name)
-
-    if loader is not None:
+    try:
+        loader = pkgutil.find_loader(module_name)
         # Get the file path of the module
         file_path = os.path.abspath(loader.get_filename())
         return '/site-packages/' in file_path
-    return False
+    except ImportError:
+        return False
 
 
 def replace_migration_attribute(source, attr, value):
