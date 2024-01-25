@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from django_squash.management.commands.lib.autodetector import UniqueVariableName
+from django_squash.management.commands.lib.writer import is_code_in_site_packages
 
 func = lambda: 1  # noqa
 
@@ -31,6 +32,18 @@ class B:
 class C:
     def func(self):
         return 5
+
+
+class TestWriter(TestCase):
+
+    def test_is_code_in_site_packages(self):
+        import django
+
+        import django_squash
+
+        self.assertTrue(is_code_in_site_packages(django.get_version.__module__))
+        path = django_squash.management.commands.lib.writer.is_code_in_site_packages.__module__
+        self.assertFalse(is_code_in_site_packages(path))
 
 
 class TestUtils(TestCase):
