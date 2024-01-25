@@ -60,7 +60,7 @@ jobs:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
     needs: django-squash
-    if: github.head_ref == 'master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
