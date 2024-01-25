@@ -71,6 +71,7 @@ class UniqueVariableName:
         if already_accounted:
             return self.functions[func]
 
+        # Endless loop that will try different combinations until it finds a unique name
         for i, _ in enumerate(itertools.count(), 2):
             if self.names[name] == 0:
                 self.functions[func] = name

@@ -17,6 +17,17 @@ def func2_impostor():
 func2_impostor.__qualname__ = 'func2'
 
 
+def func2_impostor2():
+    return 22
+
+
+func2_impostor2.__qualname__ = 'func2'
+
+
+def func2_3():
+    return 2
+
+
 class A:
     @staticmethod
     def func():
@@ -90,6 +101,8 @@ class TestUtils(TestCase):
         self.assertEqual('func2_3', uniq1.function(func2_impostor))
         self.assertEqual('func2_3', uniq1.function(func2_impostor))
         self.assertEqual('func2_3', uniq1.function(reassigned_func2_impostor))
+        self.assertEqual('func2_3_2', uniq1.function(func2_3))
+        self.assertEqual('func2_4', uniq1.function(func2_impostor2))
         self.assertEqual('A.func', uniq1.function(A.func))
         self.assertEqual('A.func', uniq1.function(A().func))
         self.assertEqual('A.func_2', uniq1("A.func"))
@@ -100,6 +113,8 @@ class TestUtils(TestCase):
         self.assertEqual('func2', uniq2.function(func2_impostor))
         self.assertEqual('func2_2', uniq2.function(func2))
         self.assertEqual('func2_2', uniq2.function(func2))
+        self.assertEqual('func2_3', uniq2.function(func2_3))
+        self.assertEqual('func2_4', uniq2.function(func2_impostor2))
         self.assertEqual('func2', uniq2.function(func2_impostor))
         self.assertEqual('func2', uniq2.function(func2_impostor))
         self.assertEqual('func2_2', uniq2.function(func2))
