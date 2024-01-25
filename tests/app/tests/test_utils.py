@@ -43,6 +43,10 @@ class TestUtils(TestCase):
 
     def test_unique_function_names(self):
         names = UniqueVariableName()
+
+        with self.assertRaises(ValueError):
+            names.function("not-a-function")
+
         with self.assertRaises(ValueError):
             names.function(func)
 
