@@ -80,14 +80,14 @@ class TestUtils(TestCase):
         uniq1 = UniqueVariableName()
         uniq2 = UniqueVariableName()
 
-        uniq1("func2")
-
+        self.assertEqual('func2', uniq1("func2"))
         self.assertEqual('func2_2', uniq1.function(func2))
         self.assertEqual('func2_2', uniq1.function(func2))
         self.assertEqual('func2_3', uniq1.function(func2_impostor))
         self.assertEqual('func2_3', uniq1.function(func2_impostor))
         self.assertEqual('A.func', uniq1.function(A.func))
         self.assertEqual('A.func', uniq1.function(A().func))
+        self.assertEqual('A.func_2', uniq1("A.func"))
         self.assertEqual('A.func', uniq1.function(A.func))
         self.assertEqual('A.func', uniq1.function(A().func))
 
