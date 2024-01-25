@@ -147,7 +147,7 @@ class SquashMigrationTest(MigrationTestBase):
                 (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)'),
                 (migrations_module.RunPython, ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
                                                'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')),
-                (migrations_module.RunPython, 'RunPython(code=same_name_2_2, elidable=False)'),
+                (migrations_module.RunPython, 'RunPython(code=same_name_3, elidable=False)'),
                 (migrations_module.RunSQL, 'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'),
                 (migrations_module.RunSQL, 'RunSQL(sql=select 4, elidable=False)')
             ]
@@ -167,7 +167,7 @@ class SquashMigrationTest(MigrationTestBase):
     pass
 ''', inspect.getsource(app_squash.Migration.operations[2].code))
 
-            self.assertEqual('''def same_name_2_2(apps, schema_editor):
+            self.assertEqual('''def same_name_3(apps, schema_editor):
     """
     Content not important, testing same function name in multiple migrations, second function
     """

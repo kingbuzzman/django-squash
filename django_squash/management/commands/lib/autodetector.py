@@ -54,7 +54,7 @@ class Migration(migration_module.Migration):
 class UniqueVariableName:
     def __init__(self):
         self.names = defaultdict(int)
-        self.functions = []
+        self.functions = {}
 
     def function(self, func):
         if not callable(func):
@@ -66,20 +66,22 @@ class UniqueVariableName:
         if inspect.ismethod(func) or inspect.signature(func).parameters.get('self') is not None:
             raise ValueError('func cannot be part of an instance')
 
-        name = func.__qualname__
+        name = original_name = func.__qualname__
         already_accounted = func in self.functions
-        if not already_accounted:
-            self.functions.append(func)
-            self.names[name] += 1
-        count = self.names[name]
+        if already_accounted:
+            return self.functions[func]
 
-        if count == 1:
-            return name
-        else:
-            new_name = '%s_%s' % (name, count)
-            # Make sure that the function name is fully unique
-            # You can potentially have the same name already defined.
-            return self(new_name)
+        for i, _ in enumerate(itertools.count(), 2):
+            if self.names[name] == 0:
+                self.functions[func] = name
+                self.names[name] += 1
+                break
+
+            name = '%s_%s' % (original_name, i)
+
+        self.functions[func] = name
+
+        return name
 
     def __call__(self, name, force_number=False):
         self.names[name] += 1

@@ -55,7 +55,7 @@ class TestUtils(TestCase):
         self.assertEqual('var_2', names('var'))
         self.assertEqual('var_2_2', names('var_2'))
 
-    def test_unique_function_names(self):
+    def test_unique_function_names_errors(self):
         names = UniqueVariableName()
 
         with self.assertRaises(ValueError):
@@ -64,16 +64,38 @@ class TestUtils(TestCase):
         with self.assertRaises(ValueError):
             names.function(func)
 
-        self.assertEqual('func2', names.function(func2))
-        self.assertEqual('func2', names.function(func2))
-        self.assertEqual('func2_2', names.function(func2_impostor))
-        self.assertEqual('A.func', names.function(A.func))
-        self.assertEqual('A.func', names.function(A().func))
         with self.assertRaises(ValueError):
             names.function(B.func)
+
         with self.assertRaises(ValueError):
             names.function(B().func)
+
         with self.assertRaises(ValueError):
             names.function(C.func)
+
         with self.assertRaises(ValueError):
             names.function(C().func)
+
+    def test_unique_function_names(self):
+        uniq1 = UniqueVariableName()
+        uniq2 = UniqueVariableName()
+
+        uniq1("func2")
+
+        self.assertEqual('func2_2', uniq1.function(func2))
+        self.assertEqual('func2_2', uniq1.function(func2))
+        self.assertEqual('func2_3', uniq1.function(func2_impostor))
+        self.assertEqual('func2_3', uniq1.function(func2_impostor))
+        self.assertEqual('A.func', uniq1.function(A.func))
+        self.assertEqual('A.func', uniq1.function(A().func))
+        self.assertEqual('A.func', uniq1.function(A.func))
+        self.assertEqual('A.func', uniq1.function(A().func))
+
+        self.assertEqual('func2', uniq2.function(func2_impostor))
+        self.assertEqual('func2', uniq2.function(func2_impostor))
+        self.assertEqual('func2_2', uniq2.function(func2))
+        self.assertEqual('func2_2', uniq2.function(func2))
+        self.assertEqual('func2', uniq2.function(func2_impostor))
+        self.assertEqual('func2', uniq2.function(func2_impostor))
+        self.assertEqual('func2_2', uniq2.function(func2))
+        self.assertEqual('func2_2', uniq2.function(func2))
