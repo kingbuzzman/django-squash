@@ -1,6 +1,7 @@
 import inspect
 import os
 import re
+import textwrap
 
 from django import get_version
 from django.db import migrations as dj_migrations
@@ -13,9 +14,16 @@ supported_django_migrations = (
     '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # since 3.2 this hasn't changed
 )
 
+current_django_migration_hash = utils.file_hash(dj_writer.__file__)
 if utils.file_hash(dj_writer.__file__) not in supported_django_migrations:
     print(utils.file_hash(dj_writer.__file__))
-    raise Warning('Django migrations writer file has changed and may not be compatible with django-squash.')
+    raise Warning(textwrap.dedent(f"""\
+                  Django migrations writer file has changed and may not be compatible with django-squash.
+
+                  Django version: {get_version()}
+                  Django migrations writer file: {dj_writer.__file__}
+                  Django migrations writer hash: {current_django_migration_hash}
+                  """))
 
 
 class OperationWriter(dj_writer.OperationWriter):
