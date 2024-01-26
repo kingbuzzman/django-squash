@@ -2,6 +2,7 @@ import ast
 import inspect
 import itertools
 import os
+import pkgutil
 import types
 from collections import defaultdict
 
@@ -59,25 +60,6 @@ class UniqueVariableName:
             return self(new_name)
 
 
-def all_custom_operations(operations, unique_names):
-    """
-    Generator that loops over all the operations and traverses sub-operations such as those inside a -
-    SeparateDatabaseAndState class.
-    """
-
-    for operation in operations:
-        if operation.elidable:
-            continue
-
-        if isinstance(operation, migration_module.RunSQL):
-            yield RunSQL.from_operation(operation, unique_names)
-        elif isinstance(operation, migration_module.RunPython):
-            yield RunPython.from_operation(operation, unique_names)
-        elif isinstance(operation, migration_module.SeparateDatabaseAndState):
-            # A valid use case for this should be given before any work is done.
-            pass
-
-
 def get_imports(module):
     """
     Return an generator with all the imports to a particular py file as string
@@ -106,3 +88,69 @@ def copy_func(f, name=None):
     func.__original_qualname__ = f.__original_qualname__
     return func
 
+
+def find_brackets(line, p_count, b_count):
+    for char in line:
+        if char == '(':
+            p_count += 1
+        elif char == ')':
+            p_count -= 1
+        elif char == '[':
+            b_count += 1
+        elif char == ']':
+            b_count -= 1
+    return p_count, b_count
+
+
+def is_code_in_site_packages(module_name):
+    # Find the module in the site-packages directory
+    try:
+        loader = pkgutil.find_loader(module_name)
+        # Get the file path of the module
+        file_path = os.path.abspath(loader.get_filename())
+        return '/site-packages/' in file_path
+    except ImportError:
+        return False
+
+
+def replace_migration_attribute(source, attr, value):
+    tree = ast.parse(source)
+    # Skip this file if it is not a migration.
+    migration_node = None
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef) and node.name == 'Migration':
+            migration_node = node
+            break
+    else:
+        return
+
+    # Find the `attr` variable.
+    comment_out_nodes = {}
+    for node in migration_node.body:
+        if isinstance(node, ast.Assign) and node.targets[0].id == attr:
+            comment_out_nodes[node.lineno] = (node.targets[0].col_offset, node.targets[0].id,)
+
+    # Skip this migration if it does not contain the `attr` we're looking for
+    if not comment_out_nodes:
+        return
+
+    # Remove the lines that form the multi-line "replaces" statement.
+    p_count = 0
+    b_count = 0
+    col_offset = None
+    name = None
+    output = []
+    for lineno, line in enumerate(source.splitlines()):
+        if lineno + 1 in comment_out_nodes.keys():
+            output.append(' ' * comment_out_nodes[lineno + 1][0] + attr + ' = ' + str(value))
+            p_count = 0
+            b_count = 0
+            col_offset, name = comment_out_nodes[lineno + 1]
+            p_count, b_count = find_brackets(line, p_count, b_count)
+        elif p_count != 0 or b_count != 0:
+            p_count, b_count = find_brackets(line, p_count, b_count)
+        else:
+            output.append(line)
+
+    # Overwrite the existing migration file to update it.
+    return '\n'.join(output) + '\n'

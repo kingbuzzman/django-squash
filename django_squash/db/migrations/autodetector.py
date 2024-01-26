@@ -12,7 +12,7 @@ from django.conf import settings
 from django.db import migrations as migration_module
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
-from . import utils
+from . import operators, utils
 
 
 class Migration(migration_module.Migration):
@@ -47,6 +47,25 @@ class Migration(migration_module.Migration):
         return new
 
 
+def all_custom_operations(operations, unique_names):
+    """
+    Generator that loops over all the operations and traverses sub-operations such as those inside a -
+    SeparateDatabaseAndState class.
+    """
+
+    for operation in operations:
+        if operation.elidable:
+            continue
+
+        if isinstance(operation, migration_module.RunSQL):
+            yield operators.RunSQL.from_operation(operation, unique_names)
+        elif isinstance(operation, migration_module.RunPython):
+            yield operators.RunPython.from_operation(operation, unique_names)
+        elif isinstance(operation, migration_module.SeparateDatabaseAndState):
+            # A valid use case for this should be given before any work is done.
+            pass
+
+
 class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
     def add_non_elidables(self, original, loader, changes):
@@ -62,7 +81,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             for migration in replacing_migrations_by_app[app]:
                 module = sys.modules[migration.__module__]
                 imports.extend(utils.get_imports(module))
-                for operation in utils.all_custom_operations(migration.operations, unique_names):
+                for operation in all_custom_operations(migration.operations, unique_names):
                     if isinstance(operation, migration_module.RunPython):
                         operation.code = utils.copy_func(operation.code)
                         operation.code.__original_module__ = operation.code.__module__

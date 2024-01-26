@@ -1,7 +1,6 @@
 from unittest import TestCase
 
-from django_squash.db.migrations.autodetector import UniqueVariableName
-from django_squash.db.migrations.writer import is_code_in_site_packages
+from django_squash.db.migrations import utils
 
 func = lambda: 1  # noqa
 
@@ -52,22 +51,22 @@ class TestWriter(TestCase):
 
         import django_squash
 
-        self.assertTrue(is_code_in_site_packages(django.get_version.__module__))
-        path = django_squash.db.migrations.writer.is_code_in_site_packages.__module__
-        self.assertFalse(is_code_in_site_packages(path))
-        self.assertFalse(is_code_in_site_packages('bad.path'))
+        self.assertTrue(utils.is_code_in_site_packages(django.get_version.__module__))
+        path = django_squash.db.migrations.utils.is_code_in_site_packages.__module__
+        self.assertFalse(utils.is_code_in_site_packages(path))
+        self.assertFalse(utils.is_code_in_site_packages('bad.path'))
 
 
 class TestUtils(TestCase):
 
     def test_unique_names(self):
-        names = UniqueVariableName()
+        names = utils.UniqueVariableName()
         self.assertEqual('var', names('var'))
         self.assertEqual('var_2', names('var'))
         self.assertEqual('var_2_2', names('var_2'))
 
     def test_unique_function_names_errors(self):
-        names = UniqueVariableName()
+        names = utils.UniqueVariableName()
 
         with self.assertRaises(ValueError):
             names.function("not-a-function")
@@ -88,8 +87,8 @@ class TestUtils(TestCase):
             names.function(C().func)
 
     def test_unique_function_names(self):
-        uniq1 = UniqueVariableName()
-        uniq2 = UniqueVariableName()
+        uniq1 = utils.UniqueVariableName()
+        uniq2 = utils.UniqueVariableName()
 
         reassigned_func2 = func2
         reassigned_func2_impostor = func2_impostor
