@@ -235,7 +235,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                         if len(migrations) > 0:
                             dependency = tuple(migrations[-1])
                         else:
-                            # Leave as is, the django's migration writter will handle this by default
+                            # Leave as is, the django's migration writer will handle this by default
                             new_dependencies.append(dependency)
                             continue
                     elif dependency[1] == "__first__":
