@@ -7,11 +7,10 @@ from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
 from django_squash import settings
-
-from .lib.autodetector import SquashMigrationAutodetector
-from .lib.loader import SquashMigrationLoader
-from .lib.questioner import NonInteractiveMigrationQuestioner
-from .lib.writer import MigrationWriter
+from django_squash.db.migrations.autodetector import SquashMigrationAutodetector
+from django_squash.db.migrations.loader import SquashMigrationLoader
+from django_squash.db.migrations.questioner import NonInteractiveMigrationQuestioner
+from django_squash.db.migrations.writer import MigrationWriter
 
 
 class Command(BaseCommand):

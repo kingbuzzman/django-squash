@@ -6,7 +6,7 @@ class DjangoSquashConfig(AppConfig):
     name = 'django_squash'
 
     def ready(self):
-        from .management.commands.lib.operators import Variable
-        from .management.commands.lib.serializer import VariableSerializer
+        from django_squash.db.migrations.operators import Variable
+        from django_squash.db.migrations.serializer import VariableSerializer
 
         Serializer.register(Variable, VariableSerializer)

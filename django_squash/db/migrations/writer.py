@@ -11,72 +11,7 @@ from django.db.migrations.writer import (
 )
 from django.utils.timezone import now
 
-
-def find_brackets(line, p_count, b_count):
-    for char in line:
-        if char == '(':
-            p_count += 1
-        elif char == ')':
-            p_count -= 1
-        elif char == '[':
-            b_count += 1
-        elif char == ']':
-            b_count -= 1
-    return p_count, b_count
-
-
-def is_code_in_site_packages(module_name):
-    # Find the module in the site-packages directory
-    try:
-        loader = pkgutil.find_loader(module_name)
-        # Get the file path of the module
-        file_path = os.path.abspath(loader.get_filename())
-        return '/site-packages/' in file_path
-    except ImportError:
-        return False
-
-
-def replace_migration_attribute(source, attr, value):
-    tree = ast.parse(source)
-    # Skip this file if it is not a migration.
-    migration_node = None
-    for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == 'Migration':
-            migration_node = node
-            break
-    else:
-        return
-
-    # Find the `attr` variable.
-    comment_out_nodes = {}
-    for node in migration_node.body:
-        if isinstance(node, ast.Assign) and node.targets[0].id == attr:
-            comment_out_nodes[node.lineno] = (node.targets[0].col_offset, node.targets[0].id,)
-
-    # Skip this migration if it does not contain the `attr` we're looking for
-    if not comment_out_nodes:
-        return
-
-    # Remove the lines that form the multi-line "replaces" statement.
-    p_count = 0
-    b_count = 0
-    col_offset = None
-    name = None
-    output = []
-    for lineno, line in enumerate(source.splitlines()):
-        if lineno + 1 in comment_out_nodes.keys():
-            output.append(' ' * comment_out_nodes[lineno + 1][0] + attr + ' = ' + str(value))
-            p_count = 0
-            b_count = 0
-            col_offset, name = comment_out_nodes[lineno + 1]
-            p_count, b_count = find_brackets(line, p_count, b_count)
-        elif p_count != 0 or b_count != 0:
-            p_count, b_count = find_brackets(line, p_count, b_count)
-        else:
-            output.append(line)
-
-    # Overwrite the existing migration file to update it.
-    return '\n'.join(output) + '\n'
+from django_squash.db.migrations import utils
 
 
 class ReplacementMigrationWriter(MigrationWriterBase):
@@ -201,10 +136,10 @@ class Migration(migrations.Migration):
             source = f.read()
 
         if self.migration._dependencies_change:
-            source = replace_migration_attribute(source, 'dependencies', self.migration.dependencies)
+            source = utils.replace_migration_attribute(source, 'dependencies', self.migration.dependencies)
             changed = True
         if self.migration._replaces_change:
-            source = replace_migration_attribute(source, 'replaces', self.migration.replaces)
+            source = utils.replace_migration_attribute(source, 'replaces', self.migration.replaces)
             changed = True
         if not changed:
             raise NotImplementedError()
@@ -230,10 +165,10 @@ class Migration(migrations.Migration):
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, migration_module.RunPython):
-                if not is_code_in_site_packages(operation.code.__original_module__):
+                if not utils.is_code_in_site_packages(operation.code.__original_module__):
                     functions.append(self.extract_function(operation.code))
                 if operation.reverse_code:
-                    if not is_code_in_site_packages(operation.reverse_code.__original_module__):
+                    if not utils.is_code_in_site_packages(operation.reverse_code.__original_module__):
                         functions.append(self.extract_function(operation.reverse_code))
             elif isinstance(operation, migration_module.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
