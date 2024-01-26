@@ -232,7 +232,12 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                         app_label = getattr(settings, dependency[1]).split('.')[0]
                         migrations = [migration for (app, _), migration in migrations_by_name.items()
                                       if app == app_label]
-                        dependency = tuple(migrations[-1])
+                        if len(migrations) > 0:
+                            dependency = tuple(migrations[-1])
+                        else:
+                            # Leave as is, the django's migration writer will handle this by default
+                            new_dependencies.append(dependency)
+                            continue
                     elif dependency[1] == "__first__":
                         dependency = original.graph.root_nodes(dependency[0])[0]
                     elif dependency[1] == "__latest__":

@@ -16,7 +16,7 @@ from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.db import connections, models
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
 
@@ -494,6 +494,51 @@ class SquashMigrationTest(MigrationTestBase):
                     dependencies = []
 
                     operations = [migrations.RunPython(code=same_name, reverse_code=RunPython.noop, elidable=False,), migrations.RunPython(code=RunPython.noop, reverse_code=RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,),]
+                """  # noqa
+            )
+            self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
+
+    def test_swappable_dependency_migrations(self):
+        out = io.StringIO()
+        INSTALLED_APPS = settings.INSTALLED_APPS + ["django.contrib.auth", "django.contrib.contenttypes"]
+        patch_installed_apps = override_settings(INSTALLED_APPS=INSTALLED_APPS)
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.swappable_dependency",
+                                                               app_label='app')
+
+        class UserProfile(models.Model):
+            user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+            dob = models.DateField()
+
+            class Meta:
+                app_label = "app"
+
+        self.addModelCleanup(UserProfile)
+
+        with patch_installed_apps, patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+
+            expected_files = ['0001_initial.py', '0002_add_dob.py', '0003_squashed.py', '__init__.py']
+            self.assertEqual(files_in_app, expected_files)
+
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0003_squashed.py'))
+            expected = textwrap.dedent(
+                """\
+                import datetime
+                from django.conf import settings
+                from django.db import migrations, models
+                import django.db.models.deletion
+
+
+                class Migration(migrations.Migration):
+
+                    replaces = [('app', '0001_initial'), ('app', '0002_add_dob')]
+
+                    initial = True
+
+                    dependencies = [migrations.swappable_dependency(settings.AUTH_USER_MODEL),]
+
+                    operations = [migrations.CreateModel(name='UserProfile', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('dob', models.DateField()), ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),],),]
                 """  # noqa
             )
             self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
