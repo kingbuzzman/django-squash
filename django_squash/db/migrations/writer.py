@@ -11,7 +11,9 @@ from django.utils.timezone import now
 from django_squash.db.migrations import utils
 
 supported_django_migrations = (
-    '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # since 3.2 this hasn't changed
+    '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # 5.0
+    '2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582',  # 4.1 / 4.2
+    'e90b1243a8ce48f06331db8f584b0bce26e2e3f0abdd177cc18ed37425a23515',  # 3.2
 )
 
 current_django_migration_hash = utils.file_hash(dj_writer.__file__)
