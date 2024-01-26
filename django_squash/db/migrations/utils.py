@@ -29,6 +29,10 @@ def source_directory(module):
 
 
 class UniqueVariableName:
+    """
+    This class will return a unique name for a variable / function.
+    """
+
     def __init__(self):
         self.names = defaultdict(int)
         self.functions = {}
@@ -95,6 +99,9 @@ def get_imports(module):
 
 
 def copy_func(f, name=None):
+    """
+    Return a function with same code, globals, defaults, closure, and name (or provide a new name)
+    """
     name = name or f.__qualname__
     func = types.FunctionType(f.__code__, f.__globals__, name,
                               f.__defaults__, f.__closure__)
