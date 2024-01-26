@@ -411,7 +411,7 @@ class SquashMigrationTest(MigrationTestBase):
         existing migrations, that way django doesn't throw errors when trying to do the same work again.
         """
         out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(module="app3.test_moved_migrations",
+        patch_app_migrations = self.temporary_migration_module(module="app3.tests.migrations.moved",
                                                                app_label='app3')
         with patch_app_migrations as migration_app_dir:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
