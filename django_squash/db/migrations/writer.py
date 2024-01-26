@@ -17,15 +17,17 @@ supported_django_migrations = (
 )
 
 current_django_migration_hash = utils.file_hash(dj_writer.__file__)
-if utils.file_hash(dj_writer.__file__) not in supported_django_migrations:
-    print(utils.file_hash(dj_writer.__file__))
-    raise Warning(textwrap.dedent(f"""\
-                  Django migrations writer file has changed and may not be compatible with django-squash.
+if current_django_migration_hash not in supported_django_migrations:
+    messsage = textwrap.dedent(
+        f"""\
+        Django migrations writer file has changed and may not be compatible with django-squash.
 
-                  Django version: {get_version()}
-                  Django migrations writer file: {dj_writer.__file__}
-                  Django migrations writer hash: {current_django_migration_hash}
-                  """))
+        Django version: {get_version()}
+        Django migrations writer file: {dj_writer.__file__}
+        Django migrations writer hash: {current_django_migration_hash}
+        """
+    )
+    raise Warning(messsage)
 
 
 class OperationWriter(dj_writer.OperationWriter):
