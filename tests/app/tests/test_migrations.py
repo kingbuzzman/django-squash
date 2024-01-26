@@ -323,7 +323,7 @@ class SquashMigrationTest(MigrationTestBase):
         patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
 
         with unittest.mock.patch(
-         target="django_squash.management.commands.lib.autodetector.SquashMigrationAutodetector.squash",
+         target="django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
          autospec=True) as squash_mock, patch_app_migrations:
             with self.assertRaisesMessage(CommandError, "There are no migrations to squash."):
                 call_command('squash_migrations', '--ignore-app', 'app2', 'app', verbosity=1, stdout=out,
@@ -335,7 +335,7 @@ class SquashMigrationTest(MigrationTestBase):
         patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
 
         with unittest.mock.patch(
-         target="django_squash.management.commands.lib.autodetector.SquashMigrationAutodetector.squash",
+         target="django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
          autospec=True) as squash_mock, patch_app_migrations:
             with self.assertRaisesMessage(CommandError, "There are no migrations to squash."):
                 call_command('squash_migrations', '--only', 'app2', 'app', verbosity=1, stdout=out,
@@ -348,7 +348,7 @@ class SquashMigrationTest(MigrationTestBase):
         patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
 
         with unittest.mock.patch(
-         target="django_squash.management.commands.lib.autodetector.SquashMigrationAutodetector.squash",
+         target="django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
          autospec=True) as squash_mock, patch_app_migrations:
             with self.assertRaisesMessage(CommandError, "The following apps are not valid: invalid"):
                 call_command('squash_migrations', '--only', 'app2', 'invalid', verbosity=1, stdout=out,
