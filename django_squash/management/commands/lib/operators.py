@@ -25,10 +25,10 @@ class RunPython(RunPythonBase):
     @classmethod
     def from_operation(cls, operation, unique_names):
         operation.code.__original_qualname__ = operation.code.__qualname__
-        operation.code.__qualname__ = unique_names(operation.code.__qualname__)
+        operation.code.__qualname__ = unique_names.function(operation.code)
         if operation.reverse_code:
             operation.reverse_code.__original_qualname__ = operation.reverse_code.__qualname__
-            operation.reverse_code.__qualname__ = unique_names(operation.reverse_code.__qualname__)
+            operation.reverse_code.__qualname__ = unique_names.function(operation.reverse_code)
         return cls(code=operation.code, reverse_code=operation.reverse_code, atomic=operation.atomic,
                    hints=operation.hints, elidable=operation.elidable)
 

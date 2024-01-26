@@ -16,7 +16,7 @@ from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.db import connections, models
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
 
@@ -216,7 +216,7 @@ class SquashMigrationTest(MigrationTestBase):
                     print('Ignoring, there is no need to do this.')
 
 
-                def same_name_2_2(apps, schema_editor):
+                def same_name_3(apps, schema_editor):
                     \"\"\"
                     Content not important, testing same function name in multiple migrations, second function
                     \"\"\"
@@ -244,7 +244,7 @@ class SquashMigrationTest(MigrationTestBase):
 
                     dependencies = []
 
-                    operations = [migrations.CreateModel(name='Person', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('name', models.CharField(max_length=10)), ('dob', models.DateField()),],), migrations.RunPython(code=same_name, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False,), migrations.RunPython(code=same_name_2_2, elidable=False,), migrations.RunSQL(sql=SQL_1, reverse_sql=SQL_1_ROLLBACK, elidable=False,), migrations.RunSQL(sql=SQL_2, elidable=False,),]
+                    operations = [migrations.CreateModel(name='Person', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('name', models.CharField(max_length=10)), ('dob', models.DateField()),],), migrations.RunPython(code=same_name, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,), migrations.RunSQL(sql=SQL_1, reverse_sql=SQL_1_ROLLBACK, elidable=False,), migrations.RunSQL(sql=SQL_2, elidable=False,),]
                 """  # noqa
             )
             self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
@@ -453,3 +453,92 @@ class SquashMigrationTest(MigrationTestBase):
                                                              ('app', '3000_auto_20190518_1524'),
                                                              ('app', 'bad_no_name'),
                                                              ('app', 'initial')])
+
+    def test_run_python_same_name_migrations(self):
+        out = io.StringIO()
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.run_python_noop",
+                                                               app_label='app')
+        with patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+            expected_files = ['0001_initial.py', '0002_run_python.py', '0003_squashed.py', '__init__.py']
+            self.assertEqual(files_in_app, expected_files)
+
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0003_squashed.py'))
+            expected = textwrap.dedent(
+                """\
+                from django.db import migrations
+                from django.db.migrations import RunPython
+                from django.db.migrations.operations.special import RunPython
+
+
+                def same_name(apps, schema_editor):
+                    # original function
+                    return
+
+
+                def same_name_2(apps, schema_editor):
+                    # original function 2
+                    return
+
+
+                def same_name_3(apps, schema_editor):
+                    # other function
+                    return
+
+
+                class Migration(migrations.Migration):
+
+                    replaces = [('app', '0001_initial'), ('app', '0002_run_python')]
+
+                    dependencies = []
+
+                    operations = [migrations.RunPython(code=same_name, reverse_code=RunPython.noop, elidable=False,), migrations.RunPython(code=RunPython.noop, reverse_code=RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,),]
+                """  # noqa
+            )
+            self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
+
+    def test_swappable_dependency_migrations(self):
+        out = io.StringIO()
+        INSTALLED_APPS = settings.INSTALLED_APPS + ["django.contrib.auth", "django.contrib.contenttypes"]
+        patch_installed_apps = override_settings(INSTALLED_APPS=INSTALLED_APPS)
+        patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.swappable_dependency",
+                                                               app_label='app')
+
+        class UserProfile(models.Model):
+            user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+            dob = models.DateField()
+
+            class Meta:
+                app_label = "app"
+
+        self.addModelCleanup(UserProfile)
+
+        with patch_installed_apps, patch_app_migrations as migration_app_dir:
+            call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
+            files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
+
+            expected_files = ['0001_initial.py', '0002_add_dob.py', '0003_squashed.py', '__init__.py']
+            self.assertEqual(files_in_app, expected_files)
+
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0003_squashed.py'))
+            expected = textwrap.dedent(
+                """\
+                import datetime
+                from django.conf import settings
+                from django.db import migrations, models
+                import django.db.models.deletion
+
+
+                class Migration(migrations.Migration):
+
+                    replaces = [('app', '0001_initial'), ('app', '0002_add_dob')]
+
+                    initial = True
+
+                    dependencies = [migrations.swappable_dependency(settings.AUTH_USER_MODEL),]
+
+                    operations = [migrations.CreateModel(name='UserProfile', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('dob', models.DateField()), ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),],),]
+                """  # noqa
+            )
+            self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
