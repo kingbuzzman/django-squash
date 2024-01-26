@@ -2,13 +2,17 @@ import inspect
 import os
 import re
 import textwrap
+import types
+from unittest.mock import patch
 
 from django import get_version
 from django.db import migrations as dj_migrations
 from django.db.migrations import writer as dj_writer
+from django.utils.inspect import get_func_args
 from django.utils.timezone import now
 
 from django_squash.db.migrations import utils
+from django_squash.db.migrations.serializers import FunctionTypeMigrationSerializer
 
 supported_django_migrations = (
     '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # 5.0
@@ -31,7 +35,14 @@ if current_django_migration_hash not in supported_django_migrations:
 
 
 class OperationWriter(dj_writer.OperationWriter):
-    pass
+    """
+    Django OperationWriter hardcodes the MigrationWriter into the serialize method.
+
+    This class allows us to use our own MigrationWriter that knows how to serialize functions.
+    """
+    def serialize(self):
+        with patch('django.db.migrations.writer.MigrationWriter', MigrationWriter):
+            return super().serialize()
 
 
 class ReplacementMigrationWriter(dj_writer.MigrationWriter):
@@ -52,6 +63,9 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         return self.template_class % self.get_kwargs()
 
     def get_kwargs(self):
+        """
+        Original method from django.db.migrations.writer.MigrationWriter.as_string
+        """
         items = {
             "replaces_str": "",
             "initial_str": "",
@@ -71,11 +85,16 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         dependencies = []
         for dependency in self.migration.dependencies:
             if dependency[0] == "__setting__":
-                dependencies.append("        migrations.swappable_dependency(settings.%s)," % dependency[1])
+                dependencies.append(
+                    "        migrations.swappable_dependency(settings.%s),"
+                    % dependency[1]
+                )
                 imports.add("from django.conf import settings")
             else:
                 dependencies.append("        %s," % self.serialize(dependency)[0])
-        items["dependencies"] = "\n".join(dependencies) + "\n" if dependencies else ""
+        items["dependencies"] = (
+            "\n".join(sorted(dependencies)) + "\n" if dependencies else ""
+        )
 
         # Format imports nicely, swapping imports of functions from migration files
         # for comments
@@ -96,7 +115,10 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
 
         # Sort imports by the package / module to be imported (the part after
         # "from" in "from ... import ..." or after "import" in "import ...").
-        sorted_imports = sorted(imports, key=lambda i: i.split()[1])
+        # First group the "import" statements, then "from ... import ...".
+        sorted_imports = sorted(
+            imports, key=lambda i: (i.split()[0] == "from", i.split()[1])
+        )
         items["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
         if migration_imports:
             items["imports"] += (
@@ -107,7 +129,9 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
             ) % "\n# ".join(sorted(migration_imports))
         # If there's a replaces, make a string for it
         if self.migration.replaces:
-            items['replaces_str'] = "\n    replaces = %s\n" % self.serialize(self.migration.replaces)[0]
+            items["replaces_str"] = (
+                "\n    replaces = %s\n" % self.serialize(self.migration.replaces)[0]
+            )
         # Hinting that goes into comment
         if self.include_header:
             items['migration_header'] = self.template_class_header % {
@@ -115,10 +139,10 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
                 'timestamp': now().strftime("%Y-%m-%d %H:%M"),
             }
         else:
-            items['migration_header'] = ""
+            items["migration_header"] = ""
 
         if self.migration.initial:
-            items['initial_str'] = "\n    initial = True\n"
+            items["initial_str"] = "\n    initial = True\n"
 
         return items
 
@@ -198,11 +222,15 @@ class Migration(migrations.Migration):
 
         kwargs['functions'] = ('\n\n' if functions else '') + '\n\n'.join(functions)
         kwargs['variables'] = ('\n\n' if variables else '') + '\n\n'.join(variables)
-        kwargs['operations'] = kwargs['operations'].replace('DELETEMEPLEASE.', '')
-        kwargs['imports'] = kwargs['imports'].replace('import DELETEMEPLEASE\n', '')
 
         imports = (x for x in set(kwargs['imports'].split('\n') + getattr(self.migration, 'extra_imports', [])) if x)
         sorted_imports = sorted(imports, key=lambda i: i.split()[1])
         kwargs["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
 
         return kwargs
+
+    @classmethod
+    def serialize(cls, value):
+        if isinstance(value, (types.FunctionType, types.BuiltinFunctionType, types.MethodType)):
+            return FunctionTypeMigrationSerializer(value).serialize()
+        return super().serialize(value)

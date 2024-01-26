@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(same_name, elidable=False),
-        migrations.RunPython(same_name_2, elidable=False),
+        migrations.RunPython(same_name_2, reverse_code=migrations.RunPython.noop, elidable=False),
         migrations.AddField(
             model_name='person',
             name='age',

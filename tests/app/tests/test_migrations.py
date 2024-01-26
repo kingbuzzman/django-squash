@@ -181,6 +181,7 @@ class SquashMigrationTest(MigrationTestBase):
                 """\
                 import datetime
                 from django.db import migrations, models
+                from django.db import migrations
                 import itertools
                 from random import randrange
 
@@ -244,7 +245,7 @@ class SquashMigrationTest(MigrationTestBase):
 
                     dependencies = []
 
-                    operations = [migrations.CreateModel(name='Person', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('name', models.CharField(max_length=10)), ('dob', models.DateField()),],), migrations.RunPython(code=same_name, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,), migrations.RunSQL(sql=SQL_1, reverse_sql=SQL_1_ROLLBACK, elidable=False,), migrations.RunSQL(sql=SQL_2, elidable=False,),]
+                    operations = [migrations.CreateModel(name='Person', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('name', models.CharField(max_length=10)), ('dob', models.DateField()),],), migrations.RunPython(code=same_name, elidable=False,), migrations.RunPython(code=same_name_2, reverse_code=migrations.RunPython.noop, elidable=False,), migrations.RunPython(code=create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,), migrations.RunSQL(sql=SQL_1, reverse_sql=SQL_1_ROLLBACK, elidable=False,), migrations.RunSQL(sql=SQL_2, elidable=False,),]
                 """  # noqa
             )
             self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
@@ -493,7 +494,7 @@ class SquashMigrationTest(MigrationTestBase):
 
                     dependencies = []
 
-                    operations = [migrations.RunPython(code=same_name, reverse_code=RunPython.noop, elidable=False,), migrations.RunPython(code=RunPython.noop, reverse_code=RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,),]
+                    operations = [migrations.RunPython(code=same_name, reverse_code=migrations.RunPython.noop, elidable=False,), migrations.RunPython(code=migrations.RunPython.noop, reverse_code=migrations.RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=migrations.RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,),]
                 """  # noqa
             )
             self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
