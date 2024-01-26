@@ -144,6 +144,11 @@ Run tests
 
 .. code-block:: shell
 
+    docker run --rm -it -v .:/app python:3.12 bash -c 'cd app; exec bash'
+
+
+.. code-block:: shell
+
     pip install -e '.[test]'
     coverage run setup.py test
     coverage report -m
