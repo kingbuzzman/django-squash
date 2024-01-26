@@ -4,18 +4,32 @@ import io
 import os
 import shutil
 import tempfile
+import textwrap
 import unittest.mock
 from contextlib import contextmanager
 from importlib import import_module
 
+import libcst
+import yapf
 from django.apps import apps
 from django.conf import settings
 from django.core.management import CommandError, call_command
-from django.db import connections, migrations as migrations_module, models
+from django.db import connections, models
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
+
+
+def clean_model(model):
+    """
+    Django registers models in the apps cache, this is a helper to remove them
+    """
+    model_name = model._meta.model_name
+    app_label = model._meta.app_label
+    app_models = apps.all_models[app_label]
+    app_models.pop(model_name)
+    apps.clear_cache()
 
 
 class MigrationTestBase(TransactionTestCase):
@@ -28,6 +42,10 @@ class MigrationTestBase(TransactionTestCase):
         # Reset applied-migrations state.
         for db in connections:
             MigrationRecorder(connections[db])
+
+    def addModelCleanup(self, model):
+        # See clean_model for why we need to do this.
+        self.addCleanup(clean_model, model)
 
     def assertTableExists(self, table, using='default'):
         with connections[using].cursor() as cursor:
@@ -87,21 +105,48 @@ def load_migration_module(path):
     return module
 
 
-def pretty_operation(operation):
-    kwargs = {}
-    if isinstance(operation, migrations_module.RunSQL):
-        sql = operation.sql.strip()
-        kwargs['sql'] = sql[:10] + '..' if len(sql) > 10 else sql
-        if operation.reverse_sql:
-            reverse_sql = operation.reverse_sql.strip()
-            kwargs['reverse_sql'] = reverse_sql[:10] + '..' if len(reverse_sql) > 10 else reverse_sql
-        kwargs['elidable'] = operation.elidable
-    elif isinstance(operation, migrations_module.RunPython):
-        kwargs['code'] = operation.code.__qualname__
-        if operation.reverse_code:
-            kwargs['reverse_code'] = operation.reverse_code.__qualname__
-        kwargs['elidable'] = operation.elidable
-    return '%s(%s)' % (type(operation).__qualname__, ', '.join('%s=%s' % (k, v) for k, v in kwargs.items()))
+def pretty_extract_piece(module, traverse):
+    return format_code(extract_piece(module, traverse))
+
+
+def extract_piece(module, traverse):
+    source_code = inspect.getsource(module)
+    tree = libcst.parse_module(source_code).body
+
+    for looking_for in traverse.split('.'):
+        if looking_for:
+            tree = traverse_node(tree, looking_for)
+
+    if not isinstance(tree, tuple):
+        tree = (tree,)
+    return libcst.Module(body=tree).code
+
+
+def format_code(code_string):
+    style = {
+        'based_on_style': 'yapf', 'indent_width': 4, 'disable_ending_comma_heuristic': True, 'column_limit': 10_000,
+        'split_all_comma_separated_values': False, 'indent_closing_brackets': False, 'dedent_closing_brackets': True,
+        'continuation_indent_width': 2, 'split_before_closing_bracket': False,
+        'split_arguments_when_comma_terminated': False
+    }
+    formatted_code, _ = yapf.yapflib.yapf_api.FormatCode(code_string, style_config=style)
+    return formatted_code
+
+
+def traverse_node(nodes, looking_for):
+    if not isinstance(nodes, (list, tuple)):
+        nodes = [nodes]
+
+    for node in nodes:
+        if isinstance(node, (libcst.ClassDef, libcst.FunctionDef)) and node.name.value == looking_for:
+            return node
+        if isinstance(node, libcst.Assign) and looking_for in [n.target.value for n in node.targets]:
+            return node
+
+        for child in node.children:
+            result = traverse_node(child, looking_for)
+            if result:
+                return result
 
 
 class SquashMigrationTest(MigrationTestBase):
@@ -117,6 +162,8 @@ class SquashMigrationTest(MigrationTestBase):
             class Meta:
                 app_label = "app"
 
+        self.addModelCleanup(Person)
+
         out = io.StringIO()
         patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.elidable", app_label='app')
         with patch_app_migrations as migration_app_dir:
@@ -126,53 +173,77 @@ class SquashMigrationTest(MigrationTestBase):
             self.assertIn('0004_squashed.py', files_in_app)
 
             app_squash = load_migration_module(os.path.join(migration_app_dir, '0004_squashed.py'))
+            expected = textwrap.dedent(
+                """\
+                import datetime
+                from django.db import migrations, models
+                import itertools
+                from random import randrange
 
-            # Test imports
-            self.assertTrue(hasattr(app_squash, 'randrange'))
-            self.assertTrue(hasattr(app_squash, 'itertools'))
 
-            self.assertEqual(app_squash.create_admin_MUST_ALWAYS_EXIST.__doc__,
-                             '\n    This is a test doc string\n    ')
+                def same_name(apps, schema_editor):
+                    \"\"\"
+                    Content not important, testing same function name in multiple migrations
+                    \"\"\"
+                    pass
 
-            self.assertEqual(app_squash.rollback_admin_MUST_ALWAYS_EXIST.__doc__, 'Single comments')
 
-            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
-                                                             ('app', '0002_person_age'),
-                                                             ('app', '0003_add_dob')])
+                def same_name_2(apps, schema_editor):
+                    \"\"\"
+                    Content not important, testing same function name in multiple migrations, nasty
+                    \"\"\"
+                    pass
 
-            actual = [(type(operation), pretty_operation(operation)) for operation in app_squash.Migration.operations]
-            expected = [
-                (migrations_module.CreateModel, 'CreateModel()'),
-                (migrations_module.RunPython, 'RunPython(code=same_name, elidable=False)'),
-                (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)'),
-                (migrations_module.RunPython, ('RunPython(code=create_admin_MUST_ALWAYS_EXIST, '
-                                               'reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False)')),
-                (migrations_module.RunPython, 'RunPython(code=same_name_3, elidable=False)'),
-                (migrations_module.RunSQL, 'RunSQL(sql=select 1, reverse_sql=select 2, elidable=False)'),
-                (migrations_module.RunSQL, 'RunSQL(sql=select 4, elidable=False)')
-            ]
-            self.assertEqual(expected, actual)
 
-            self.assertEqual('''def same_name(apps, schema_editor):
-    """
-    Content not important, testing same function name in multiple migrations
-    """
-    pass
-''', inspect.getsource(app_squash.Migration.operations[1].code))
+                def create_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
+                    \"\"\"
+                    This is a test doc string
+                    \"\"\"
+                    itertools.chain()  # noop used to make sure the import was included
+                    randrange  # noop used to make sure the import was included
 
-            self.assertEqual('''def same_name_2(apps, schema_editor):
-    """
-    Content not important, testing same function name in multiple migrations, nasty
-    """
-    pass
-''', inspect.getsource(app_squash.Migration.operations[2].code))
+                    Person = apps.get_model('app', 'Person')
 
-            self.assertEqual('''def same_name_3(apps, schema_editor):
-    """
-    Content not important, testing same function name in multiple migrations, second function
-    """
-    pass
-''', inspect.getsource(app_squash.Migration.operations[4].code))
+                    Person.objects.get_or_create(name='admin', age=30)
+
+
+                def rollback_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
+                    \"\"\"Single comments\"\"\"
+                    print('Ignoring, there is no need to do this.')
+
+
+                def same_name_3(apps, schema_editor):
+                    \"\"\"
+                    Content not important, testing same function name in multiple migrations, second function
+                    \"\"\"
+                    pass
+
+
+                SQL_1 = \"\"\"
+                select 1
+                \"\"\"
+
+                SQL_1_ROLLBACK = \"\"\"
+                select 2
+                \"\"\"
+
+                SQL_2 = \"\"\"
+                select 4
+                \"\"\"
+
+
+                class Migration(migrations.Migration):
+
+                    replaces = [('app', '0001_initial'), ('app', '0002_person_age'), ('app', '0003_add_dob')]
+
+                    initial = True
+
+                    dependencies = []
+
+                    operations = [migrations.CreateModel(name='Person', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('name', models.CharField(max_length=10)), ('dob', models.DateField()),],), migrations.RunPython(code=same_name, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,), migrations.RunSQL(sql=SQL_1, reverse_sql=SQL_1_ROLLBACK, elidable=False,), migrations.RunSQL(sql=SQL_2, elidable=False,),]
+                """  # noqa
+            )
+            self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
 
     def test_squashing_migration_simple(self):
         class Person(models.Model):
@@ -182,6 +253,8 @@ class SquashMigrationTest(MigrationTestBase):
 
             class Meta:
                 app_label = "app"
+
+        self.addModelCleanup(Person)
 
         class Address(models.Model):
             person = models.ForeignKey('app.Person', on_delete=models.deletion.CASCADE)
@@ -194,6 +267,8 @@ class SquashMigrationTest(MigrationTestBase):
 
             class Meta:
                 app_label = "app2"
+
+        self.addModelCleanup(Address)
 
         out = io.StringIO()
         patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.simple", app_label='app')
@@ -223,6 +298,8 @@ class SquashMigrationTest(MigrationTestBase):
 
             class Meta:
                 app_label = "app"
+
+        self.addModelCleanup(Person)
 
         out = io.StringIO()
         patch_app_migrations = self.temporary_migration_module(module="app.test_empty", app_label='app')
@@ -282,6 +359,8 @@ class SquashMigrationTest(MigrationTestBase):
             class Meta:
                 app_label = "app"
 
+        self.addModelCleanup(Person)
+
         out = io.StringIO()
         patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.elidable", app_label='app')
         with patch_app_migrations as migration_app_dir:
@@ -298,6 +377,8 @@ class SquashMigrationTest(MigrationTestBase):
 
             class Meta:
                 app_label = "app"
+
+        self.addModelCleanup(Person)
 
         out = io.StringIO()
         patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.delete_replaced",
@@ -344,6 +425,15 @@ class SquashMigrationTest(MigrationTestBase):
         If the app has incorrect migration numbers like: `app/migrations/initial.py` instead of `0001_initial.py`
         it should not fail. Same goes for bad formats all around.
         """
+        class Person(models.Model):
+            name = models.CharField(max_length=10)
+            dob = models.DateField()
+
+            class Meta:
+                app_label = "app"
+
+        self.addModelCleanup(Person)
+
         out = io.StringIO()
         patch_app_migrations = self.temporary_migration_module(module="app.tests.migrations.incorrect_name",
                                                                app_label='app')
@@ -367,22 +457,39 @@ class SquashMigrationTest(MigrationTestBase):
         with patch_app_migrations as migration_app_dir:
             call_command('squash_migrations', verbosity=1, stdout=out, no_color=True)
             files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith('.py'))
-            app_squash = load_migration_module(os.path.join(migration_app_dir, '0003_squashed.py'))
-
             expected_files = ['0001_initial.py', '0002_run_python.py', '0003_squashed.py', '__init__.py']
             self.assertEqual(files_in_app, expected_files)
-            self.assertEqual(app_squash.Migration.replaces, [('app', '0001_initial'),
-                                                             ('app', '0002_run_python')])
 
-            actual = [
-                (type(operation), pretty_operation(operation))
-                for operation in app_squash.Migration.operations
-            ]
-            expected = [
-                (migrations_module.RunPython, 'RunPython(code=same_name, reverse_code=RunPython.noop, elidable=False)'),  # noqa
-                (migrations_module.RunPython, 'RunPython(code=RunPython.noop, reverse_code=RunPython.noop, elidable=False)'),  # noqa
-                (migrations_module.RunPython, 'RunPython(code=same_name_2, elidable=False)'),
-                (migrations_module.RunPython, 'RunPython(code=RunPython.noop, elidable=False)'),
-                (migrations_module.RunPython, 'RunPython(code=same_name_3, elidable=False)'),
-            ]
-            self.assertEqual(expected, actual)
+            app_squash = load_migration_module(os.path.join(migration_app_dir, '0003_squashed.py'))
+            expected = textwrap.dedent(
+                """\
+                from django.db import migrations
+                from django.db.migrations import RunPython
+                from django.db.migrations.operations.special import RunPython
+
+
+                def same_name(apps, schema_editor):
+                    # original function
+                    return
+
+
+                def same_name_2(apps, schema_editor):
+                    # original function 2
+                    return
+
+
+                def same_name_3(apps, schema_editor):
+                    # other function
+                    return
+
+
+                class Migration(migrations.Migration):
+
+                    replaces = [('app', '0001_initial'), ('app', '0002_run_python')]
+
+                    dependencies = []
+
+                    operations = [migrations.RunPython(code=same_name, reverse_code=RunPython.noop, elidable=False,), migrations.RunPython(code=RunPython.noop, reverse_code=RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,),]
+                """  # noqa
+            )
+            self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
