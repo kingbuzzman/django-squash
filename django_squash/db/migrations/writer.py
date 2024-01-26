@@ -1,26 +1,34 @@
-import ast
 import inspect
 import os
-import pkgutil
 import re
 
 from django import get_version
-from django.db import migrations as migration_module
-from django.db.migrations.writer import (
-    MIGRATION_HEADER_TEMPLATE, MIGRATION_TEMPLATE, MigrationWriter as MigrationWriterBase, OperationWriter,
-)
+from django.db import migrations as dj_migrations
+from django.db.migrations import writer as dj_writer
 from django.utils.timezone import now
 
 from django_squash.db.migrations import utils
 
+supported_django_migrations = (
+    '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # since 3.2 this hasn't changed
+)
 
-class ReplacementMigrationWriter(MigrationWriterBase):
+if utils.file_hash(dj_writer.__file__) not in supported_django_migrations:
+    print(utils.file_hash(dj_writer.__file__))
+    raise Warning('Django migrations writer file has changed and may not be compatible with django-squash.')
+
+
+class OperationWriter(dj_writer.OperationWriter):
+    pass
+
+
+class ReplacementMigrationWriter(dj_writer.MigrationWriter):
     """
     Take a Migration instance and is able to produce the contents
     of the migration file from it.
     """
-    template_class_header = MIGRATION_HEADER_TEMPLATE
-    template_class = MIGRATION_TEMPLATE
+    template_class_header = dj_writer.MIGRATION_HEADER_TEMPLATE
+    template_class = dj_writer.MIGRATION_TEMPLATE
 
     def __init__(self, migration, include_header=True):
         self.migration = migration
@@ -164,13 +172,13 @@ class Migration(migrations.Migration):
         functions = []
         variables = []
         for operation in self.migration.operations:
-            if isinstance(operation, migration_module.RunPython):
+            if isinstance(operation, dj_migrations.RunPython):
                 if not utils.is_code_in_site_packages(operation.code.__original_module__):
                     functions.append(self.extract_function(operation.code))
                 if operation.reverse_code:
                     if not utils.is_code_in_site_packages(operation.reverse_code.__original_module__):
                         functions.append(self.extract_function(operation.reverse_code))
-            elif isinstance(operation, migration_module.RunSQL):
+            elif isinstance(operation, dj_migrations.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
                 if operation.reverse_sql:
                     variables.append(self.template_variable % (operation.reverse_sql.name,

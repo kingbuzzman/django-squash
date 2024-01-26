@@ -1,4 +1,5 @@
 import ast
+import hashlib
 import inspect
 import itertools
 import os
@@ -6,9 +7,21 @@ import pkgutil
 import types
 from collections import defaultdict
 
-from django.db import migrations as migration_module
 
-from .operators import RunPython, RunSQL
+def file_hash(file_path):
+    """
+    Calculate the hash of a file
+    """
+    BLOCK_SIZE = 65536
+
+    file_hash = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        fb = f.read(BLOCK_SIZE)
+        while len(fb) > 0:
+            file_hash.update(fb)
+            fb = f.read(BLOCK_SIZE)
+
+    return file_hash.hexdigest()
 
 
 def source_directory(module):
