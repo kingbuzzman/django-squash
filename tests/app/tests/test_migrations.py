@@ -16,7 +16,7 @@ from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.db import connections, models
 from django.db.migrations.recorder import MigrationRecorder
-from django.test import TransactionTestCase, override_settings
+from django.test import TransactionTestCase
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
 
@@ -106,10 +106,12 @@ def load_migration_module(path):
 
 
 def pretty_extract_piece(module, traverse):
+    """Format the code extracted from the module, so it can be compared to the expected output"""
     return format_code(extract_piece(module, traverse))
 
 
 def extract_piece(module, traverse):
+    """Extract a piece of code from a module"""
     source_code = inspect.getsource(module)
     tree = libcst.parse_module(source_code).body
 
@@ -123,6 +125,7 @@ def extract_piece(module, traverse):
 
 
 def format_code(code_string):
+    """Format the code so it's reproducible"""
     style = {
         'based_on_style': 'yapf', 'indent_width': 4, 'disable_ending_comma_heuristic': True, 'column_limit': 10_000,
         'split_all_comma_separated_values': False, 'indent_closing_brackets': False, 'dedent_closing_brackets': True,
@@ -134,6 +137,7 @@ def format_code(code_string):
 
 
 def traverse_node(nodes, looking_for):
+    """Traverse the tree looking for a node"""
     if not isinstance(nodes, (list, tuple)):
         nodes = [nodes]
 
