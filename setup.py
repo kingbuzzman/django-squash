@@ -82,6 +82,6 @@ setup(
     ],
     tests_require=[],
     extras_require={
-        'test':  ['isort', 'flake8', 'ipdb', 'coverage', 'libcst', 'yapf'],
+        'test':  ['pytest-django', 'pytest-cov', 'isort', 'flake8', 'ipdb', 'libcst', 'yapf'],
     }
 )

@@ -6,10 +6,6 @@ import pkgutil
 import types
 from collections import defaultdict
 
-from django.db import migrations as migration_module
-
-from .operators import RunPython, RunSQL
-
 
 def source_directory(module):
     return os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
