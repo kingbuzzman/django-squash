@@ -1,3 +1,4 @@
+from collections import defaultdict
 import pytest
 import io
 import os
@@ -10,6 +11,9 @@ from django.apps import apps
 from django.core.management import call_command
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
+from django.conf import settings as django_settings
+
+INSTALLED_APPS = django_settings.INSTALLED_APPS.copy()
 
 
 @pytest.fixture
@@ -72,17 +76,18 @@ def _clean_model(monkeypatch):
     Django registers models in the apps cache, this is a helper to remove them, otherwise django throws warnings
     that this model already exists.
     """
-    mock_register_model = mock.Mock(wraps=apps.register_model)
-    monkeypatch.setattr(apps, "register_model", mock_register_model)
 
     yield
 
-    for call in mock_register_model.call_args_list:
-        app_label, model = call.args
-        model_name = model._meta.model_name
-        app_models = apps.all_models[app_label]
-        app_models.pop(model_name)
-        apps.clear_cache()
+    # clear apps cache
+    apps.all_models = defaultdict(dict)
+    apps.app_configs = {}
+    apps.stored_app_configs = []
+    apps.apps_ready = apps.models_ready = apps.ready = False
+    apps.loading = False
+    apps._pending_operations = defaultdict(list)
+    apps.clear_cache()
+    apps.populate(INSTALLED_APPS)
 
 
 @pytest.fixture
