@@ -16,9 +16,7 @@ from django_squash.db.migrations.writer import MigrationWriter
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--only", action="append", nargs="*", help="Only squash the specified apps"
-        )
+        parser.add_argument("--only", action="append", nargs="*", help="Only squash the specified apps")
         parser.add_argument(
             "--ignore-app",
             action="append",
@@ -73,13 +71,9 @@ class Command(BaseCommand):
                     ignore_apps.append(app_name)
 
         if bad_apps:
-            raise CommandError(
-                "The following apps are not valid: %s" % (", ".join(bad_apps))
-            )
+            raise CommandError("The following apps are not valid: %s" % (", ".join(bad_apps)))
 
-        questioner = NonInteractiveMigrationQuestioner(
-            specified_apps=None, dry_run=False
-        )
+        questioner = NonInteractiveMigrationQuestioner(specified_apps=None, dry_run=False)
 
         loader = MigrationLoader(None, ignore_no_migrations=True)
         squash_loader = SquashMigrationLoader(None, ignore_no_migrations=True)
@@ -115,10 +109,7 @@ class Command(BaseCommand):
         directory_created = {}
         for app_label, app_migrations in changes.items():
             if self.verbosity >= 1:
-                self.stdout.write(
-                    self.style.MIGRATE_HEADING("Migrations for '%s':" % app_label)
-                    + "\n"
-                )
+                self.stdout.write(self.style.MIGRATE_HEADING("Migrations for '%s':" % app_label) + "\n")
             for migration in app_migrations:
                 # Describe the migration
                 writer = MigrationWriter(migration, self.include_header)
@@ -131,13 +122,8 @@ class Command(BaseCommand):
                         migration_string = writer.path
                     if migration_string.startswith(".."):
                         migration_string = writer.path
-                    self.stdout.write(
-                        "  %s\n" % (self.style.MIGRATE_LABEL(migration_string),)
-                    )
-                    if (
-                        hasattr(migration, "is_migration_level")
-                        and migration.is_migration_level
-                    ):
+                    self.stdout.write("  %s\n" % (self.style.MIGRATE_LABEL(migration_string),))
+                    if hasattr(migration, "is_migration_level") and migration.is_migration_level:
                         for operation in migration.describe():
                             self.stdout.write("    - %s\n" % operation)
                     else:
@@ -164,9 +150,6 @@ class Command(BaseCommand):
                     # will output the migrations to stdout rather than saving
                     # the file to the disk.
                     self.stdout.write(
-                        self.style.MIGRATE_HEADING(
-                            "Full migrations file '%s':" % writer.filename
-                        )
-                        + "\n"
+                        self.style.MIGRATE_HEADING("Full migrations file '%s':" % writer.filename) + "\n"
                     )
                     self.stdout.write("%s\n" % writer.as_string())

@@ -51,7 +51,7 @@ jobs:
       - name: Flake8 check
         run: flake8
       - name: Black check
-        run: black --check .
+        run: black --config .black --check .
 
   pypi-publish:
     name: Upload release to PyPI

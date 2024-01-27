@@ -27,27 +27,16 @@ class FunctionTypeSerializer(BaseFunctionTypeSerializer):
     def serialize(self):
         response = super().serialize()
 
-        if (
-            hasattr(self.value, "__in_migration_file__")
-            and self.value.__in_migration_file__
-        ):
+        if hasattr(self.value, "__in_migration_file__") and self.value.__in_migration_file__:
             return self.value.__qualname__, {}
 
         full_name = f"{self.value.__module__}.{self.value.__qualname__}"
-        if (
-            full_name.startswith("django.")
-            and ".models." in full_name
-            or ".migrations." in full_name
-        ):
+        if full_name.startswith("django.") and ".models." in full_name or ".migrations." in full_name:
             atttr = self.value.__qualname__.split(".")[0]
             if hasattr(dj_migrations, atttr):
-                return "migrations.%s" % self.value.__qualname__, {
-                    "from django.db import migrations"
-                }
+                return "migrations.%s" % self.value.__qualname__, {"from django.db import migrations"}
             if hasattr(dj_models, atttr):
-                return "models.%s" % self.value.__qualname__, {
-                    "from django.db import models"
-                }
+                return "models.%s" % self.value.__qualname__, {"from django.db import models"}
 
         return response
 
