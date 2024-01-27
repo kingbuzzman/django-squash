@@ -209,9 +209,7 @@ class Migration(migrations.Migration):
         kwargs['variables'] = ('\n\n' if variables else '') + '\n\n'.join(variables)
 
         imports = (x for x in set(kwargs['imports'].split('\n') + getattr(self.migration, 'extra_imports', [])) if x)
-        sorted_imports = sorted(
-            imports, key=lambda i: (i.split()[0] == "from", i.split()[1])
-        )
+        sorted_imports = sorted(imports, key=lambda i: (i.split()[0] == "from", i.split()))
         kwargs["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
 
         return kwargs

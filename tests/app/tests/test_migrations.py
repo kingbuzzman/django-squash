@@ -181,8 +181,8 @@ class SquashMigrationTest(MigrationTestBase):
                 """\
                 import datetime
                 import itertools
-                from django.db import migrations, models
                 from django.db import migrations
+                from django.db import migrations, models
                 from random import randrange
 
 
