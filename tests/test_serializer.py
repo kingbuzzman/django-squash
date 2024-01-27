@@ -36,13 +36,13 @@ def test_function_type_serializer():
     )
 
     assert S(noop).serialize() == (
-        "tests.app.tests.test_serializer.noop",
-        {"import tests.app.tests.test_serializer"},
+        "tests.test_serializer.noop",
+        {"import tests.test_serializer"},
     )
     noop.__in_migration_file__ = False
     assert S(noop).serialize() == (
-        "tests.app.tests.test_serializer.noop",
-        {"import tests.app.tests.test_serializer"},
+        "tests.test_serializer.noop",
+        {"import tests.test_serializer"},
     )
     noop.__in_migration_file__ = True
     assert S(noop).serialize() == ("noop", {})
