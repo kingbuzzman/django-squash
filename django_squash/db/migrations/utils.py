@@ -1,4 +1,5 @@
 import ast
+import hashlib
 import inspect
 import itertools
 import os
@@ -7,11 +8,31 @@ import types
 from collections import defaultdict
 
 
+def file_hash(file_path):
+    """
+    Calculate the hash of a file
+    """
+    BLOCK_SIZE = 65536
+
+    file_hash = hashlib.sha256()
+    with open(file_path, 'rb') as f:
+        fb = f.read(BLOCK_SIZE)
+        while len(fb) > 0:
+            file_hash.update(fb)
+            fb = f.read(BLOCK_SIZE)
+
+    return file_hash.hexdigest()
+
+
 def source_directory(module):
     return os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
 
 
 class UniqueVariableName:
+    """
+    This class will return a unique name for a variable / function.
+    """
+
     def __init__(self):
         self.names = defaultdict(int)
         self.functions = {}
@@ -78,10 +99,15 @@ def get_imports(module):
 
 
 def copy_func(f, name=None):
-    func = types.FunctionType(f.__code__, f.__globals__, name or f.__qualname__,
+    """
+    Return a function with same code, globals, defaults, closure, and name (or provide a new name)
+    """
+    name = name or f.__qualname__
+    func = types.FunctionType(f.__code__, f.__globals__, name,
                               f.__defaults__, f.__closure__)
     func.__qualname__ = f.__qualname__
     func.__original_qualname__ = f.__original_qualname__
+    func.__original_module__ = f.__module__
     return func
 
 

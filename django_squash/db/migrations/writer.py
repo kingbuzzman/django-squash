@@ -1,24 +1,50 @@
 import inspect
 import os
 import re
+import textwrap
 
 from django import get_version
-from django.db import migrations as migration_module
-from django.db.migrations.writer import (
-    MIGRATION_HEADER_TEMPLATE, MIGRATION_TEMPLATE, MigrationWriter as MigrationWriterBase, OperationWriter,
-)
+from django.db import migrations as dj_migrations
+from django.db.migrations import writer as dj_writer
 from django.utils.timezone import now
 
 from django_squash.db.migrations import utils
 
 
-class ReplacementMigrationWriter(MigrationWriterBase):
+def check_django_migration_hash():
+    """
+    Check if the django migrations writer file has changed and may not be compatible with django-squash.
+    """
+    supported_django_migrations = (
+        '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # 5.0
+        '2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582',  # 4.1 / 4.2
+        'e90b1243a8ce48f06331db8f584b0bce26e2e3f0abdd177cc18ed37425a23515',  # 3.2
+    )
+
+    current_django_migration_hash = utils.file_hash(dj_writer.__file__)
+    if current_django_migration_hash not in supported_django_migrations:
+        messsage = textwrap.dedent(
+            f"""\
+            Django migrations writer file has changed and may not be compatible with django-squash.
+
+            Django version: {get_version()}
+            Django migrations writer file: {dj_writer.__file__}
+            Django migrations writer hash: {current_django_migration_hash}
+            """
+        )
+        raise Warning(messsage)
+
+
+check_django_migration_hash()
+
+
+class ReplacementMigrationWriter(dj_writer.MigrationWriter):
     """
     Take a Migration instance and is able to produce the contents
     of the migration file from it.
     """
-    template_class_header = MIGRATION_HEADER_TEMPLATE
-    template_class = MIGRATION_TEMPLATE
+    template_class_header = dj_writer.MIGRATION_HEADER_TEMPLATE
+    template_class = dj_writer.MIGRATION_TEMPLATE
 
     def __init__(self, migration, include_header=True):
         self.migration = migration
@@ -29,7 +55,10 @@ class ReplacementMigrationWriter(MigrationWriterBase):
         """Return a string of the file contents."""
         return self.template_class % self.get_kwargs()
 
-    def get_kwargs(self):
+    def get_kwargs(self):  # pragma: no cover
+        """
+        Original method from django.db.migrations.writer.MigrationWriter.as_string
+        """
         items = {
             "replaces_str": "",
             "initial_str": "",
@@ -40,7 +69,7 @@ class ReplacementMigrationWriter(MigrationWriterBase):
         # Deconstruct operations
         operations = []
         for operation in self.migration.operations:
-            operation_string, operation_imports = OperationWriter(operation).serialize()
+            operation_string, operation_imports = dj_writer.OperationWriter(operation).serialize()
             imports.update(operation_imports)
             operations.append(operation_string)
         items["operations"] = "\n".join(operations) + "\n" if operations else ""
@@ -49,11 +78,16 @@ class ReplacementMigrationWriter(MigrationWriterBase):
         dependencies = []
         for dependency in self.migration.dependencies:
             if dependency[0] == "__setting__":
-                dependencies.append("        migrations.swappable_dependency(settings.%s)," % dependency[1])
+                dependencies.append(
+                    "        migrations.swappable_dependency(settings.%s),"
+                    % dependency[1]
+                )
                 imports.add("from django.conf import settings")
             else:
                 dependencies.append("        %s," % self.serialize(dependency)[0])
-        items["dependencies"] = "\n".join(dependencies) + "\n" if dependencies else ""
+        items["dependencies"] = (
+            "\n".join(sorted(dependencies)) + "\n" if dependencies else ""
+        )
 
         # Format imports nicely, swapping imports of functions from migration files
         # for comments
@@ -74,7 +108,10 @@ class ReplacementMigrationWriter(MigrationWriterBase):
 
         # Sort imports by the package / module to be imported (the part after
         # "from" in "from ... import ..." or after "import" in "import ...").
-        sorted_imports = sorted(imports, key=lambda i: i.split()[1])
+        # First group the "import" statements, then "from ... import ...".
+        sorted_imports = sorted(
+            imports, key=lambda i: (i.split()[0] == "from", i.split()[1])
+        )
         items["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
         if migration_imports:
             items["imports"] += (
@@ -85,7 +122,9 @@ class ReplacementMigrationWriter(MigrationWriterBase):
             ) % "\n# ".join(sorted(migration_imports))
         # If there's a replaces, make a string for it
         if self.migration.replaces:
-            items['replaces_str'] = "\n    replaces = %s\n" % self.serialize(self.migration.replaces)[0]
+            items["replaces_str"] = (
+                "\n    replaces = %s\n" % self.serialize(self.migration.replaces)[0]
+            )
         # Hinting that goes into comment
         if self.include_header:
             items['migration_header'] = self.template_class_header % {
@@ -93,10 +132,10 @@ class ReplacementMigrationWriter(MigrationWriterBase):
                 'timestamp': now().strftime("%Y-%m-%d %H:%M"),
             }
         else:
-            items['migration_header'] = ""
+            items["migration_header"] = ""
 
         if self.migration.initial:
-            items['initial_str'] = "\n    initial = True\n"
+            items["initial_str"] = "\n    initial = True\n"
 
         return items
 
@@ -162,13 +201,13 @@ class Migration(migrations.Migration):
         functions = []
         variables = []
         for operation in self.migration.operations:
-            if isinstance(operation, migration_module.RunPython):
+            if isinstance(operation, dj_migrations.RunPython):
                 if not utils.is_code_in_site_packages(operation.code.__original_module__):
                     functions.append(self.extract_function(operation.code))
                 if operation.reverse_code:
                     if not utils.is_code_in_site_packages(operation.reverse_code.__original_module__):
                         functions.append(self.extract_function(operation.reverse_code))
-            elif isinstance(operation, migration_module.RunSQL):
+            elif isinstance(operation, dj_migrations.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
                 if operation.reverse_sql:
                     variables.append(self.template_variable % (operation.reverse_sql.name,
@@ -176,11 +215,9 @@ class Migration(migrations.Migration):
 
         kwargs['functions'] = ('\n\n' if functions else '') + '\n\n'.join(functions)
         kwargs['variables'] = ('\n\n' if variables else '') + '\n\n'.join(variables)
-        kwargs['operations'] = kwargs['operations'].replace('DELETEMEPLEASE.', '')
-        kwargs['imports'] = kwargs['imports'].replace('import DELETEMEPLEASE\n', '')
 
         imports = (x for x in set(kwargs['imports'].split('\n') + getattr(self.migration, 'extra_imports', [])) if x)
-        sorted_imports = sorted(imports, key=lambda i: i.split()[1])
+        sorted_imports = sorted(imports, key=lambda i: (i.split()[0] == "from", i.split()))
         kwargs["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
 
         return kwargs

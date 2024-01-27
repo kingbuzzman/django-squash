@@ -81,12 +81,12 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 for operation in all_custom_operations(migration.operations, unique_names):
                     if isinstance(operation, migration_module.RunPython):
                         operation.code = utils.copy_func(operation.code)
-                        operation.code.__original_module__ = operation.code.__module__
-                        operation.code.__module__ = 'DELETEMEPLEASE'  # TODO: get a better name?
+                        operation.code.__in_migration_file__ = module.__name__ == operation.code.__module__
+
                         if operation.reverse_code:
                             operation.reverse_code = utils.copy_func(operation.reverse_code)
-                            operation.reverse_code.__original_module__ = operation.reverse_code.__module__
-                            operation.reverse_code.__module__ = 'DELETEMEPLEASE'  # TODO: get a better name?
+                            in_migration_file = module.__name__ == operation.reverse_code.__module__
+                            operation.reverse_code.__in_migration_file__ = in_migration_file
                     operations.append(operation)
 
             migration = changes[app][-1]
