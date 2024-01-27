@@ -2,8 +2,6 @@ import inspect
 import os
 import re
 import textwrap
-import types
-from unittest.mock import patch
 
 from django import get_version
 from django.db import migrations as dj_migrations
@@ -11,7 +9,6 @@ from django.db.migrations import writer as dj_writer
 from django.utils.timezone import now
 
 from django_squash.db.migrations import utils
-from django_squash.db.migrations.serializers import FunctionTypeMigrationSerializer
 
 supported_django_migrations = (
     '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # 5.0
@@ -31,17 +28,6 @@ if current_django_migration_hash not in supported_django_migrations:
         """
     )
     raise Warning(messsage)
-
-
-class OperationWriter(dj_writer.OperationWriter):
-    """
-    Django OperationWriter hardcodes the MigrationWriter into the serialize method.
-
-    This class allows us to use our own MigrationWriter that knows how to serialize functions.
-    """
-    def serialize(self):
-        with patch('django.db.migrations.writer.MigrationWriter', MigrationWriter):
-            return super().serialize()
 
 
 class ReplacementMigrationWriter(dj_writer.MigrationWriter):
@@ -75,7 +61,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         # Deconstruct operations
         operations = []
         for operation in self.migration.operations:
-            operation_string, operation_imports = OperationWriter(operation).serialize()
+            operation_string, operation_imports = dj_writer.OperationWriter(operation).serialize()
             imports.update(operation_imports)
             operations.append(operation_string)
         items["operations"] = "\n".join(operations) + "\n" if operations else ""
@@ -223,13 +209,9 @@ class Migration(migrations.Migration):
         kwargs['variables'] = ('\n\n' if variables else '') + '\n\n'.join(variables)
 
         imports = (x for x in set(kwargs['imports'].split('\n') + getattr(self.migration, 'extra_imports', [])) if x)
-        sorted_imports = sorted(imports, key=lambda i: i.split()[1])
+        sorted_imports = sorted(
+            imports, key=lambda i: (i.split()[0] == "from", i.split()[1])
+        )
         kwargs["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
 
         return kwargs
-
-    @classmethod
-    def serialize(cls, value):
-        if isinstance(value, (types.FunctionType, types.BuiltinFunctionType, types.MethodType)):
-            return FunctionTypeMigrationSerializer(value).serialize()
-        return super().serialize(value)

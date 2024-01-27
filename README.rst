@@ -144,7 +144,7 @@ Run tests
 
 .. code-block:: shell
 
-    docker run --rm -it -v .:/app python:3.12 bash -c 'cd app; exec bash'
+    docker run --rm -it -v .:/app python:3.12 bash -c 'cd app; pip install -e .[test]; echo; echo; echo "run **pytest** to run tests"; echo; exec bash'
 
 
 .. code-block:: shell

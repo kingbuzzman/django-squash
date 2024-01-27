@@ -180,9 +180,9 @@ class SquashMigrationTest(MigrationTestBase):
             expected = textwrap.dedent(
                 """\
                 import datetime
+                import itertools
                 from django.db import migrations, models
                 from django.db import migrations
-                import itertools
                 from random import randrange
 
 
@@ -528,7 +528,6 @@ class SquashMigrationTest(MigrationTestBase):
                 import datetime
                 from django.conf import settings
                 from django.db import migrations, models
-                import django.db.models.deletion
 
 
                 class Migration(migrations.Migration):
@@ -539,7 +538,7 @@ class SquashMigrationTest(MigrationTestBase):
 
                     dependencies = [migrations.swappable_dependency(settings.AUTH_USER_MODEL),]
 
-                    operations = [migrations.CreateModel(name='UserProfile', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('dob', models.DateField()), ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),],),]
+                    operations = [migrations.CreateModel(name='UserProfile', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('dob', models.DateField()), ('user', models.ForeignKey(on_delete=models.CASCADE, to=settings.AUTH_USER_MODEL)),],),]
                 """  # noqa
             )
             self.assertEqual(pretty_extract_piece(app_squash, ''), expected)
