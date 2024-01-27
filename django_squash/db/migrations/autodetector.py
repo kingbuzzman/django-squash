@@ -85,7 +85,8 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
                         if operation.reverse_code:
                             operation.reverse_code = utils.copy_func(operation.reverse_code)
-                            operation.reverse_code.__in_migration_file__ = module.__name__ == operation.reverse_code.__module__
+                            in_migration_file = module.__name__ == operation.reverse_code.__module__
+                            operation.reverse_code.__in_migration_file__ = in_migration_file
                     operations.append(operation)
 
             migration = changes[app][-1]

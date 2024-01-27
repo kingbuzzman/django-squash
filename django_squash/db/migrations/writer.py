@@ -8,7 +8,6 @@ from unittest.mock import patch
 from django import get_version
 from django.db import migrations as dj_migrations
 from django.db.migrations import writer as dj_writer
-from django.utils.inspect import get_func_args
 from django.utils.timezone import now
 
 from django_squash.db.migrations import utils
