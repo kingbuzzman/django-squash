@@ -150,8 +150,7 @@ Run tests
 .. code-block:: shell
 
     pip install -e '.[test]'
-    coverage run setup.py test
-    coverage report -m
+    pytest
 
 
 .. |Travis CI| image:: https://travis-ci.com/kingbuzzman/django-squash.svg?branch=develop
