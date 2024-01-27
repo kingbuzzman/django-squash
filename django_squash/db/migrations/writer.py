@@ -70,9 +70,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         # Deconstruct operations
         operations = []
         for operation in self.migration.operations:
-            operation_string, operation_imports = dj_writer.OperationWriter(
-                operation
-            ).serialize()
+            operation_string, operation_imports = dj_writer.OperationWriter(operation).serialize()
             imports.update(operation_imports)
             operations.append(operation_string)
         items["operations"] = "\n".join(operations) + "\n" if operations else ""
@@ -81,16 +79,11 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         dependencies = []
         for dependency in self.migration.dependencies:
             if dependency[0] == "__setting__":
-                dependencies.append(
-                    "        migrations.swappable_dependency(settings.%s),"
-                    % dependency[1]
-                )
+                dependencies.append("        migrations.swappable_dependency(settings.%s)," % dependency[1])
                 imports.add("from django.conf import settings")
             else:
                 dependencies.append("        %s," % self.serialize(dependency)[0])
-        items["dependencies"] = (
-            "\n".join(sorted(dependencies)) + "\n" if dependencies else ""
-        )
+        items["dependencies"] = "\n".join(sorted(dependencies)) + "\n" if dependencies else ""
 
         # Format imports nicely, swapping imports of functions from migration files
         # for comments
@@ -112,9 +105,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         # Sort imports by the package / module to be imported (the part after
         # "from" in "from ... import ..." or after "import" in "import ...").
         # First group the "import" statements, then "from ... import ...".
-        sorted_imports = sorted(
-            imports, key=lambda i: (i.split()[0] == "from", i.split()[1])
-        )
+        sorted_imports = sorted(imports, key=lambda i: (i.split()[0] == "from", i.split()[1]))
         items["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
         if migration_imports:
             items["imports"] += (
@@ -125,9 +116,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
             ) % "\n# ".join(sorted(migration_imports))
         # If there's a replaces, make a string for it
         if self.migration.replaces:
-            items["replaces_str"] = (
-                "\n    replaces = %s\n" % self.serialize(self.migration.replaces)[0]
-            )
+            items["replaces_str"] = "\n    replaces = %s\n" % self.serialize(self.migration.replaces)[0]
         # Hinting that goes into comment
         if self.include_header:
             items["migration_header"] = self.template_class_header % {
@@ -161,10 +150,7 @@ class Migration(migrations.Migration):
     template_variable = '''%s = """%s"""'''
 
     def as_string(self):
-        if (
-            hasattr(self.migration, "is_migration_level")
-            and self.migration.is_migration_level
-        ):
+        if hasattr(self.migration, "is_migration_level") and self.migration.is_migration_level:
             return self.replace_in_migration()
         else:
             return super().as_string()
@@ -179,14 +165,10 @@ class Migration(migrations.Migration):
             source = f.read()
 
         if self.migration._dependencies_change:
-            source = utils.replace_migration_attribute(
-                source, "dependencies", self.migration.dependencies
-            )
+            source = utils.replace_migration_attribute(source, "dependencies", self.migration.dependencies)
             changed = True
         if self.migration._replaces_change:
-            source = utils.replace_migration_attribute(
-                source, "replaces", self.migration.replaces
-            )
+            source = utils.replace_migration_attribute(source, "replaces", self.migration.replaces)
             changed = True
         if not changed:
             raise NotImplementedError()
@@ -214,39 +196,23 @@ class Migration(migrations.Migration):
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, dj_migrations.RunPython):
-                if not utils.is_code_in_site_packages(
-                    operation.code.__original_module__
-                ):
+                if not utils.is_code_in_site_packages(operation.code.__original_module__):
                     functions.append(self.extract_function(operation.code))
                 if operation.reverse_code:
-                    if not utils.is_code_in_site_packages(
-                        operation.reverse_code.__original_module__
-                    ):
+                    if not utils.is_code_in_site_packages(operation.reverse_code.__original_module__):
                         functions.append(self.extract_function(operation.reverse_code))
             elif isinstance(operation, dj_migrations.RunSQL):
-                variables.append(
-                    self.template_variable % (operation.sql.name, operation.sql.value)
-                )
+                variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
                 if operation.reverse_sql:
                     variables.append(
-                        self.template_variable
-                        % (operation.reverse_sql.name, operation.reverse_sql.value)
+                        self.template_variable % (operation.reverse_sql.name, operation.reverse_sql.value)
                     )
 
         kwargs["functions"] = ("\n\n" if functions else "") + "\n\n".join(functions)
         kwargs["variables"] = ("\n\n" if variables else "") + "\n\n".join(variables)
 
-        imports = (
-            x
-            for x in set(
-                kwargs["imports"].split("\n")
-                + getattr(self.migration, "extra_imports", [])
-            )
-            if x
-        )
-        sorted_imports = sorted(
-            imports, key=lambda i: (i.split()[0] == "from", i.split())
-        )
+        imports = (x for x in set(kwargs["imports"].split("\n") + getattr(self.migration, "extra_imports", [])) if x)
+        sorted_imports = sorted(imports, key=lambda i: (i.split()[0] == "from", i.split()))
         kwargs["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
 
         return kwargs

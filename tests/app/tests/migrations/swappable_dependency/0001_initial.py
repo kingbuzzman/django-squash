@@ -25,9 +25,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "user",
-                    models.ForeignKey(
-                        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
-                    ),
+                    models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
                 ),
             ],
         ),

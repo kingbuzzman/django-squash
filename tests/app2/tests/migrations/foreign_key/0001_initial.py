@@ -26,9 +26,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "person",
-                    models.ForeignKey(
-                        on_delete=models.deletion.CASCADE, to="app.Person"
-                    ),
+                    models.ForeignKey(on_delete=models.deletion.CASCADE, to="app.Person"),
                 ),
                 ("address1", models.CharField(max_length=100)),
                 ("address2", models.CharField(max_length=100)),

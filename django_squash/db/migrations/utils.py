@@ -44,10 +44,7 @@ class UniqueVariableName:
         if isinstance(func, types.FunctionType) and func.__name__ == "<lambda>":
             raise ValueError("func cannot be a lambda")
 
-        if (
-            inspect.ismethod(func)
-            or inspect.signature(func).parameters.get("self") is not None
-        ):
+        if inspect.ismethod(func) or inspect.signature(func).parameters.get("self") is not None:
             raise ValueError("func cannot be part of an instance")
 
         name = original_name = func.__qualname__
@@ -106,9 +103,7 @@ def copy_func(f, name=None):
     Return a function with same code, globals, defaults, closure, and name (or provide a new name)
     """
     name = name or f.__qualname__
-    func = types.FunctionType(
-        f.__code__, f.__globals__, name, f.__defaults__, f.__closure__
-    )
+    func = types.FunctionType(f.__code__, f.__globals__, name, f.__defaults__, f.__closure__)
     func.__qualname__ = f.__qualname__
     func.__original_qualname__ = f.__original_qualname__
     func.__original_module__ = f.__module__
@@ -171,9 +166,7 @@ def replace_migration_attribute(source, attr, value):
     output = []
     for lineno, line in enumerate(source.splitlines()):
         if lineno + 1 in comment_out_nodes.keys():
-            output.append(
-                " " * comment_out_nodes[lineno + 1][0] + attr + " = " + str(value)
-            )
+            output.append(" " * comment_out_nodes[lineno + 1][0] + attr + " = " + str(value))
             p_count = 0
             b_count = 0
             col_offset, name = comment_out_nodes[lineno + 1]
