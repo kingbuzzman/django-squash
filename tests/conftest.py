@@ -1,29 +1,27 @@
 import pytest
-import importlib.util
-import inspect
 import io
 import os
 import shutil
 import tempfile
-import textwrap
-import unittest.mock
-from contextlib import contextmanager
 from importlib import import_module
 
-import libcst
-import black
 from django.apps import apps
-from django.conf import settings
-from django.core.management import CommandError, call_command
-from django.db import connections, models
-from django.db.migrations.recorder import MigrationRecorder
-from django.test import TransactionTestCase, override_settings
+from django.core.management import call_command
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
 
 
 @pytest.fixture
 def migration_app_dir(request, settings):
+    yield from _migration_app_dir("temporary_migration_module", request, settings)
+
+
+@pytest.fixture
+def migration_app2_dir(request, settings):
+    yield from _migration_app_dir("temporary_migration_module2", request, settings)
+
+
+def _migration_app_dir(marker_name, request, settings):
     """
     Allows testing management commands in a temporary migrations module.
     Wrap all invocations to makemigrations and squashmigrations with this
@@ -36,7 +34,7 @@ def migration_app_dir(request, settings):
     module is used, if it exists.
     Returns the filesystem path to the temporary migrations module.
     """
-    mark = next(request.node.iter_markers("temporary_migration_module"))
+    mark = next(request.node.iter_markers(marker_name))
 
     app_label = mark.kwargs["app_label"]
     module = mark.kwargs.get("module")
@@ -96,11 +94,11 @@ def call_squash_migrations():
     """
     output = io.StringIO()
 
-    def _call_squash_migrations(**kwargs):
+    def _call_squash_migrations(*args, **kwargs):
         kwargs["verbosity"] = kwargs.get("verbosity", 1)
         kwargs["stdout"] = kwargs.get("stdout", output)
         kwargs["no_color"] = kwargs.get("no_color", True)
 
-        call_command("squash_migrations", **kwargs)
+        call_command("squash_migrations", *args, **kwargs)
 
     yield _call_squash_migrations
