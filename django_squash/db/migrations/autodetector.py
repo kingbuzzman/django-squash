@@ -70,10 +70,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
     def add_non_elidables(self, original, loader, changes):
         unique_names = utils.UniqueVariableName()
         replacing_migrations_by_app = {
-            app: [
-                original.disk_migrations[r]
-                for r in itertools.chain.from_iterable([m.replaces for m in migrations])
-            ]
+            app: [original.disk_migrations[r] for r in itertools.chain.from_iterable([m.replaces for m in migrations])]
             for app, migrations in changes.items()
         }
 
@@ -84,25 +81,15 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             for migration in replacing_migrations_by_app[app]:
                 module = sys.modules[migration.__module__]
                 imports.extend(utils.get_imports(module))
-                for operation in all_custom_operations(
-                    migration.operations, unique_names
-                ):
+                for operation in all_custom_operations(migration.operations, unique_names):
                     if isinstance(operation, migration_module.RunPython):
                         operation.code = utils.copy_func(operation.code)
-                        operation.code.__in_migration_file__ = (
-                            module.__name__ == operation.code.__module__
-                        )
+                        operation.code.__in_migration_file__ = module.__name__ == operation.code.__module__
 
                         if operation.reverse_code:
-                            operation.reverse_code = utils.copy_func(
-                                operation.reverse_code
-                            )
-                            in_migration_file = (
-                                module.__name__ == operation.reverse_code.__module__
-                            )
-                            operation.reverse_code.__in_migration_file__ = (
-                                in_migration_file
-                            )
+                            operation.reverse_code = utils.copy_func(operation.reverse_code)
+                            in_migration_file = module.__name__ == operation.reverse_code.__module__
+                            operation.reverse_code.__in_migration_file__ = in_migration_file
                     operations.append(operation)
 
             migration = changes[app][-1]
@@ -130,15 +117,11 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         for app, migration in original.graph.node_map:
             migration_number, _, _ = migration.partition("_")
             if migration_number.isdigit():
-                current_counters_by_app[app] = max(
-                    [int(migration_number), current_counters_by_app[app]]
-                )
+                current_counters_by_app[app] = max([int(migration_number), current_counters_by_app[app]])
 
         for app, migrations in changes.items():
             for migration in migrations:
-                next_number = current_counters_by_app[app] = (
-                    current_counters_by_app[app] + 1
-                )
+                next_number = current_counters_by_app[app] = current_counters_by_app[app] + 1
                 migration_name = datetime.datetime.now().strftime(migration_name)
                 migration.name = "%04i_%s" % (
                     next_number,
@@ -170,9 +153,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                     if dependency[0] == "__setting__":
                         app_label = getattr(settings, dependency[1]).split(".")[0]
                         migrations = [
-                            migration
-                            for (app, _), migration in migrations_by_name.items()
-                            if app == app_label
+                            migration for (app, _), migration in migrations_by_name.items() if app == app_label
                         ]
                         if len(migrations) > 0:
                             dependency = tuple(migrations[-1])
@@ -187,9 +168,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
                     migration_id = dependency
                     if migration_id not in migrations_by_name:
-                        new_migration = Migration.from_migration(
-                            original.disk_migrations[migration_id]
-                        )
+                        new_migration = Migration.from_migration(original.disk_migrations[migration_id])
                         migrations_by_name[migration_id] = new_migration
                     new_dependencies.append(migrations_by_name[migration_id])
 
@@ -197,9 +176,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
     def create_deleted_models_migrations(self, loader, changes):
         migrations_by_label = defaultdict(list)
-        for (app, ident), _ in itertools.groupby(
-            loader.disk_migrations.items(), lambda x: x[0]
-        ):
+        for (app, ident), _ in itertools.groupby(loader.disk_migrations.items(), lambda x: x[0]):
             migrations_by_label[app].append(ident)
 
         for app_config in loader.project_state().apps.get_app_configs():
@@ -207,9 +184,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 migrations_by_label.pop(app_config.label)
 
         for app_label, migrations in migrations_by_label.items():
-            subclass = type(
-                "Migration", (Migration,), {"operations": [], "dependencies": []}
-            )
+            subclass = type("Migration", (Migration,), {"operations": [], "dependencies": []})
             instance = subclass("temp", app_label)
             instance.replaces = migrations
             changes[app_label] = [instance]
@@ -218,9 +193,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         changes_ = self.delete_old_squashed(real_loader, ignore_apps)
 
         graph = squash_loader.graph
-        changes = super().changes(
-            graph, trim_to_apps=None, convert_apps=None, migration_name=None
-        )
+        changes = super().changes(graph, trim_to_apps=None, convert_apps=None, migration_name=None)
 
         for app in ignore_apps:
             changes.pop(app, None)
@@ -240,35 +213,23 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         changes = defaultdict(set)
         project_path = os.path.abspath(os.curdir)
         project_apps = [
-            app.label
-            for app in apps.get_app_configs()
-            if utils.source_directory(app.module).startswith(project_path)
+            app.label for app in apps.get_app_configs() if utils.source_directory(app.module).startswith(project_path)
         ]
 
         real_migrations = (
-            Migration.from_migration(loader.disk_migrations[key])
-            for key in loader.graph.node_map.keys()
+            Migration.from_migration(loader.disk_migrations[key]) for key in loader.graph.node_map.keys()
         )
         project_migrations = [
             migration
             for migration in real_migrations
-            if migration.app_label in project_apps
-            and migration.app_label not in ignore_apps
-            or []
+            if migration.app_label in project_apps and migration.app_label not in ignore_apps or []
         ]
         replaced_migrations = [
-            Migration.from_migration(migration)
-            for migration in project_migrations
-            if migration.replaces
+            Migration.from_migration(migration) for migration in project_migrations if migration.replaces
         ]
 
         migrations_to_remove = set()
-        for migration in (
-            y
-            for x in replaced_migrations
-            for y in x.replaces
-            if y[0] not in ignore_apps or []
-        ):
+        for migration in (y for x in replaced_migrations for y in x.replaces if y[0] not in ignore_apps or []):
             real_migration = Migration.from_migration(loader.disk_migrations[migration])
             real_migration._deleted = True
             migrations_to_remove.add(migration)
@@ -277,9 +238,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         # Remove all the old dependencies that will be removed
         for migration in project_migrations:
             new_dependencies = [
-                migration
-                for migration in migration.dependencies
-                if migration not in migrations_to_remove
+                migration for migration in migration.dependencies if migration not in migrations_to_remove
             ]
             if new_dependencies == migration.dependencies:
                 # There is no need to write anything

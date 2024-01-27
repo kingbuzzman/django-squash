@@ -28,12 +28,8 @@ class RunPython(RunPythonBase):
         operation.code.__original_qualname__ = operation.code.__qualname__
         operation.code.__qualname__ = unique_names.function(operation.code)
         if operation.reverse_code:
-            operation.reverse_code.__original_qualname__ = (
-                operation.reverse_code.__qualname__
-            )
-            operation.reverse_code.__qualname__ = unique_names.function(
-                operation.reverse_code
-            )
+            operation.reverse_code.__original_qualname__ = operation.reverse_code.__qualname__
+            operation.reverse_code.__qualname__ = unique_names.function(operation.reverse_code)
         return cls(
             code=operation.code,
             reverse_code=operation.reverse_code,
@@ -55,11 +51,7 @@ class RunSQL(RunSQLBase):
     @classmethod
     def from_operation(cls, operation, unique_names):
         name = unique_names("SQL", force_number=True)
-        reverse_sql = (
-            Variable("%s_ROLLBACK" % name, operation.reverse_sql)
-            if operation.reverse_sql
-            else None
-        )
+        reverse_sql = Variable("%s_ROLLBACK" % name, operation.reverse_sql) if operation.reverse_sql else None
 
         return cls(
             sql=Variable(name, operation.sql),

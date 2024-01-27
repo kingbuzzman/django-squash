@@ -78,9 +78,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunPython(update_dob, elidable=True),
         migrations.RunPython(same_name, elidable=False),
-        migrations.RunSQL(
-            important_sql, reverse_sql=important_rollback_sql, elidable=False
-        ),
+        migrations.RunSQL(important_sql, reverse_sql=important_rollback_sql, elidable=False),
         migrations.RemoveField(
             model_name="person",
             name="age",
