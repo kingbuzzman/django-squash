@@ -65,8 +65,7 @@ def traverse_node(nodes, looking_for):
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.elidable", app_label="app")
-def test_squashing_elidable_migration_simple(migration_app_dir, clean_model, call_squash_migrations):
-    @clean_model
+def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -192,8 +191,7 @@ def test_squashing_elidable_migration_simple(migration_app_dir, clean_model, cal
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
-def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, clean_model, call_squash_migrations):
-    @clean_model
+def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -202,7 +200,6 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, clean
         class Meta:
             app_label = "app"
 
-    @clean_model
     class Address(models.Model):
         person = models.ForeignKey("app.Person", on_delete=models.deletion.CASCADE)
         address1 = models.CharField(max_length=100)
@@ -235,8 +232,7 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, clean
 
 
 @pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_squashing_migration_empty(clean_model, call_squash_migrations):
-    @clean_model
+def test_squashing_migration_empty(call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -308,8 +304,7 @@ def test_only_argument_with_invalid_apps(call_squash_migrations, monkeypatch):
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.elidable", app_label="app")
-def test_simple_delete_squashing_migrations_noop(migration_app_dir, clean_model, call_squash_migrations):
-    @clean_model
+def test_simple_delete_squashing_migrations_noop(migration_app_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -331,8 +326,7 @@ def test_simple_delete_squashing_migrations_noop(migration_app_dir, clean_model,
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.delete_replaced", app_label="app")
-def test_simple_delete_squashing_migrations(migration_app_dir, clean_model, call_squash_migrations):
-    @clean_model
+def test_simple_delete_squashing_migrations(migration_app_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -387,13 +381,12 @@ def test_empty_models_migrations(migration_app_dir, call_squash_migrations):
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.incorrect_name", app_label="app")
-def test_squashing_migration_incorrect_name(migration_app_dir, clean_model, call_squash_migrations):
+def test_squashing_migration_incorrect_name(migration_app_dir, call_squash_migrations):
     """
     If the app has incorrect migration numbers like: `app/migrations/initial.py` instead of `0001_initial.py`
     it should not fail. Same goes for bad formats all around.
     """
 
-    @clean_model
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -489,13 +482,12 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.swappable_dependency", app_label="app")
-def test_swappable_dependency_migrations(migration_app_dir, clean_model, settings, call_squash_migrations):
+def test_swappable_dependency_migrations(migration_app_dir, settings, call_squash_migrations):
     settings.INSTALLED_APPS += [
         "django.contrib.auth",
         "django.contrib.contenttypes",
     ]
 
-    @clean_model
     class UserProfile(models.Model):
         user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
         dob = models.DateField()

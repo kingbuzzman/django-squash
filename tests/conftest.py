@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 from importlib import import_module
+from unittest import mock
 
 from django.apps import apps
 from django.core.management import call_command
@@ -65,23 +66,20 @@ def _migration_app_dir(marker_name, request, settings):
             yield target_migrations_dir
 
 
-@pytest.fixture
-def clean_model():
+@pytest.fixture(autouse=True)
+def _clean_model(monkeypatch):
     """
-    Returns a function that deletes all models created during the test.
-
-    Django registers models in the apps cache, this is a helper to remove them, otherwise django throws warnings that this model already exists.
+    Django registers models in the apps cache, this is a helper to remove them, otherwise django throws warnings
+    that this model already exists.
     """
-    models = set()
+    mock_register_model = mock.Mock(wraps=apps.register_model)
+    monkeypatch.setattr(apps, "register_model", mock_register_model)
 
-    def _register(model):
-        models.add(model)
+    yield
 
-    yield _register
-
-    for model in models:
+    for call in mock_register_model.call_args_list:
+        app_label, model = call.args
         model_name = model._meta.model_name
-        app_label = model._meta.app_label
         app_models = apps.all_models[app_label]
         app_models.pop(model_name)
         apps.clear_cache()
