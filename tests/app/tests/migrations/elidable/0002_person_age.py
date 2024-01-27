@@ -20,15 +20,17 @@ def same_name_2(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0001_initial'),
+        ("app", "0001_initial"),
     ]
 
     operations = [
         migrations.RunPython(same_name, elidable=False),
-        migrations.RunPython(same_name_2, reverse_code=migrations.RunPython.noop, elidable=False),
+        migrations.RunPython(
+            same_name_2, reverse_code=migrations.RunPython.noop, elidable=False
+        ),
         migrations.AddField(
-            model_name='person',
-            name='age',
+            model_name="person",
+            name="age",
             field=models.IntegerField(default=0),
             preserve_default=False,
         ),

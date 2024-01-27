@@ -16,9 +16,9 @@ def check_django_migration_hash():
     Check if the django migrations writer file has changed and may not be compatible with django-squash.
     """
     supported_django_migrations = (
-        '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # 5.0
-        '2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582',  # 4.1 / 4.2
-        'e90b1243a8ce48f06331db8f584b0bce26e2e3f0abdd177cc18ed37425a23515',  # 3.2
+        "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0
+        "2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582",  # 4.1 / 4.2
+        "e90b1243a8ce48f06331db8f584b0bce26e2e3f0abdd177cc18ed37425a23515",  # 3.2
     )
 
     current_django_migration_hash = utils.file_hash(dj_writer.__file__)
@@ -43,6 +43,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
     Take a Migration instance and is able to produce the contents
     of the migration file from it.
     """
+
     template_class_header = dj_writer.MIGRATION_HEADER_TEMPLATE
     template_class = dj_writer.MIGRATION_TEMPLATE
 
@@ -69,7 +70,9 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         # Deconstruct operations
         operations = []
         for operation in self.migration.operations:
-            operation_string, operation_imports = dj_writer.OperationWriter(operation).serialize()
+            operation_string, operation_imports = dj_writer.OperationWriter(
+                operation
+            ).serialize()
             imports.update(operation_imports)
             operations.append(operation_string)
         items["operations"] = "\n".join(operations) + "\n" if operations else ""
@@ -127,9 +130,9 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
             )
         # Hinting that goes into comment
         if self.include_header:
-            items['migration_header'] = self.template_class_header % {
-                'version': get_version(),
-                'timestamp': now().strftime("%Y-%m-%d %H:%M"),
+            items["migration_header"] = self.template_class_header % {
+                "version": get_version(),
+                "timestamp": now().strftime("%Y-%m-%d %H:%M"),
             }
         else:
             items["migration_header"] = ""
@@ -158,7 +161,10 @@ class Migration(migrations.Migration):
     template_variable = '''%s = """%s"""'''
 
     def as_string(self):
-        if hasattr(self.migration, 'is_migration_level') and self.migration.is_migration_level:
+        if (
+            hasattr(self.migration, "is_migration_level")
+            and self.migration.is_migration_level
+        ):
             return self.replace_in_migration()
         else:
             return super().as_string()
@@ -173,10 +179,14 @@ class Migration(migrations.Migration):
             source = f.read()
 
         if self.migration._dependencies_change:
-            source = utils.replace_migration_attribute(source, 'dependencies', self.migration.dependencies)
+            source = utils.replace_migration_attribute(
+                source, "dependencies", self.migration.dependencies
+            )
             changed = True
         if self.migration._replaces_change:
-            source = utils.replace_migration_attribute(source, 'replaces', self.migration.replaces)
+            source = utils.replace_migration_attribute(
+                source, "replaces", self.migration.replaces
+            )
             changed = True
         if not changed:
             raise NotImplementedError()
@@ -189,10 +199,12 @@ class Migration(migrations.Migration):
         if code.__original_qualname__ == code.__qualname__:
             return function_source
 
-        function_source = re.sub(rf'(def\s+){code.__original_qualname__}',
-                                 rf'\1{code.__qualname__}',
-                                 function_source,
-                                 1)
+        function_source = re.sub(
+            rf"(def\s+){code.__original_qualname__}",
+            rf"\1{code.__qualname__}",
+            function_source,
+            1,
+        )
         return function_source
 
     def get_kwargs(self):
@@ -202,22 +214,39 @@ class Migration(migrations.Migration):
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, dj_migrations.RunPython):
-                if not utils.is_code_in_site_packages(operation.code.__original_module__):
+                if not utils.is_code_in_site_packages(
+                    operation.code.__original_module__
+                ):
                     functions.append(self.extract_function(operation.code))
                 if operation.reverse_code:
-                    if not utils.is_code_in_site_packages(operation.reverse_code.__original_module__):
+                    if not utils.is_code_in_site_packages(
+                        operation.reverse_code.__original_module__
+                    ):
                         functions.append(self.extract_function(operation.reverse_code))
             elif isinstance(operation, dj_migrations.RunSQL):
-                variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
+                variables.append(
+                    self.template_variable % (operation.sql.name, operation.sql.value)
+                )
                 if operation.reverse_sql:
-                    variables.append(self.template_variable % (operation.reverse_sql.name,
-                                     operation.reverse_sql.value))
+                    variables.append(
+                        self.template_variable
+                        % (operation.reverse_sql.name, operation.reverse_sql.value)
+                    )
 
-        kwargs['functions'] = ('\n\n' if functions else '') + '\n\n'.join(functions)
-        kwargs['variables'] = ('\n\n' if variables else '') + '\n\n'.join(variables)
+        kwargs["functions"] = ("\n\n" if functions else "") + "\n\n".join(functions)
+        kwargs["variables"] = ("\n\n" if variables else "") + "\n\n".join(variables)
 
-        imports = (x for x in set(kwargs['imports'].split('\n') + getattr(self.migration, 'extra_imports', [])) if x)
-        sorted_imports = sorted(imports, key=lambda i: (i.split()[0] == "from", i.split()))
+        imports = (
+            x
+            for x in set(
+                kwargs["imports"].split("\n")
+                + getattr(self.migration, "extra_imports", [])
+            )
+            if x
+        )
+        sorted_imports = sorted(
+            imports, key=lambda i: (i.split()[0] == "from", i.split())
+        )
         kwargs["imports"] = "\n".join(sorted_imports) + "\n" if imports else ""
 
         return kwargs

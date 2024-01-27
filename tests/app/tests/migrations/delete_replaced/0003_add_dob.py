@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 
 def update_dob(apps, schema_editor):
-    Person = apps.get_model('app', 'Person')
+    Person = apps.get_model("app", "Person")
 
     for person in Person.objects.all():
         person.dob = datetime.date.today() - datetime.timedelta(days=12 * 365)
@@ -14,28 +14,28 @@ def update_dob(apps, schema_editor):
 
 
 def create_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
-    Person = apps.get_model('app', 'Person')
+    Person = apps.get_model("app", "Person")
 
-    Person.objects.create(name='admin', age=30)
+    Person.objects.create(name="admin", age=30)
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0002_person_age'),
+        ("app", "0002_person_age"),
     ]
 
     operations = [
         migrations.RunPython(create_admin_MUST_ALWAYS_EXIST, elidable=False),
         migrations.AddField(
-            model_name='person',
-            name='dob',
+            model_name="person",
+            name="dob",
             field=models.DateField(default=datetime.datetime(1900, 1, 1, 0, 0)),
             preserve_default=False,
         ),
         migrations.RunPython(update_dob, elidable=True),
         migrations.RemoveField(
-            model_name='person',
-            name='age',
+            model_name="person",
+            name="age",
         ),
     ]

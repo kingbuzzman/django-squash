@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app3', '0002_person_age'),
+        ("app3", "0002_person_age"),
     ]
 
     operations = [
@@ -14,9 +14,10 @@ class Migration(migrations.Migration):
             """
             CREATE TABLE new_table AS
             SELECT * FROM app3_person
-            """, elidable=True
+            """,
+            elidable=True,
         ),
         migrations.DeleteModel(
-            name='Person',
+            name="Person",
         ),
     ]

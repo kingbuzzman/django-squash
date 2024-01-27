@@ -1,4 +1,6 @@
-from django.db.migrations.questioner import NonInteractiveMigrationQuestioner as NonInteractiveMigrationQuestionerBase
+from django.db.migrations.questioner import (
+    NonInteractiveMigrationQuestioner as NonInteractiveMigrationQuestionerBase,
+)
 
 
 class NonInteractiveMigrationQuestioner(NonInteractiveMigrationQuestionerBase):
