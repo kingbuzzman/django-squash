@@ -89,7 +89,6 @@ setup(
             "flake8",
             "ipdb",
             "libcst",
-            "yapf",
             "black",
         ],
     },

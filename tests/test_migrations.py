@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from importlib import import_module
 
 import libcst
-import yapf
+import black
 from django.apps import apps
 from django.conf import settings
 from django.core.management import CommandError, call_command
@@ -130,22 +130,8 @@ def extract_piece(module, traverse):
 
 def format_code(code_string):
     """Format the code so it's reproducible"""
-    style = {
-        "based_on_style": "yapf",
-        "indent_width": 4,
-        "disable_ending_comma_heuristic": True,
-        "column_limit": 10_000,
-        "split_all_comma_separated_values": False,
-        "indent_closing_brackets": False,
-        "dedent_closing_brackets": True,
-        "continuation_indent_width": 2,
-        "split_before_closing_bracket": False,
-        "split_arguments_when_comma_terminated": False,
-    }
-    formatted_code, _ = yapf.yapflib.yapf_api.FormatCode(
-        code_string, style_config=style
-    )
-    return formatted_code
+    mode = black.FileMode(line_length=10_000)
+    return black.format_str(code_string, mode=mode)
 
 
 def traverse_node(nodes, looking_for):
@@ -260,13 +246,49 @@ class SquashMigrationTest(MigrationTestBase):
 
                 class Migration(migrations.Migration):
 
-                    replaces = [('app', '0001_initial'), ('app', '0002_person_age'), ('app', '0003_add_dob')]
+                    replaces = [("app", "0001_initial"), ("app", "0002_person_age"), ("app", "0003_add_dob")]
 
                     initial = True
 
                     dependencies = []
 
-                    operations = [migrations.CreateModel(name='Person', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('name', models.CharField(max_length=10)), ('dob', models.DateField()),],), migrations.RunPython(code=same_name, elidable=False,), migrations.RunPython(code=same_name_2, reverse_code=migrations.RunPython.noop, elidable=False,), migrations.RunPython(code=create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,), migrations.RunSQL(sql=SQL_1, reverse_sql=SQL_1_ROLLBACK, elidable=False,), migrations.RunSQL(sql=SQL_2, elidable=False,),]
+                    operations = [
+                        migrations.CreateModel(
+                            name="Person",
+                            fields=[
+                                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                                ("name", models.CharField(max_length=10)),
+                                ("dob", models.DateField()),
+                            ],
+                        ),
+                        migrations.RunPython(
+                            code=same_name,
+                            elidable=False,
+                        ),
+                        migrations.RunPython(
+                            code=same_name_2,
+                            reverse_code=migrations.RunPython.noop,
+                            elidable=False,
+                        ),
+                        migrations.RunPython(
+                            code=create_admin_MUST_ALWAYS_EXIST,
+                            reverse_code=rollback_admin_MUST_ALWAYS_EXIST,
+                            elidable=False,
+                        ),
+                        migrations.RunPython(
+                            code=same_name_3,
+                            elidable=False,
+                        ),
+                        migrations.RunSQL(
+                            sql=SQL_1,
+                            reverse_sql=SQL_1_ROLLBACK,
+                            elidable=False,
+                        ),
+                        migrations.RunSQL(
+                            sql=SQL_2,
+                            elidable=False,
+                        ),
+                    ]
                 """  # noqa
             )
             self.assertEqual(pretty_extract_piece(app_squash, ""), expected)
@@ -640,11 +662,34 @@ class SquashMigrationTest(MigrationTestBase):
 
                 class Migration(migrations.Migration):
 
-                    replaces = [('app', '0001_initial'), ('app', '0002_run_python')]
+                    replaces = [("app", "0001_initial"), ("app", "0002_run_python")]
 
                     dependencies = []
 
-                    operations = [migrations.RunPython(code=same_name, reverse_code=migrations.RunPython.noop, elidable=False,), migrations.RunPython(code=migrations.RunPython.noop, reverse_code=migrations.RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_2, elidable=False,), migrations.RunPython(code=migrations.RunPython.noop, elidable=False,), migrations.RunPython(code=same_name_3, elidable=False,),]
+                    operations = [
+                        migrations.RunPython(
+                            code=same_name,
+                            reverse_code=migrations.RunPython.noop,
+                            elidable=False,
+                        ),
+                        migrations.RunPython(
+                            code=migrations.RunPython.noop,
+                            reverse_code=migrations.RunPython.noop,
+                            elidable=False,
+                        ),
+                        migrations.RunPython(
+                            code=same_name_2,
+                            elidable=False,
+                        ),
+                        migrations.RunPython(
+                            code=migrations.RunPython.noop,
+                            elidable=False,
+                        ),
+                        migrations.RunPython(
+                            code=same_name_3,
+                            elidable=False,
+                        ),
+                    ]
                 """  # noqa
             )
             self.assertEqual(pretty_extract_piece(app_squash, ""), expected)
@@ -695,13 +740,24 @@ class SquashMigrationTest(MigrationTestBase):
 
                 class Migration(migrations.Migration):
 
-                    replaces = [('app', '0001_initial'), ('app', '0002_add_dob')]
+                    replaces = [("app", "0001_initial"), ("app", "0002_add_dob")]
 
                     initial = True
 
-                    dependencies = [migrations.swappable_dependency(settings.AUTH_USER_MODEL),]
+                    dependencies = [
+                        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+                    ]
 
-                    operations = [migrations.CreateModel(name='UserProfile', fields=[('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('dob', models.DateField()), ('user', models.ForeignKey(on_delete=models.CASCADE, to=settings.AUTH_USER_MODEL)),],),]
+                    operations = [
+                        migrations.CreateModel(
+                            name="UserProfile",
+                            fields=[
+                                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                                ("dob", models.DateField()),
+                                ("user", models.ForeignKey(on_delete=models.CASCADE, to=settings.AUTH_USER_MODEL)),
+                            ],
+                        ),
+                    ]
                 """  # noqa
             )
             self.assertEqual(pretty_extract_piece(app_squash, ""), expected)
