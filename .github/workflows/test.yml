@@ -42,7 +42,7 @@ jobs:
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
-        run: coverage run setup.py test
+        run: pytest --cov django_squash
       - name: Coverage check
         run: coverage report -m --fail-under=85
       - name: Coverage XML
