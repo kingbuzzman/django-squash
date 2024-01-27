@@ -30,14 +30,11 @@ class FunctionTypeSerializer(BaseFunctionTypeSerializer):
 
         full_name = f'{self.value.__module__}.{self.value.__qualname__}'
         if full_name.startswith('django.') and '.models.' in full_name or '.migrations.' in full_name:
-            collector = ''
-            for part in self.value.__qualname__.split('.'):
-                collector += part
-                if hasattr(dj_migrations, collector):
-                    return 'migrations.%s' % self.value.__qualname__, {'from django.db import migrations'}
-                if hasattr(dj_models, collector):
-                    return 'models.%s' % self.value.__qualname__, {'from django.db import models'}
-                collector += '.'
+            atttr = self.value.__qualname__.split('.')[0]
+            if hasattr(dj_migrations, atttr):
+                return 'migrations.%s' % self.value.__qualname__, {'from django.db import migrations'}
+            if hasattr(dj_models, atttr):
+                return 'models.%s' % self.value.__qualname__, {'from django.db import models'}
 
         return response
 
