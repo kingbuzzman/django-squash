@@ -1,7 +1,5 @@
-import ast
 import inspect
 import os
-import pkgutil
 import re
 
 from django import get_version
