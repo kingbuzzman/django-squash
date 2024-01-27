@@ -1,0 +1,106 @@
+import pytest
+import importlib.util
+import inspect
+import io
+import os
+import shutil
+import tempfile
+import textwrap
+import unittest.mock
+from contextlib import contextmanager
+from importlib import import_module
+
+import libcst
+import black
+from django.apps import apps
+from django.conf import settings
+from django.core.management import CommandError, call_command
+from django.db import connections, models
+from django.db.migrations.recorder import MigrationRecorder
+from django.test import TransactionTestCase, override_settings
+from django.test.utils import extend_sys_path
+from django.utils.module_loading import module_dir
+
+
+@pytest.fixture
+def migration_app_dir(request, settings):
+    """
+    Allows testing management commands in a temporary migrations module.
+    Wrap all invocations to makemigrations and squashmigrations with this
+    context manager in order to avoid creating migration files in your
+    source tree inadvertently.
+    Takes the application label that will be passed to makemigrations or
+    squashmigrations and the Python path to a migrations module.
+    The migrations module is used as a template for creating the temporary
+    migrations module. If it isn't provided, the application's migrations
+    module is used, if it exists.
+    Returns the filesystem path to the temporary migrations module.
+    """
+    mark = next(request.node.iter_markers("temporary_migration_module"))
+
+    app_label = mark.kwargs["app_label"]
+    module = mark.kwargs.get("module")
+    join = mark.kwargs.get("join") or False
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        target_dir = tempfile.mkdtemp(dir=temp_dir)
+        with open(os.path.join(target_dir, "__init__.py"), "w"):
+            pass
+        target_migrations_dir = os.path.join(target_dir, "migrations")
+
+        if module is None:
+            module = apps.get_app_config(app_label).name + ".migrations"
+
+        try:
+            source_migrations_dir = module_dir(import_module(module))
+        except (ImportError, ValueError):
+            pass
+        else:
+            shutil.copytree(source_migrations_dir, target_migrations_dir)
+
+        with extend_sys_path(temp_dir):
+            new_module = os.path.basename(target_dir) + ".migrations"
+            modules = {app_label: new_module}
+            if join:
+                modules.update(settings.MIGRATION_MODULES)
+            settings.MIGRATION_MODULES = modules
+            yield target_migrations_dir
+
+
+@pytest.fixture
+def clean_model():
+    """
+    Returns a function that deletes all models created during the test.
+
+    Django registers models in the apps cache, this is a helper to remove them, otherwise django throws warnings that this model already exists.
+    """
+    models = set()
+
+    def _register(model):
+        models.add(model)
+
+    yield _register
+
+    for model in models:
+        model_name = model._meta.model_name
+        app_label = model._meta.app_label
+        app_models = apps.all_models[app_label]
+        app_models.pop(model_name)
+        apps.clear_cache()
+
+
+@pytest.fixture
+def call_squash_migrations():
+    """
+    Returns a function that calls squashmigrations.
+    """
+    output = io.StringIO()
+
+    def _call_squash_migrations(**kwargs):
+        kwargs["verbosity"] = kwargs.get("verbosity", 1)
+        kwargs["stdout"] = kwargs.get("stdout", output)
+        kwargs["no_color"] = kwargs.get("no_color", True)
+
+        call_command("squash_migrations", **kwargs)
+
+    yield _call_squash_migrations

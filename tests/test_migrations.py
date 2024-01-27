@@ -1,3 +1,4 @@
+import pytest
 import importlib.util
 import inspect
 import io
@@ -38,24 +39,24 @@ class MigrationTestBase(TransactionTestCase):
     https://github.com/django/django/blob/b9cf764be62e77b4777b3a75ec256f6209a57671/tests/migrations/test_base.py#L15
     """
 
-    def tearDown(self):
-        # Reset applied-migrations state.
-        for db in connections:
-            MigrationRecorder(connections[db])
+    # def tearDown(self):
+    #     # Reset applied-migrations state.
+    #     for db in connections:
+    #         MigrationRecorder(connections[db])
 
     def addModelCleanup(self, model):
         # See clean_model for why we need to do this.
         self.addCleanup(clean_model, model)
 
-    def assertTableExists(self, table, using="default"):
-        with connections[using].cursor() as cursor:
-            self.assertIn(table, connections[using].introspection.table_names(cursor))
+    # def assertTableExists(self, table, using="default"):
+    #     with connections[using].cursor() as cursor:
+    #         self.assertIn(table, connections[using].introspection.table_names(cursor))
 
-    def assertTableNotExists(self, table, using="default"):
-        with connections[using].cursor() as cursor:
-            self.assertNotIn(
-                table, connections[using].introspection.table_names(cursor)
-            )
+    # def assertTableNotExists(self, table, using="default"):
+    #     with connections[using].cursor() as cursor:
+    #         self.assertNotIn(
+    #             table, connections[using].introspection.table_names(cursor)
+    #         )
 
     @contextmanager
     def temporary_migration_module(self, app_label="app", module=None, join=False):
@@ -496,268 +497,258 @@ class SquashMigrationTest(MigrationTestBase):
         ]
         self.assertEqual(files_in_app, expected)
 
-    def test_simple_delete_squashing_migrations(self):
-        class Person(models.Model):
-            name = models.CharField(max_length=10)
-            dob = models.DateField()
+@pytest.mark.temporary_migration_module(
+    module="app.tests.migrations.delete_replaced", app_label="app"
+)
+def test_simple_delete_squashing_migrations(
+    migration_app_dir, clean_model, call_squash_migrations
+):
+    @clean_model
+    class Person(models.Model):
+        name = models.CharField(max_length=10)
+        dob = models.DateField()
 
-            class Meta:
-                app_label = "app"
+        class Meta:
+            app_label = "app"
 
-        self.addModelCleanup(Person)
 
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(
-            module="app.tests.migrations.delete_replaced", app_label="app"
-        )
-        with patch_app_migrations as migration_app_dir:
-            original_app_squash = load_migration_module(
-                os.path.join(migration_app_dir, "0004_squashed.py")
-            )
-            self.assertEqual(
-                original_app_squash.Migration.replaces,
-                [
-                    ("app", "0001_initial"),
-                    ("app", "0002_person_age"),
-                    ("app", "0003_add_dob"),
-                ],
-            )
-
-            call_command("squash_migrations", verbosity=1, stdout=out, no_color=True)
-
-            files_in_app = sorted(
-                file for file in os.listdir(migration_app_dir) if file.endswith(".py")
-            )
-            old_app_squash = load_migration_module(
-                os.path.join(migration_app_dir, "0004_squashed.py")
-            )
-            new_app_squash = load_migration_module(
-                os.path.join(migration_app_dir, "0005_squashed.py")
-            )
-
-        # We altered an existing file, and removed all the "replaces" items
-        self.assertEqual(old_app_squash.Migration.replaces, [])
-        # The new squashed migration replaced the old one now
-        self.assertEqual(new_app_squash.Migration.replaces, [("app", "0004_squashed")])
-        self.assertEqual(
-            files_in_app, ["0004_squashed.py", "0005_squashed.py", "__init__.py"]
-        )
-
-    def test_empty_models_migrations(self):
-        """
-        If apps are moved but migrations remain, a fake migration must be made that does nothing and replaces the
-        existing migrations, that way django doesn't throw errors when trying to do the same work again.
-        """
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(
-            module="app3.tests.migrations.moved", app_label="app3"
-        )
-        with patch_app_migrations as migration_app_dir:
-            call_command("squash_migrations", verbosity=1, stdout=out, no_color=True)
-            files_in_app = sorted(
-                file for file in os.listdir(migration_app_dir) if file.endswith(".py")
-            )
-            self.assertIn("0004_squashed.py", files_in_app)
-            app_squash = load_migration_module(
-                os.path.join(migration_app_dir, "0004_squashed.py")
-            )
-        expected_files = [
-            "0001_initial.py",
-            "0002_person_age.py",
-            "0003_moved.py",
-            "0004_squashed.py",
-            "__init__.py",
+    original_app_squash = load_migration_module(
+        os.path.join(migration_app_dir, "0004_squashed.py")
+    )
+    assert original_app_squash.Migration.replaces == [
+            ("app", "0001_initial"),
+            ("app", "0002_person_age"),
+            ("app", "0003_add_dob"),
         ]
-        self.assertEqual(files_in_app, expected_files)
-        self.assertEqual(
-            app_squash.Migration.replaces,
-            [
-                ("app3", "0001_initial"),
-                ("app3", "0002_person_age"),
-                ("app3", "0003_moved"),
-            ],
-        )
 
-    def test_squashing_migration_incorrect_name(self):
-        """
-        If the app has incorrect migration numbers like: `app/migrations/initial.py` instead of `0001_initial.py`
-        it should not fail. Same goes for bad formats all around.
-        """
+    call_squash_migrations()
 
-        class Person(models.Model):
-            name = models.CharField(max_length=10)
-            dob = models.DateField()
+    files_in_app = sorted(
+        file for file in os.listdir(migration_app_dir) if file.endswith(".py")
+    )
+    old_app_squash = load_migration_module(
+        os.path.join(migration_app_dir, "0004_squashed.py")
+    )
+    new_app_squash = load_migration_module(
+        os.path.join(migration_app_dir, "0005_squashed.py")
+    )
 
-            class Meta:
-                app_label = "app"
+    # We altered an existing file, and removed all the "replaces" items
+    assert old_app_squash.Migration.replaces == []
+    # The new squashed migration replaced the old one now
+    assert new_app_squash.Migration.replaces == [("app", "0004_squashed")]
+    assert files_in_app == ["0004_squashed.py", "0005_squashed.py", "__init__.py"]
 
-        self.addModelCleanup(Person)
 
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(
-            module="app.tests.migrations.incorrect_name", app_label="app"
-        )
-        with patch_app_migrations as migration_app_dir:
-            call_command("squash_migrations", verbosity=1, stdout=out, no_color=True)
+@pytest.mark.temporary_migration_module(
+    module="app3.tests.migrations.moved", app_label="app3"
+)
+def test_empty_models_migrations(migration_app_dir, call_squash_migrations):
+    """
+    If apps are moved but migrations remain, a fake migration must be made that does nothing and replaces the
+    existing migrations, that way django doesn't throw errors when trying to do the same work again.
+    """
+    call_squash_migrations()
+    files_in_app = sorted(
+        file for file in os.listdir(migration_app_dir) if file.endswith(".py")
+    )
+    assert "0004_squashed.py" in files_in_app
+    app_squash = load_migration_module(
+        os.path.join(migration_app_dir, "0004_squashed.py")
+    )
 
-            files_in_app = os.listdir(migration_app_dir)
-            self.assertIn("3001_squashed.py", files_in_app)
+    expected_files = [
+        "0001_initial.py",
+        "0002_person_age.py",
+        "0003_moved.py",
+        "0004_squashed.py",
+        "__init__.py",
+    ]
+    assert files_in_app == expected_files
+    assert app_squash.Migration.replaces == [
+        ("app3", "0001_initial"),
+        ("app3", "0002_person_age"),
+        ("app3", "0003_moved"),
+    ]
 
-            app_squash = load_migration_module(
-                os.path.join(migration_app_dir, "3001_squashed.py")
-            )
 
-            self.assertEqual(
-                app_squash.Migration.replaces,
-                [
-                    ("app", "2_person_age"),
-                    ("app", "3000_auto_20190518_1524"),
-                    ("app", "bad_no_name"),
-                    ("app", "initial"),
-                ],
-            )
+@pytest.mark.temporary_migration_module(
+    module="app.tests.migrations.incorrect_name", app_label="app"
+)
+def test_squashing_migration_incorrect_name(
+    migration_app_dir, clean_model, call_squash_migrations
+):
+    """
+    If the app has incorrect migration numbers like: `app/migrations/initial.py` instead of `0001_initial.py`
+    it should not fail. Same goes for bad formats all around.
+    """
 
-    def test_run_python_same_name_migrations(self):
-        out = io.StringIO()
-        patch_app_migrations = self.temporary_migration_module(
-            module="app.tests.migrations.run_python_noop", app_label="app"
-        )
-        with patch_app_migrations as migration_app_dir:
-            call_command("squash_migrations", verbosity=1, stdout=out, no_color=True)
-            files_in_app = sorted(
-                file for file in os.listdir(migration_app_dir) if file.endswith(".py")
-            )
-            expected_files = [
-                "0001_initial.py",
-                "0002_run_python.py",
-                "0003_squashed.py",
-                "__init__.py",
+    @clean_model
+    class Person(models.Model):
+        name = models.CharField(max_length=10)
+        dob = models.DateField()
+
+        class Meta:
+            app_label = "app"
+
+    call_squash_migrations()
+
+    files_in_app = os.listdir(migration_app_dir)
+    assert "3001_squashed.py" in files_in_app
+
+    app_squash = load_migration_module(
+        os.path.join(migration_app_dir, "3001_squashed.py")
+    )
+
+    assert app_squash.Migration.replaces == [
+        ("app", "2_person_age"),
+        ("app", "3000_auto_20190518_1524"),
+        ("app", "bad_no_name"),
+        ("app", "initial"),
+    ]
+
+
+@pytest.mark.temporary_migration_module(
+    module="app.tests.migrations.run_python_noop", app_label="app"
+)
+def test_run_python_same_name_migrations(migration_app_dir, call_squash_migrations):
+
+    call_squash_migrations()
+
+    files_in_app = sorted(
+        file for file in os.listdir(migration_app_dir) if file.endswith(".py")
+    )
+    expected_files = [
+        "0001_initial.py",
+        "0002_run_python.py",
+        "0003_squashed.py",
+        "__init__.py",
+    ]
+    assert files_in_app == expected_files
+
+    app_squash = load_migration_module(
+        os.path.join(migration_app_dir, "0003_squashed.py")
+    )
+    expected = textwrap.dedent(
+        """\
+        from django.db import migrations
+        from django.db.migrations import RunPython
+        from django.db.migrations.operations.special import RunPython
+
+
+        def same_name(apps, schema_editor):
+            # original function
+            return
+
+
+        def same_name_2(apps, schema_editor):
+            # original function 2
+            return
+
+
+        def same_name_3(apps, schema_editor):
+            # other function
+            return
+
+
+        class Migration(migrations.Migration):
+
+            replaces = [("app", "0001_initial"), ("app", "0002_run_python")]
+
+            dependencies = []
+
+            operations = [
+                migrations.RunPython(
+                    code=same_name,
+                    reverse_code=migrations.RunPython.noop,
+                    elidable=False,
+                ),
+                migrations.RunPython(
+                    code=migrations.RunPython.noop,
+                    reverse_code=migrations.RunPython.noop,
+                    elidable=False,
+                ),
+                migrations.RunPython(
+                    code=same_name_2,
+                    elidable=False,
+                ),
+                migrations.RunPython(
+                    code=migrations.RunPython.noop,
+                    elidable=False,
+                ),
+                migrations.RunPython(
+                    code=same_name_3,
+                    elidable=False,
+                ),
             ]
-            self.assertEqual(files_in_app, expected_files)
-
-            app_squash = load_migration_module(
-                os.path.join(migration_app_dir, "0003_squashed.py")
-            )
-            expected = textwrap.dedent(
-                """\
-                from django.db import migrations
-                from django.db.migrations import RunPython
-                from django.db.migrations.operations.special import RunPython
+        """  # noqa
+    )
+    assert pretty_extract_piece(app_squash, "") == expected
 
 
-                def same_name(apps, schema_editor):
-                    # original function
-                    return
+@pytest.mark.temporary_migration_module(
+    module="app.tests.migrations.swappable_dependency", app_label="app"
+)
+def test_swappable_dependency_migrations(
+    migration_app_dir, clean_model, settings, call_squash_migrations
+):
+    INSTALLED_APPS = settings.INSTALLED_APPS + [
+        "django.contrib.auth",
+        "django.contrib.contenttypes",
+    ]
+    settings.INSTALLED_APPS = INSTALLED_APPS
+
+    @clean_model
+    class UserProfile(models.Model):
+        user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+        dob = models.DateField()
+
+        class Meta:
+            app_label = "app"
+
+    call_squash_migrations()
+    files_in_app = sorted(
+        file for file in os.listdir(migration_app_dir) if file.endswith(".py")
+    )
+
+    expected_files = [
+        "0001_initial.py",
+        "0002_add_dob.py",
+        "0003_squashed.py",
+        "__init__.py",
+    ]
+    assert files_in_app == expected_files
+
+    app_squash = load_migration_module(
+        os.path.join(migration_app_dir, "0003_squashed.py")
+    )
+    expected = textwrap.dedent(
+        """\
+        import datetime
+        from django.conf import settings
+        from django.db import migrations, models
 
 
-                def same_name_2(apps, schema_editor):
-                    # original function 2
-                    return
+        class Migration(migrations.Migration):
 
+            replaces = [("app", "0001_initial"), ("app", "0002_add_dob")]
 
-                def same_name_3(apps, schema_editor):
-                    # other function
-                    return
+            initial = True
 
-
-                class Migration(migrations.Migration):
-
-                    replaces = [("app", "0001_initial"), ("app", "0002_run_python")]
-
-                    dependencies = []
-
-                    operations = [
-                        migrations.RunPython(
-                            code=same_name,
-                            reverse_code=migrations.RunPython.noop,
-                            elidable=False,
-                        ),
-                        migrations.RunPython(
-                            code=migrations.RunPython.noop,
-                            reverse_code=migrations.RunPython.noop,
-                            elidable=False,
-                        ),
-                        migrations.RunPython(
-                            code=same_name_2,
-                            elidable=False,
-                        ),
-                        migrations.RunPython(
-                            code=migrations.RunPython.noop,
-                            elidable=False,
-                        ),
-                        migrations.RunPython(
-                            code=same_name_3,
-                            elidable=False,
-                        ),
-                    ]
-                """  # noqa
-            )
-            self.assertEqual(pretty_extract_piece(app_squash, ""), expected)
-
-    def test_swappable_dependency_migrations(self):
-        out = io.StringIO()
-        INSTALLED_APPS = settings.INSTALLED_APPS + [
-            "django.contrib.auth",
-            "django.contrib.contenttypes",
-        ]
-        patch_installed_apps = override_settings(INSTALLED_APPS=INSTALLED_APPS)
-        patch_app_migrations = self.temporary_migration_module(
-            module="app.tests.migrations.swappable_dependency", app_label="app"
-        )
-
-        class UserProfile(models.Model):
-            user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-            dob = models.DateField()
-
-            class Meta:
-                app_label = "app"
-
-        self.addModelCleanup(UserProfile)
-
-        with patch_installed_apps, patch_app_migrations as migration_app_dir:
-            call_command("squash_migrations", verbosity=1, stdout=out, no_color=True)
-            files_in_app = sorted(
-                file for file in os.listdir(migration_app_dir) if file.endswith(".py")
-            )
-
-            expected_files = [
-                "0001_initial.py",
-                "0002_add_dob.py",
-                "0003_squashed.py",
-                "__init__.py",
+            dependencies = [
+                migrations.swappable_dependency(settings.AUTH_USER_MODEL),
             ]
-            self.assertEqual(files_in_app, expected_files)
 
-            app_squash = load_migration_module(
-                os.path.join(migration_app_dir, "0003_squashed.py")
-            )
-            expected = textwrap.dedent(
-                """\
-                import datetime
-                from django.conf import settings
-                from django.db import migrations, models
-
-
-                class Migration(migrations.Migration):
-
-                    replaces = [("app", "0001_initial"), ("app", "0002_add_dob")]
-
-                    initial = True
-
-                    dependencies = [
-                        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-                    ]
-
-                    operations = [
-                        migrations.CreateModel(
-                            name="UserProfile",
-                            fields=[
-                                ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
-                                ("dob", models.DateField()),
-                                ("user", models.ForeignKey(on_delete=models.CASCADE, to=settings.AUTH_USER_MODEL)),
-                            ],
-                        ),
-                    ]
-                """  # noqa
-            )
-            self.assertEqual(pretty_extract_piece(app_squash, ""), expected)
+            operations = [
+                migrations.CreateModel(
+                    name="UserProfile",
+                    fields=[
+                        ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                        ("dob", models.DateField()),
+                        ("user", models.ForeignKey(on_delete=models.CASCADE, to=settings.AUTH_USER_MODEL)),
+                    ],
+                ),
+            ]
+        """  # noqa
+    )
+    assert pretty_extract_piece(app_squash, "") == expected
