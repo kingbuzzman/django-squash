@@ -228,14 +228,14 @@ class SquashMigrationTest(MigrationTestBase):
                     itertools.chain()  # noop used to make sure the import was included
                     randrange  # noop used to make sure the import was included
 
-                    Person = apps.get_model('app', 'Person')
+                    Person = apps.get_model("app", "Person")
 
-                    Person.objects.get_or_create(name='admin', age=30)
+                    Person.objects.get_or_create(name="admin", age=30)
 
 
                 def rollback_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
                     \"\"\"Single comments\"\"\"
-                    print('Ignoring, there is no need to do this.')
+                    print("Ignoring, there is no need to do this.")
 
 
                 def same_name_3(apps, schema_editor):
