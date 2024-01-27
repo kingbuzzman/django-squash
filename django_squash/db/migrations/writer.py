@@ -43,7 +43,6 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
     Take a Migration instance and is able to produce the contents
     of the migration file from it.
     """
-
     template_class_header = dj_writer.MIGRATION_HEADER_TEMPLATE
     template_class = dj_writer.MIGRATION_TEMPLATE
 

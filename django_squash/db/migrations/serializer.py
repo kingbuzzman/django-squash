@@ -58,7 +58,6 @@ def patch_serializer_registry(func):
 
     This decorator is used to patch the serializer registry to remove serialziers we don't want, and add ones we do.
     """
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         original_registry = Serializer._registry
