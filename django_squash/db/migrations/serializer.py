@@ -1,34 +1,12 @@
-import collections.abc
-import datetime
-import decimal
-import enum
 import functools
-import os
-import pathlib
 import types
-import uuid
 
-from django.conf import SettingsReference
-from django.db import migrations as dj_migrations, models, models as dj_models
-from django.db.migrations.operations.base import Operation
+from django.db import migrations as dj_migrations, models as dj_models
 from django.db.migrations.serializer import (
-    BaseSerializer, BaseSimpleSerializer, ChoicesSerializer, DatetimeDatetimeSerializer, DateTimeSerializer,
-    DecimalSerializer, DeconstructableSerializer, DictionarySerializer, EnumSerializer, FloatSerializer,
-    FrozensetSerializer, FunctionTypeSerializer as BaseFunctionTypeSerializer, FunctoolsPartialSerializer,
-    IterableSerializer, ModelFieldSerializer, ModelManagerSerializer, OperationSerializer, PathLikeSerializer,
-    PathSerializer, RegexSerializer, SequenceSerializer, SetSerializer, SettingsReferenceSerializer, TupleSerializer,
-    TypeSerializer, UUIDSerializer,
+    BaseSerializer, FunctionTypeSerializer as BaseFunctionTypeSerializer, Serializer,
 )
-from django.db.migrations.utils import COMPILED_REGEX_TYPE, RegexObject
-from django.utils.functional import LazyObject, Promise
-from django.utils.version import get_docs_version
 
 from django_squash.db.migrations.operators import Variable
-
-try:
-    NoneType = types.NoneType
-except AttributeError:
-    NoneType = type(None)
 
 
 class VariableSerializer(BaseSerializer):
@@ -64,74 +42,34 @@ class FunctionTypeSerializer(BaseFunctionTypeSerializer):
         return response
 
 
-class Serializer:
-    _registry = {
-        # Some of these are order-dependent.
-        frozenset: FrozensetSerializer,
-        list: SequenceSerializer,
-        set: SetSerializer,
-        tuple: TupleSerializer,
-        dict: DictionarySerializer,
-        models.Choices: ChoicesSerializer,
-        enum.Enum: EnumSerializer,
-        datetime.datetime: DatetimeDatetimeSerializer,
-        (datetime.date, datetime.timedelta, datetime.time): DateTimeSerializer,
-        SettingsReference: SettingsReferenceSerializer,
-        float: FloatSerializer,
-        (bool, int, NoneType, bytes, str, range): BaseSimpleSerializer,
-        decimal.Decimal: DecimalSerializer,
-        (functools.partial, functools.partialmethod): FunctoolsPartialSerializer,
-        Variable: VariableSerializer,
-        (
-            types.FunctionType,
-            types.BuiltinFunctionType,
-            types.MethodType,
-            functools._lru_cache_wrapper,
-        ): FunctionTypeSerializer,
-        collections.abc.Iterable: IterableSerializer,
-        (COMPILED_REGEX_TYPE, RegexObject): RegexSerializer,
-        uuid.UUID: UUIDSerializer,
-        pathlib.PurePath: PathSerializer,
-        os.PathLike: PathLikeSerializer,
-    }
+def patch_serializer_registry(func):
+    """
+    Serializer registry patcher.
 
-    @classmethod
-    def register(cls, type_, serializer):
-        if not issubclass(serializer, BaseSerializer):
-            raise ValueError(
-                "'%s' must inherit from 'BaseSerializer'." % serializer.__name__
-            )
-        cls._registry[type_] = serializer
+    This decorator is used to patch the serializer registry to remove serialziers we don't want, and add ones we do.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        original_registry = Serializer._registry
+        Serializer._registry = {**original_registry}
 
-    @classmethod
-    def unregister(cls, type_):
-        cls._registry.pop(type_)
+        for key, value in list(Serializer._registry.items()):
+            if value == BaseFunctionTypeSerializer:
+                del Serializer._registry[key]
 
+        Serializer._registry.update({
+            Variable: VariableSerializer,
+            (
+                types.FunctionType,
+                types.BuiltinFunctionType,
+                types.MethodType,
+                functools._lru_cache_wrapper,
+            ): FunctionTypeSerializer,
+        })
 
-def serializer_factory(value):
-    if isinstance(value, Promise):
-        value = str(value)
-    elif isinstance(value, LazyObject):
-        # The unwrapped value is returned as the first item of the arguments
-        # tuple.
-        value = value.__reduce__()[1][0]
+        try:
+            return func(*args, **kwargs)
+        finally:
+            Serializer._registry = original_registry
 
-    if isinstance(value, models.Field):
-        return ModelFieldSerializer(value)
-    if isinstance(value, models.manager.BaseManager):
-        return ModelManagerSerializer(value)
-    if isinstance(value, Operation):
-        return OperationSerializer(value)
-    if isinstance(value, type):
-        return TypeSerializer(value)
-    # Anything that knows how to deconstruct itself.
-    if hasattr(value, "deconstruct"):
-        return DeconstructableSerializer(value)
-    for type_, serializer_cls in Serializer._registry.items():
-        if isinstance(value, type_):
-            return serializer_cls(value)
-    raise ValueError(
-        "Cannot serialize: %r\nThere are some values Django cannot serialize into "
-        "migration files.\nFor more, see https://docs.djangoproject.com/en/%s/"
-        "topics/migrations/#migration-serializing" % (value, get_docs_version())
-    )
+    return wrapper
