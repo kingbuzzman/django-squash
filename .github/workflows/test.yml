@@ -42,11 +42,7 @@ jobs:
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
-        run: pytest --cov django_squash
-      - name: Coverage check
-        run: coverage report -m --fail-under=85
-      - name: Coverage XML
-        run: coverage xml
+        run: pytest --cov django_squash --cov-report=xml --cov-report=term --cov-fail-under=90
       - name: Upload coverage to Codecov
         continue-on-error: true
         uses: codecov/codecov-action@v3
