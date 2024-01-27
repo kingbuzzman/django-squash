@@ -1,6 +1,9 @@
-from unittest import TestCase
+import pytest
 
 from django_squash.db.migrations import utils
+import django
+
+import django_squash
 
 func = lambda: 1  # noqa
 
@@ -44,77 +47,71 @@ class C:
         return 5
 
 
-class TestWriter(TestCase):
-
-    def test_is_code_in_site_packages(self):
-        import django
-
-        import django_squash
-
-        self.assertTrue(utils.is_code_in_site_packages(django.get_version.__module__))
-        path = django_squash.db.migrations.utils.is_code_in_site_packages.__module__
-        self.assertFalse(utils.is_code_in_site_packages(path))
-        self.assertFalse(utils.is_code_in_site_packages("bad.path"))
+def test_is_code_in_site_packages():
+    assert utils.is_code_in_site_packages(django.get_version.__module__)
+    path = django_squash.db.migrations.utils.is_code_in_site_packages.__module__
+    assert not utils.is_code_in_site_packages(path)
+    assert not utils.is_code_in_site_packages("bad.path")
 
 
-class TestUtils(TestCase):
+def test_unique_names():
+    names = utils.UniqueVariableName()
+    assert names("var") == "var"
+    assert names("var") == "var_2"
+    assert names("var_2") == "var_2_2"
 
-    def test_unique_names(self):
-        names = utils.UniqueVariableName()
-        self.assertEqual("var", names("var"))
-        self.assertEqual("var_2", names("var"))
-        self.assertEqual("var_2_2", names("var_2"))
 
-    def test_unique_function_names_errors(self):
-        names = utils.UniqueVariableName()
+def test_unique_function_names_errors():
+    names = utils.UniqueVariableName()
 
-        with self.assertRaises(ValueError):
-            names.function("not-a-function")
+    with pytest.raises(ValueError):
+        names.function("not-a-function")
 
-        with self.assertRaises(ValueError):
-            names.function(func)
+    with pytest.raises(ValueError):
+        names.function(func)
 
-        with self.assertRaises(ValueError):
-            names.function(B.func)
+    with pytest.raises(ValueError):
+        names.function(B.func)
 
-        with self.assertRaises(ValueError):
-            names.function(B().func)
+    with pytest.raises(ValueError):
+        names.function(B().func)
 
-        with self.assertRaises(ValueError):
-            names.function(C.func)
+    with pytest.raises(ValueError):
+        names.function(C.func)
 
-        with self.assertRaises(ValueError):
-            names.function(C().func)
+    with pytest.raises(ValueError):
+        names.function(C().func)
 
-    def test_unique_function_names(self):
-        uniq1 = utils.UniqueVariableName()
-        uniq2 = utils.UniqueVariableName()
 
-        reassigned_func2 = func2
-        reassigned_func2_impostor = func2_impostor
+def test_unique_function_names():
+    uniq1 = utils.UniqueVariableName()
+    uniq2 = utils.UniqueVariableName()
 
-        self.assertEqual("func2", uniq1("func2"))
-        self.assertEqual("func2_2", uniq1.function(func2))
-        self.assertEqual("func2_2", uniq1.function(func2))
-        self.assertEqual("func2_2", uniq1.function(reassigned_func2))
-        self.assertEqual("func2_3", uniq1.function(func2_impostor))
-        self.assertEqual("func2_3", uniq1.function(func2_impostor))
-        self.assertEqual("func2_3", uniq1.function(reassigned_func2_impostor))
-        self.assertEqual("func2_3_2", uniq1.function(func2_3))
-        self.assertEqual("func2_4", uniq1.function(func2_impostor2))
-        self.assertEqual("A.func", uniq1.function(A.func))
-        self.assertEqual("A.func", uniq1.function(A().func))
-        self.assertEqual("A.func_2", uniq1("A.func"))
-        self.assertEqual("A.func", uniq1.function(A.func))
-        self.assertEqual("A.func", uniq1.function(A().func))
+    reassigned_func2 = func2
+    reassigned_func2_impostor = func2_impostor
 
-        self.assertEqual("func2", uniq2.function(func2_impostor))
-        self.assertEqual("func2", uniq2.function(func2_impostor))
-        self.assertEqual("func2_2", uniq2.function(func2))
-        self.assertEqual("func2_2", uniq2.function(func2))
-        self.assertEqual("func2_3", uniq2.function(func2_3))
-        self.assertEqual("func2_4", uniq2.function(func2_impostor2))
-        self.assertEqual("func2", uniq2.function(func2_impostor))
-        self.assertEqual("func2", uniq2.function(func2_impostor))
-        self.assertEqual("func2_2", uniq2.function(func2))
-        self.assertEqual("func2_2", uniq2.function(func2))
+    assert uniq1("func2") == "func2"
+    assert uniq1.function(func2) == "func2_2"
+    assert uniq1.function(func2) == "func2_2"
+    assert uniq1.function(reassigned_func2) == "func2_2"
+    assert uniq1.function(func2_impostor) == "func2_3"
+    assert uniq1.function(func2_impostor) == "func2_3"
+    assert uniq1.function(reassigned_func2_impostor) == "func2_3"
+    assert uniq1.function(func2_3) == "func2_3_2"
+    assert uniq1.function(func2_impostor2) == "func2_4"
+    assert uniq1.function(A.func) == "A.func"
+    assert uniq1.function(A().func) == "A.func"
+    assert uniq1("A.func") == "A.func_2"
+    assert uniq1.function(A.func) == "A.func"
+    assert uniq1.function(A().func) == "A.func"
+
+    assert uniq2.function(func2_impostor) == "func2"
+    assert uniq2.function(func2_impostor) == "func2"
+    assert uniq2.function(func2) == "func2_2"
+    assert uniq2.function(func2) == "func2_2"
+    assert uniq2.function(func2_3) == "func2_3"
+    assert uniq2.function(func2_impostor2) == "func2_4"
+    assert uniq2.function(func2_impostor) == "func2"
+    assert uniq2.function(func2_impostor) == "func2"
+    assert uniq2.function(func2) == "func2_2"
+    assert uniq2.function(func2) == "func2_2"
