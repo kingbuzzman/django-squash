@@ -10,24 +10,32 @@ from django.utils.timezone import now
 
 from django_squash.db.migrations import utils
 
-supported_django_migrations = (
-    '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # 5.0
-    '2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582',  # 4.1 / 4.2
-    'e90b1243a8ce48f06331db8f584b0bce26e2e3f0abdd177cc18ed37425a23515',  # 3.2
-)
 
-current_django_migration_hash = utils.file_hash(dj_writer.__file__)
-if current_django_migration_hash not in supported_django_migrations:
-    messsage = textwrap.dedent(
-        f"""\
-        Django migrations writer file has changed and may not be compatible with django-squash.
-
-        Django version: {get_version()}
-        Django migrations writer file: {dj_writer.__file__}
-        Django migrations writer hash: {current_django_migration_hash}
-        """
+def check_django_migration_hash():
+    """
+    Check if the django migrations writer file has changed and may not be compatible with django-squash.
+    """
+    supported_django_migrations = (
+        '39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343',  # 5.0
+        '2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582',  # 4.1 / 4.2
+        'e90b1243a8ce48f06331db8f584b0bce26e2e3f0abdd177cc18ed37425a23515',  # 3.2
     )
-    raise Warning(messsage)
+
+    current_django_migration_hash = utils.file_hash(dj_writer.__file__)
+    if current_django_migration_hash not in supported_django_migrations:
+        messsage = textwrap.dedent(
+            f"""\
+            Django migrations writer file has changed and may not be compatible with django-squash.
+
+            Django version: {get_version()}
+            Django migrations writer file: {dj_writer.__file__}
+            Django migrations writer hash: {current_django_migration_hash}
+            """
+        )
+        raise Warning(messsage)
+
+
+check_django_migration_hash()
 
 
 class ReplacementMigrationWriter(dj_writer.MigrationWriter):
@@ -47,7 +55,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         """Return a string of the file contents."""
         return self.template_class % self.get_kwargs()
 
-    def get_kwargs(self):
+    def get_kwargs(self):  # pragma: no cover
         """
         Original method from django.db.migrations.writer.MigrationWriter.as_string
         """
