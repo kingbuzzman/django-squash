@@ -9,7 +9,7 @@ from django.db import migrations, models
 
 def update_dob(apps, schema_editor):
     # This needs to exist only once, this should NOT be copied over.
-    Person = apps.get_model('app', 'Person')
+    Person = apps.get_model("app", "Person")
 
     for person in Person.objects.all():
         person.dob = datetime.date.today() - datetime.timedelta(days=12 * 365)
@@ -30,14 +30,14 @@ def create_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
     itertools.chain()  # noop used to make sure the import was included
     randrange  # noop used to make sure the import was included
 
-    Person = apps.get_model('app', 'Person')
+    Person = apps.get_model("app", "Person")
 
-    Person.objects.get_or_create(name='admin', age=30)
+    Person.objects.get_or_create(name="admin", age=30)
 
 
 def rollback_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
     """Single comments"""
-    print('Ignoring, there is no need to do this.')
+    print("Ignoring, there is no need to do this.")
 
 
 important_sql = """
@@ -60,25 +60,30 @@ select 4
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('app', '0002_person_age'),
+        ("app", "0002_person_age"),
     ]
 
     operations = [
-        migrations.RunPython(create_admin_MUST_ALWAYS_EXIST, reverse_code=rollback_admin_MUST_ALWAYS_EXIST,
-                             elidable=False),
+        migrations.RunPython(
+            create_admin_MUST_ALWAYS_EXIST,
+            reverse_code=rollback_admin_MUST_ALWAYS_EXIST,
+            elidable=False,
+        ),
         migrations.RunSQL(not_important_sql, elidable=True),
         migrations.AddField(
-            model_name='person',
-            name='dob',
+            model_name="person",
+            name="dob",
             field=models.DateField(default=datetime.datetime(1900, 1, 1, 0, 0)),
             preserve_default=False,
         ),
         migrations.RunPython(update_dob, elidable=True),
         migrations.RunPython(same_name, elidable=False),
-        migrations.RunSQL(important_sql, reverse_sql=important_rollback_sql, elidable=False),
+        migrations.RunSQL(
+            important_sql, reverse_sql=important_rollback_sql, elidable=False
+        ),
         migrations.RemoveField(
-            model_name='person',
-            name='age',
+            model_name="person",
+            name="age",
         ),
         migrations.RunSQL(also_important_sql, elidable=False),
     ]

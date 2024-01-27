@@ -17,33 +17,39 @@ from django_squash.db.migrations.writer import MigrationWriter
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
-            '--only', action='append', nargs='*', help='Only squash the specified apps'
+            "--only", action="append", nargs="*", help="Only squash the specified apps"
         )
         parser.add_argument(
-            '--ignore-app',  action='append', nargs='*', default=settings.DJANGO_SQUASH_IGNORE_APPS,
-            help='Ignore app name from quashing, ensure that there is nothing dependent on these apps. '
-                 '(default: %(default)s)',
+            "--ignore-app",
+            action="append",
+            nargs="*",
+            default=settings.DJANGO_SQUASH_IGNORE_APPS,
+            help="Ignore app name from quashing, ensure that there is nothing dependent on these apps. "
+            "(default: %(default)s)",
         )
         parser.add_argument(
-            '--dry-run', action='store_true', dest='dry_run',
+            "--dry-run",
+            action="store_true",
+            dest="dry_run",
             help="Just show what migrations would be made; don't actually write them.",
         )
         parser.add_argument(
-            '--squashed-name', default=settings.DJANGO_SQUASH_MIGRATION_NAME,
-            help='Sets the name of the new squashed migration. Also accepted are the standard datetime parse '
-                 'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
+            "--squashed-name",
+            default=settings.DJANGO_SQUASH_MIGRATION_NAME,
+            help="Sets the name of the new squashed migration. Also accepted are the standard datetime parse "
+            'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
         )
 
     @no_translations
     def handle(self, **kwargs):
         self.verbosity = 1
         self.include_header = False
-        self.dry_run = kwargs['dry_run']
+        self.dry_run = kwargs["dry_run"]
 
         ignore_apps = []
         bad_apps = []
 
-        for app_labels in kwargs['ignore_app']:
+        for app_labels in kwargs["ignore_app"]:
             for app_label in app_labels:
                 try:
                     apps.get_app_config(app_label)
@@ -51,10 +57,10 @@ class Command(BaseCommand):
                 except (LookupError, TypeError):
                     bad_apps.append(str(app_label))
 
-        if kwargs['only']:
+        if kwargs["only"]:
             only_apps = []
 
-            for app_labels in kwargs['only']:
+            for app_labels in kwargs["only"]:
                 for app_label in app_labels:
                     try:
                         apps.get_app_config(app_label)
@@ -67,9 +73,13 @@ class Command(BaseCommand):
                     ignore_apps.append(app_name)
 
         if bad_apps:
-            raise CommandError("The following apps are not valid: %s" % (', '.join(bad_apps)))
+            raise CommandError(
+                "The following apps are not valid: %s" % (", ".join(bad_apps))
+            )
 
-        questioner = NonInteractiveMigrationQuestioner(specified_apps=None, dry_run=False)
+        questioner = NonInteractiveMigrationQuestioner(
+            specified_apps=None, dry_run=False
+        )
 
         loader = MigrationLoader(None, ignore_no_migrations=True)
         squash_loader = SquashMigrationLoader(None, ignore_no_migrations=True)
@@ -85,7 +95,7 @@ class Command(BaseCommand):
             real_loader=loader,
             squash_loader=squash_loader,
             ignore_apps=ignore_apps,
-            migration_name=kwargs['squashed_name']
+            migration_name=kwargs["squashed_name"],
         )
 
         replacing_migrations = 0
@@ -105,7 +115,10 @@ class Command(BaseCommand):
         directory_created = {}
         for app_label, app_migrations in changes.items():
             if self.verbosity >= 1:
-                self.stdout.write(self.style.MIGRATE_HEADING("Migrations for '%s':" % app_label) + "\n")
+                self.stdout.write(
+                    self.style.MIGRATE_HEADING("Migrations for '%s':" % app_label)
+                    + "\n"
+                )
             for migration in app_migrations:
                 # Describe the migration
                 writer = MigrationWriter(migration, self.include_header)
@@ -116,10 +129,15 @@ class Command(BaseCommand):
                         migration_string = os.path.relpath(writer.path)
                     except ValueError:
                         migration_string = writer.path
-                    if migration_string.startswith('..'):
+                    if migration_string.startswith(".."):
                         migration_string = writer.path
-                    self.stdout.write("  %s\n" % (self.style.MIGRATE_LABEL(migration_string),))
-                    if hasattr(migration, 'is_migration_level') and migration.is_migration_level:
+                    self.stdout.write(
+                        "  %s\n" % (self.style.MIGRATE_LABEL(migration_string),)
+                    )
+                    if (
+                        hasattr(migration, "is_migration_level")
+                        and migration.is_migration_level
+                    ):
                         for operation in migration.describe():
                             self.stdout.write("    - %s\n" % operation)
                     else:
@@ -139,13 +157,16 @@ class Command(BaseCommand):
                     if migration_string is None:
                         # File was deleted
                         continue
-                    with open(writer.path, "w", encoding='utf-8') as fh:
+                    with open(writer.path, "w", encoding="utf-8") as fh:
                         fh.write(migration_string)
                 elif self.verbosity == 3:
                     # Alternatively, makemigrations --dry-run --verbosity 3
                     # will output the migrations to stdout rather than saving
                     # the file to the disk.
-                    self.stdout.write(self.style.MIGRATE_HEADING(
-                        "Full migrations file '%s':" % writer.filename) + "\n"
+                    self.stdout.write(
+                        self.style.MIGRATE_HEADING(
+                            "Full migrations file '%s':" % writer.filename
+                        )
+                        + "\n"
                     )
                     self.stdout.write("%s\n" % writer.as_string())

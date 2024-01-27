@@ -50,8 +50,8 @@ jobs:
           fail_ci_if_error: true
       - name: Flake8 check
         run: flake8
-      - name: iSort check
-        run: isort --check .
+      - name: Black check
+        run: black --check .
 
   pypi-publish:
     name: Upload release to PyPI

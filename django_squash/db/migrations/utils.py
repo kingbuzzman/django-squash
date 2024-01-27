@@ -15,7 +15,7 @@ def file_hash(file_path):
     BLOCK_SIZE = 65536
 
     file_hash = hashlib.sha256()
-    with open(file_path, 'rb') as f:
+    with open(file_path, "rb") as f:
         fb = f.read(BLOCK_SIZE)
         while len(fb) > 0:
             file_hash.update(fb)
@@ -39,13 +39,16 @@ class UniqueVariableName:
 
     def function(self, func):
         if not callable(func):
-            raise ValueError('func must be a callable')
+            raise ValueError("func must be a callable")
 
-        if isinstance(func, types.FunctionType) and func.__name__ == '<lambda>':
-            raise ValueError('func cannot be a lambda')
+        if isinstance(func, types.FunctionType) and func.__name__ == "<lambda>":
+            raise ValueError("func cannot be a lambda")
 
-        if inspect.ismethod(func) or inspect.signature(func).parameters.get('self') is not None:
-            raise ValueError('func cannot be part of an instance')
+        if (
+            inspect.ismethod(func)
+            or inspect.signature(func).parameters.get("self") is not None
+        ):
+            raise ValueError("func cannot be part of an instance")
 
         name = original_name = func.__qualname__
         already_accounted = func in self.functions
@@ -59,7 +62,7 @@ class UniqueVariableName:
                 self.names[name] += 1
                 break
 
-            name = '%s_%s' % (original_name, i)
+            name = "%s_%s" % (original_name, i)
 
         self.functions[func] = name
 
@@ -71,7 +74,7 @@ class UniqueVariableName:
         if not force_number and count == 1:
             return name
         else:
-            new_name = '%s_%s' % (name, count)
+            new_name = "%s_%s" % (name, count)
             # Make sure that the function name is fully unique
             # You can potentially have the same name already defined.
             return self(new_name)
@@ -88,11 +91,11 @@ def get_imports(module):
     for node in ast.iter_child_nodes(root):
         if isinstance(node, ast.Import):
             for n in node.names:
-                yield f'import {n.name}'
+                yield f"import {n.name}"
         elif isinstance(node, ast.ImportFrom):
-            module = node.module.split('.')
+            module = node.module.split(".")
             # Remove old python 2.x imports
-            if '__future__' not in node.module:
+            if "__future__" not in node.module:
                 yield f"from {node.module} import {', '.join([x.name for x in node.names])}"
         else:
             continue
@@ -103,8 +106,9 @@ def copy_func(f, name=None):
     Return a function with same code, globals, defaults, closure, and name (or provide a new name)
     """
     name = name or f.__qualname__
-    func = types.FunctionType(f.__code__, f.__globals__, name,
-                              f.__defaults__, f.__closure__)
+    func = types.FunctionType(
+        f.__code__, f.__globals__, name, f.__defaults__, f.__closure__
+    )
     func.__qualname__ = f.__qualname__
     func.__original_qualname__ = f.__original_qualname__
     func.__original_module__ = f.__module__
@@ -113,13 +117,13 @@ def copy_func(f, name=None):
 
 def find_brackets(line, p_count, b_count):
     for char in line:
-        if char == '(':
+        if char == "(":
             p_count += 1
-        elif char == ')':
+        elif char == ")":
             p_count -= 1
-        elif char == '[':
+        elif char == "[":
             b_count += 1
-        elif char == ']':
+        elif char == "]":
             b_count -= 1
     return p_count, b_count
 
@@ -130,7 +134,7 @@ def is_code_in_site_packages(module_name):
         loader = pkgutil.find_loader(module_name)
         # Get the file path of the module
         file_path = os.path.abspath(loader.get_filename())
-        return '/site-packages/' in file_path
+        return "/site-packages/" in file_path
     except ImportError:
         return False
 
@@ -140,7 +144,7 @@ def replace_migration_attribute(source, attr, value):
     # Skip this file if it is not a migration.
     migration_node = None
     for node in tree.body:
-        if isinstance(node, ast.ClassDef) and node.name == 'Migration':
+        if isinstance(node, ast.ClassDef) and node.name == "Migration":
             migration_node = node
             break
     else:
@@ -150,7 +154,10 @@ def replace_migration_attribute(source, attr, value):
     comment_out_nodes = {}
     for node in migration_node.body:
         if isinstance(node, ast.Assign) and node.targets[0].id == attr:
-            comment_out_nodes[node.lineno] = (node.targets[0].col_offset, node.targets[0].id,)
+            comment_out_nodes[node.lineno] = (
+                node.targets[0].col_offset,
+                node.targets[0].id,
+            )
 
     # Skip this migration if it does not contain the `attr` we're looking for
     if not comment_out_nodes:
@@ -164,7 +171,9 @@ def replace_migration_attribute(source, attr, value):
     output = []
     for lineno, line in enumerate(source.splitlines()):
         if lineno + 1 in comment_out_nodes.keys():
-            output.append(' ' * comment_out_nodes[lineno + 1][0] + attr + ' = ' + str(value))
+            output.append(
+                " " * comment_out_nodes[lineno + 1][0] + attr + " = " + str(value)
+            )
             p_count = 0
             b_count = 0
             col_offset, name = comment_out_nodes[lineno + 1]
@@ -175,4 +184,4 @@ def replace_migration_attribute(source, attr, value):
             output.append(line)
 
     # Overwrite the existing migration file to update it.
-    return '\n'.join(output) + '\n'
+    return "\n".join(output) + "\n"
