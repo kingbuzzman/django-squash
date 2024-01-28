@@ -126,7 +126,7 @@ def find_brackets(line, p_count, b_count):
 
 def is_code_in_site_packages(module_name):
     # Find the module in the site-packages directory
-    site_packages_path = sysconfig.get_path("purelib")
+    site_packages_path = sysconfig.get_path("purelib")  # returns the "../site-packages" directory
     try:
         loader = importlib.util.find_spec(module_name)
         return site_packages_path in loader.origin
