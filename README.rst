@@ -153,6 +153,13 @@ Run tests
     pytest
 
 
+.. code-block:: shell
+
+    isort .
+    black --config .black .
+    flake8 .
+
+
 .. |Travis CI| image:: https://travis-ci.com/kingbuzzman/django-squash.svg?branch=develop
    :target: https://travis-ci.com/kingbuzzman/django-squash
 

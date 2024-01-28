@@ -53,8 +53,9 @@ setup(
     tests_require=[],
     extras_require={
         "test": [
-            "pytest-django",
             "pytest-cov",
+            "pytest-django",
+            "pytest-lazy-fixture",
             "flake8",
             "ipdb",
             "libcst",
