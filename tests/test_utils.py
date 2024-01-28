@@ -1,9 +1,8 @@
+import django
 import pytest
 
-from django_squash.db.migrations import utils
-import django
-
 import django_squash
+from django_squash.db.migrations import utils
 
 func = lambda: 1  # noqa
 
