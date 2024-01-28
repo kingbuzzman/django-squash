@@ -11,19 +11,22 @@ from django.utils.timezone import now
 
 from django_squash.db.migrations import utils
 
+SUPPORTED_DJANGO_WRITER = (
+    "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0
+    "2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582",  # 4.1 / 4.2
+    "e90b1243a8ce48f06331db8f584b0bce26e2e3f0abdd177cc18ed37425a23515",  # 3.2
+)
+
 
 def check_django_migration_hash():
     """
     Check if the django migrations writer file has changed and may not be compatible with django-squash.
     """
-    supported_django_migrations = (
-        "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0
-        "2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582",  # 4.1 / 4.2
-        "e90b1243a8ce48f06331db8f584b0bce26e2e3f0abdd177cc18ed37425a23515",  # 3.2
-    )
+    if utils.dev_mode():
+        return
 
     current_django_migration_hash = utils.file_hash(dj_writer.__file__)
-    if current_django_migration_hash not in supported_django_migrations:
+    if current_django_migration_hash not in SUPPORTED_DJANGO_WRITER:
         messsage = textwrap.dedent(
             f"""\
             Django migrations writer file has changed and may not be compatible with django-squash.
