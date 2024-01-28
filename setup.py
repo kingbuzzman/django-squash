@@ -55,7 +55,6 @@ setup(
         "test": [
             "pytest-cov",
             "pytest-django",
-            "pytest-lazy-fixture",
             "flake8",
             "ipdb",
             "libcst",
