@@ -4,6 +4,7 @@ import importlib
 import inspect
 import itertools
 import os
+import sysconfig
 import types
 from collections import defaultdict
 
@@ -125,9 +126,10 @@ def find_brackets(line, p_count, b_count):
 
 def is_code_in_site_packages(module_name):
     # Find the module in the site-packages directory
+    site_packages_path = sysconfig.get_path("purelib")
     try:
         loader = importlib.util.find_spec(module_name)
-        return "/site-packages/" in loader.origin
+        return site_packages_path in loader.origin
     except ImportError:
         return False
 
@@ -180,5 +182,4 @@ def replace_migration_attribute(source, attr, value):
 
 def dev_mode():
     """Return True if the code is running in development mode"""
-    dev_mode = __file__.startswith(importlib.util.find_spec("django_squash").submodule_search_locations[0])
-    return dev_mode
+    return not is_code_in_site_packages("django_squash")

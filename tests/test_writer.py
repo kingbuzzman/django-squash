@@ -1,4 +1,3 @@
-import os
 from unittest import mock
 
 import pytest
@@ -9,27 +8,44 @@ from django_squash.db.migrations import writer
 @pytest.fixture
 def in_dev_mode(monkeypatch):
     """function dev_mode() returns True."""
-    mock_importlib = mock.Mock()
-    mock_importlib.util.find_spec().submodule_search_locations = [os.path.dirname(__file__)]
-    monkeypatch.setattr("django_squash.db.migrations.utils.importlib", mock_importlib)
+    mock_site_packages = mock.Mock(return_value=False)
+    monkeypatch.setattr("django_squash.db.migrations.utils.is_code_in_site_packages", mock_site_packages)
+    yield
 
 
 @pytest.fixture
 def in_prod_mode(monkeypatch):
-    mock_importlib = mock.Mock()
-    mock_importlib.util.find_spec().submodule_search_locations = ["path"]
-    monkeypatch.setattr("django_squash.db.migrations.utils.importlib", mock_importlib)
+    """function dev_mode() returns False."""
+    mock_site_packages = mock.Mock(return_value=True)
+    monkeypatch.setattr("django_squash.db.migrations.utils.is_code_in_site_packages", mock_site_packages)
+    yield
 
 
 @pytest.mark.usefixtures("in_prod_mode")
-def test_check_django_migration_hash_bad(monkeypatch):
-    monkeypatch.setattr("django_squash.db.migrations.writer.utils.file_hash", lambda _: "bad_hash")
-    with pytest.warns(Warning):
+@pytest.mark.parametrize(
+    "hash, throws_warning",
+    (
+        ("bad_hash", True),
+        (writer.SUPPORTED_DJANGO_WRITER[0], False),
+    ),
+)
+def test_check_django_migration_hash_prod(hash, throws_warning, monkeypatch):
+    monkeypatch.setattr("django_squash.db.migrations.writer.utils.file_hash", lambda _: hash)
+    if throws_warning:
+        with pytest.warns(Warning):
+            writer.check_django_migration_hash()
+    else:
         writer.check_django_migration_hash()
 
 
-@pytest.mark.usefixtures("in_prod_mode")
-def test_check_django_migration_hash_all_good(monkeypatch):
-    valid_hash = writer.SUPPORTED_DJANGO_WRITER[0]
-    monkeypatch.setattr("django_squash.db.migrations.writer.utils.file_hash", lambda _: valid_hash)
+@pytest.mark.usefixtures("in_dev_mode")
+@pytest.mark.parametrize(
+    "hash",
+    (
+        ("bad_hash",),
+        (writer.SUPPORTED_DJANGO_WRITER[0],),
+    ),
+)
+def test_check_django_migration_hash_dev(hash, monkeypatch):
+    monkeypatch.setattr("django_squash.db.migrations.writer.utils.file_hash", lambda _: hash)
     writer.check_django_migration_hash()
