@@ -2,11 +2,12 @@ import itertools
 import os
 
 from django.apps import apps
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError, no_translations
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
-from django_squash import settings
+from django_squash import settings as app_settings
 from django_squash.db.migrations import serializer
 from django_squash.db.migrations.autodetector import SquashMigrationAutodetector
 from django_squash.db.migrations.loader import SquashMigrationLoader
@@ -21,7 +22,7 @@ class Command(BaseCommand):
             "--ignore-app",
             action="append",
             nargs="*",
-            default=settings.DJANGO_SQUASH_IGNORE_APPS,
+            default=app_settings.DJANGO_SQUASH_IGNORE_APPS,
             help="Ignore app name from quashing, ensure that there is nothing dependent on these apps. "
             "(default: %(default)s)",
         )
@@ -33,7 +34,7 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--squashed-name",
-            default=settings.DJANGO_SQUASH_MIGRATION_NAME,
+            default=app_settings.DJANGO_SQUASH_MIGRATION_NAME,
             help="Sets the name of the new squashed migration. Also accepted are the standard datetime parse "
             'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
         )

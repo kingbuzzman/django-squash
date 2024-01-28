@@ -65,13 +65,14 @@ def traverse_node(nodes, looking_for):
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.elidable", app_label="app")
-def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migrations):
+def test_squashing_elidable_migration_simple(settings, isolated_apps, migration_app_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
 
         class Meta:
             app_label = "app"
+            apps = isolated_apps
 
     call_squash_migrations()
 
@@ -191,7 +192,7 @@ def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migr
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
-def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_squash_migrations):
+def test_squashing_migration_simple(isolated_apps, migration_app_dir, migration_app2_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -199,6 +200,7 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
 
         class Meta:
             app_label = "app"
+            apps = isolated_apps
 
     class Address(models.Model):
         person = models.ForeignKey("app.Person", on_delete=models.deletion.CASCADE)
@@ -211,6 +213,7 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
 
         class Meta:
             app_label = "app2"
+            apps = isolated_apps
 
     call_squash_migrations()
 
@@ -232,13 +235,14 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
 
 
 @pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_squashing_migration_empty(call_squash_migrations):
+def test_squashing_migration_empty(isolated_apps, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
 
         class Meta:
             app_label = "app"
+            apps = isolated_apps
 
     with pytest.raises(CommandError) as error:
         call_squash_migrations()
@@ -304,13 +308,14 @@ def test_only_argument_with_invalid_apps(call_squash_migrations, monkeypatch):
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.elidable", app_label="app")
-def test_simple_delete_squashing_migrations_noop(migration_app_dir, call_squash_migrations):
+def test_simple_delete_squashing_migrations_noop(isolated_apps, migration_app_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
 
         class Meta:
             app_label = "app"
+            apps = isolated_apps
 
     call_squash_migrations()
 
@@ -326,13 +331,14 @@ def test_simple_delete_squashing_migrations_noop(migration_app_dir, call_squash_
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.delete_replaced", app_label="app")
-def test_simple_delete_squashing_migrations(migration_app_dir, call_squash_migrations):
+def test_simple_delete_squashing_migrations(isolated_apps, migration_app_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
 
         class Meta:
             app_label = "app"
+            apps = isolated_apps
 
     original_app_squash = load_migration_module(os.path.join(migration_app_dir, "0004_squashed.py"))
     assert original_app_squash.Migration.replaces == [
@@ -381,7 +387,7 @@ def test_empty_models_migrations(migration_app_dir, call_squash_migrations):
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.incorrect_name", app_label="app")
-def test_squashing_migration_incorrect_name(migration_app_dir, call_squash_migrations):
+def test_squashing_migration_incorrect_name(isolated_apps, migration_app_dir, call_squash_migrations):
     """
     If the app has incorrect migration numbers like: `app/migrations/initial.py` instead of `0001_initial.py`
     it should not fail. Same goes for bad formats all around.
@@ -393,6 +399,7 @@ def test_squashing_migration_incorrect_name(migration_app_dir, call_squash_migra
 
         class Meta:
             app_label = "app"
+            apps = isolated_apps
 
     call_squash_migrations()
 
@@ -482,7 +489,7 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.swappable_dependency", app_label="app")
-def test_swappable_dependency_migrations(migration_app_dir, settings, call_squash_migrations):
+def test_swappable_dependency_migrations(isolated_apps, migration_app_dir, settings, call_squash_migrations):
     settings.INSTALLED_APPS += [
         "django.contrib.auth",
         "django.contrib.contenttypes",
@@ -494,6 +501,7 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
 
         class Meta:
             app_label = "app"
+            apps = isolated_apps
 
     call_squash_migrations()
     files_in_app = sorted(file for file in os.listdir(migration_app_dir) if file.endswith(".py"))
@@ -537,3 +545,52 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
         """  # noqa
     )
     assert pretty_extract_piece(app_squash, "") == expected
+
+
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.xxx", app_label="app")
+@pytest.mark.temporary_migration_module2(module="app3.tests.migrations.moved", app_label="app3")
+def test_nested(isolated_apps, migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
+    settings.INSTALLED_APPS += [
+        "django.contrib.contenttypes",
+    ]
+
+    from django.contrib.contenttypes.models import ContentType
+
+    class TranscodeJob(models.Model):
+
+        STATUS_CHOICES = (
+            ("R", "Ready"),
+            ("S", "Submitted"),
+            ("P", "Progressing"),
+            ("C", "Complete"),
+            ("X", "Canceled"),
+            ("E", "Error"),
+            ("U", "Unknown"),
+        )
+
+        content_type = models.IntegerField(ContentType, null=True)
+        object_id = models.BigIntegerField(null=True)
+        # content_object = common.fields.ShardGenericForeignKey("content_type", "object_id")
+
+        video = models.OneToOneField("app3.Person", on_delete=models.CASCADE, null=True)
+        job_id = models.CharField(max_length=50, unique=True, null=True)
+        status = models.CharField(max_length=1, choices=STATUS_CHOICES, default="S")
+        initial_response_data = models.TextField()
+        final_response_data = models.TextField()
+
+        class Meta:
+            index_together = [
+                ["content_type", "object_id"],
+            ]
+            app_label = "app"
+            apps = isolated_apps
+
+    class Person(models.Model):
+        name = models.CharField(max_length=10)
+        dob = models.DateField()
+
+        class Meta:
+            app_label = "app3"
+            apps = isolated_apps
+
+    call_squash_migrations()
