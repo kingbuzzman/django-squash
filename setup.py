@@ -58,6 +58,7 @@ setup(
             "flake8",
             "ipdb",
             "libcst",
+            "isort",
             "black",
         ],
     },

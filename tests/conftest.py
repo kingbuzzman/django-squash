@@ -1,4 +1,3 @@
-import pytest
 import io
 import os
 import shutil
@@ -6,6 +5,7 @@ import tempfile
 from importlib import import_module
 from unittest import mock
 
+import pytest
 from django.apps import apps
 from django.core.management import call_command
 from django.test.utils import extend_sys_path

@@ -2,6 +2,7 @@ import inspect
 import os
 import re
 import textwrap
+import warnings
 
 from django import get_version
 from django.db import migrations as dj_migrations
@@ -32,7 +33,7 @@ def check_django_migration_hash():
             Django migrations writer hash: {current_django_migration_hash}
             """
         )
-        raise Warning(messsage)
+        warnings.warn(messsage, Warning)
 
 
 check_django_migration_hash()

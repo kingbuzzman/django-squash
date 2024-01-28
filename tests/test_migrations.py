@@ -1,12 +1,12 @@
-import pytest
 import importlib.util
 import inspect
 import os
 import textwrap
 import unittest.mock
 
-import libcst
 import black
+import libcst
+import pytest
 from django.core.management import CommandError
 from django.db import models
 
