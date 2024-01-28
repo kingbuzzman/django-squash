@@ -3,7 +3,9 @@ import types
 
 from django.db import migrations as dj_migrations, models as dj_models
 from django.db.migrations.serializer import (
-    BaseSerializer, FunctionTypeSerializer as BaseFunctionTypeSerializer, Serializer,
+    BaseSerializer,
+    FunctionTypeSerializer as BaseFunctionTypeSerializer,
+    Serializer,
 )
 
 from django_squash.db.migrations.operators import Variable
