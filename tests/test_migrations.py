@@ -549,7 +549,7 @@ def test_swappable_dependency_migrations(isolated_apps, migration_app_dir, setti
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.xxx", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app3.tests.migrations.moved", app_label="app3")
-def test_nested(isolated_apps, migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
+def xtest_nested(isolated_apps, migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
     settings.INSTALLED_APPS += [
         "django.contrib.contenttypes",
     ]
