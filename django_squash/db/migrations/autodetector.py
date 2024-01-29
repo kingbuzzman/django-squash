@@ -87,9 +87,11 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 imports.extend(utils.get_imports(module))
                 for operation in all_custom_operations(migration.operations, unique_names):
                     if isinstance(operation, migration_module.RunPython):
+                        operation.code = utils.copy_func(operation.code)
                         operation.code.__in_migration_file__ = module.__name__ == operation.code.__module__
 
                         if operation.reverse_code:
+                            operation.reverse_code = utils.copy_func(operation.reverse_code)
                             in_migration_file = module.__name__ == operation.reverse_code.__module__
                             operation.reverse_code.__in_migration_file__ = in_migration_file
                     operations.append(operation)
