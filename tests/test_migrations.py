@@ -18,7 +18,7 @@ def load_migration_module(path):
         spec.loader.exec_module(module)
     except Exception as e:
         with open(path) as f:
-            raise type(e)("Error loading module file containing:\n\n%s" % f.read()) from e
+            raise type(e)(f"{e}.\nError loading module file containing:\n\n{f.read()}") from e
     return module
 
 

@@ -8,6 +8,9 @@ import sysconfig
 import types
 from collections import defaultdict
 
+from django.db import migrations
+from django.utils.module_loading import import_string
+
 
 def file_hash(file_path):
     """
@@ -49,6 +52,11 @@ class UniqueVariableName:
             raise ValueError("func cannot be part of an instance")
 
         name = original_name = func.__qualname__
+        if "." in name:
+            parent_name, actual_name = name.rsplit(".", 1)
+            parent = getattr(import_string(func.__module__), parent_name)
+            if issubclass(parent, migrations.Migration):
+                name = name = original_name = actual_name
         already_accounted = func in self.functions
         if already_accounted:
             return self.functions[func]

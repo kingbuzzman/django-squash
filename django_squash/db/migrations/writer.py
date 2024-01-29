@@ -198,10 +198,10 @@ class Migration(migrations.Migration):
         for operation in self.migration.operations:
             if isinstance(operation, dj_migrations.RunPython):
                 if not utils.is_code_in_site_packages(operation.code.__original_module__):
-                    functions.append(self.extract_function(operation.code))
+                    functions.append(textwrap.dedent(self.extract_function(operation.code)))
                 if operation.reverse_code:
                     if not utils.is_code_in_site_packages(operation.reverse_code.__original_module__):
-                        functions.append(self.extract_function(operation.reverse_code))
+                        functions.append(textwrap.dedent(self.extract_function(operation.reverse_code)))
             elif isinstance(operation, dj_migrations.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
                 if operation.reverse_sql:
