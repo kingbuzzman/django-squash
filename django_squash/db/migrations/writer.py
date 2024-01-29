@@ -147,7 +147,7 @@ class Migration(migrations.Migration):
     ]
 """
 
-    template_variable = '''%s = """%s"""'''
+    template_variable = '''%s = %s'''
 
     def as_string(self):
         if hasattr(self.migration, "is_migration_level") and self.migration.is_migration_level:
@@ -202,11 +202,11 @@ class Migration(migrations.Migration):
                         functions.append(textwrap.dedent(utils.extract_function_source(operation.reverse_code)))
             elif isinstance(operation, dj_migrations.RunSQL):
                 variables.append(
-                    self.template_variable % (operation.sql.name, operation.sql.value.replace('"', '\\"'))
+                    self.template_variable % (operation.sql.name, repr(operation.sql.value))
                 )
                 if operation.reverse_sql:
                     variables.append(
-                        self.template_variable % (operation.reverse_sql.name, operation.reverse_sql.value)
+                        self.template_variable % (operation.reverse_sql.name, repr(operation.reverse_sql.value))
                     )
 
         kwargs["functions"] = ("\n\n" if functions else "") + "\n\n".join(functions)
