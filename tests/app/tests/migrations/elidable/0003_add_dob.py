@@ -41,7 +41,7 @@ def rollback_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
 
 
 important_sql = """
-select 1
+select 1 from "sqlite_master"
 """
 
 important_rollback_sql = """

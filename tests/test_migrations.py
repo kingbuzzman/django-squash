@@ -127,7 +127,7 @@ def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migr
 
 
         SQL_1 = \"\"\"
-        select 1
+        select 1 from \\\"sqlite_master\\\"
         \"\"\"
 
         SQL_1_ROLLBACK = \"\"\"

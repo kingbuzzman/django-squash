@@ -201,7 +201,7 @@ class Migration(migrations.Migration):
                     if not utils.is_code_in_site_packages(operation.reverse_code.__module__):
                         functions.append(textwrap.dedent(utils.extract_function_source(operation.reverse_code)))
             elif isinstance(operation, dj_migrations.RunSQL):
-                variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
+                variables.append(self.template_variable % (operation.sql.name, operation.sql.value.replace('"','\\"')))
                 if operation.reverse_sql:
                     variables.append(
                         self.template_variable % (operation.reverse_sql.name, operation.reverse_sql.value)
