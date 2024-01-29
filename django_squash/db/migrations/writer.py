@@ -198,6 +198,8 @@ class Migration(migrations.Migration):
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, dj_migrations.RunPython):
+                if "aws_service" in str(self.migration):
+                    import ipdb; print('\a'); ipdb.sset_trace()
                 code_reference = operation.code
                 if hasattr(operation.code, "__original_function__"):
                     code_reference = operation.code.__original_function__
