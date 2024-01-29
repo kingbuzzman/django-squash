@@ -12,19 +12,19 @@ def same_name(apps, schema_editor):
     return
 
 
-def same_name_2(apps, schema_editor):
-    # original function 2
-    return
-
-
 class Migration(migrations.Migration):
 
     initial = True
 
     dependencies = []
 
+    def same_name_2(apps, schema_editor):
+        # original function 2
+        return
+
     operations = [
         migrations.RunPython(same_name, migrations.RunPython.noop),
         migrations.RunPython(noop, OtherRunPython.noop),
-        migrations.RunPython(same_name_2),
+        migrations.RunPython(same_name_2, same_name),
+        migrations.RunPython(same_name, same_name_2),
     ]

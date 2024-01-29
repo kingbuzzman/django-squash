@@ -18,7 +18,7 @@ def load_migration_module(path):
         spec.loader.exec_module(module)
     except Exception as e:
         with open(path) as f:
-            raise type(e)("Error loading module file containing:\n\n%s" % f.read()) from e
+            raise type(e)(f"{e}.\nError loading module file containing:\n\n{f.read()}") from e
     return module
 
 
@@ -465,6 +465,12 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
                 ),
                 migrations.RunPython(
                     code=same_name_2,
+                    reverse_code=same_name,
+                    elidable=False,
+                ),
+                migrations.RunPython(
+                    code=same_name,
+                    reverse_code=same_name_2,
                     elidable=False,
                 ),
                 migrations.RunPython(

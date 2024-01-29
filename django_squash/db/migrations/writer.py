@@ -1,4 +1,3 @@
-import inspect
 import os
 import re
 import textwrap
@@ -176,32 +175,31 @@ class Migration(migrations.Migration):
 
         return source
 
-    @staticmethod
-    def extract_function(code):
-        function_source = inspect.getsource(code)
-        if code.__original_qualname__ == code.__qualname__:
-            return function_source
-
-        function_source = re.sub(
-            rf"(def\s+){code.__original_qualname__}",
-            rf"\1{code.__qualname__}",
-            function_source,
-            1,
-        )
-        return function_source
-
     def get_kwargs(self):
         kwargs = super().get_kwargs()
 
+        functions_references = []
         functions = []
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, dj_migrations.RunPython):
-                if not utils.is_code_in_site_packages(operation.code.__original_module__):
-                    functions.append(self.extract_function(operation.code))
+                code_reference = operation.code
+                if hasattr(operation.code, "__original_function__"):
+                    code_reference = operation.code.__original_function__
+                if code_reference in functions_references:
+                    continue
+                functions_references.append(code_reference)
+                if not utils.is_code_in_site_packages(operation.code.__module__):
+                    functions.append(textwrap.dedent(utils.extract_function_source(operation.code)))
                 if operation.reverse_code:
-                    if not utils.is_code_in_site_packages(operation.reverse_code.__original_module__):
-                        functions.append(self.extract_function(operation.reverse_code))
+                    reverse_code_reference = operation.reverse_code
+                    if hasattr(operation.reverse_code, "__original_function__"):
+                        reverse_code_reference = operation.reverse_code.__original_function__
+                    if reverse_code_reference in functions_references:
+                        continue
+                    functions_references.append(reverse_code_reference)
+                    if not utils.is_code_in_site_packages(operation.reverse_code.__module__):
+                        functions.append(textwrap.dedent(utils.extract_function_source(operation.reverse_code)))
             elif isinstance(operation, dj_migrations.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, operation.sql.value))
                 if operation.reverse_sql:

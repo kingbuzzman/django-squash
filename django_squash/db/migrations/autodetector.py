@@ -68,7 +68,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
     def add_non_elidables(self, original, loader, changes):
         unique_names = utils.UniqueVariableName()
         replacing_migrations_by_app = {
-            app: [original.disk_migrations[r] for r in itertools.chain.from_iterable([m.replaces for m in migrations])]
+            app: [
+                original.disk_migrations[r]
+                for r in list(dict.fromkeys(itertools.chain.from_iterable([m.replaces for m in migrations])))
+            ]
             for app, migrations in changes.items()
         }
 

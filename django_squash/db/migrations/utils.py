@@ -4,9 +4,13 @@ import importlib
 import inspect
 import itertools
 import os
+import re
 import sysconfig
 import types
 from collections import defaultdict
+
+from django.db import migrations
+from django.utils.module_loading import import_string
 
 
 def file_hash(file_path):
@@ -49,6 +53,11 @@ class UniqueVariableName:
             raise ValueError("func cannot be part of an instance")
 
         name = original_name = func.__qualname__
+        if "." in name:
+            parent_name, actual_name = name.rsplit(".", 1)
+            parent = getattr(import_string(func.__module__), parent_name)
+            if issubclass(parent, migrations.Migration):
+                name = name = original_name = actual_name
         already_accounted = func in self.functions
         if already_accounted:
             return self.functions[func]
@@ -99,6 +108,27 @@ def get_imports(module):
             continue
 
 
+def normalize_function_name(name):
+    class_name, _, function_name = name.rpartition(".")
+    if class_name and not function_name:
+        function_name = class_name
+    return function_name
+
+
+def extract_function_source(f):
+    function_source = inspect.getsource(f)
+    if normalize_function_name(f.__original_qualname__) == normalize_function_name(f.__qualname__):
+        return function_source
+
+    function_source = re.sub(
+        rf"(def\s+){normalize_function_name(f.__original_qualname__)}",
+        rf"\1{normalize_function_name(f.__qualname__)}",
+        function_source,
+        1,
+    )
+    return function_source
+
+
 def copy_func(f, name=None):
     """
     Return a function with same code, globals, defaults, closure, and name (or provide a new name)
@@ -108,6 +138,7 @@ def copy_func(f, name=None):
     func.__qualname__ = f.__qualname__
     func.__original_qualname__ = f.__original_qualname__
     func.__original_module__ = f.__module__
+    func.__original_function__ = f
     return func
 
 
