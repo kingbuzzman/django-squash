@@ -25,5 +25,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(same_name, migrations.RunPython.noop),
         migrations.RunPython(noop, OtherRunPython.noop),
-        migrations.RunPython(same_name_2),
+        migrations.RunPython(same_name_2, same_name),
+        migrations.RunPython(same_name, same_name_2),
     ]

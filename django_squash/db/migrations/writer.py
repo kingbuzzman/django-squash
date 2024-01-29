@@ -193,14 +193,21 @@ class Migration(migrations.Migration):
     def get_kwargs(self):
         kwargs = super().get_kwargs()
 
+        functions_references = []
         functions = []
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, dj_migrations.RunPython):
-                if not utils.is_code_in_site_packages(operation.code.__original_module__):
+                if operation.code in functions_references:
+                    continue
+                functions_references.append(operation.code)
+                if not utils.is_code_in_site_packages(operation.code.__module__):
                     functions.append(textwrap.dedent(self.extract_function(operation.code)))
                 if operation.reverse_code:
-                    if not utils.is_code_in_site_packages(operation.reverse_code.__original_module__):
+                    if operation.reverse_code in functions_references:
+                        continue
+                    functions_references.append(operation.reverse_code)
+                    if not utils.is_code_in_site_packages(operation.reverse_code.__module__):
                         functions.append(textwrap.dedent(self.extract_function(operation.reverse_code)))
             elif isinstance(operation, dj_migrations.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, operation.sql.value))

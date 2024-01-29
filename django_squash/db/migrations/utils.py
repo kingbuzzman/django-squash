@@ -107,18 +107,6 @@ def get_imports(module):
             continue
 
 
-def copy_func(f, name=None):
-    """
-    Return a function with same code, globals, defaults, closure, and name (or provide a new name)
-    """
-    name = name or f.__qualname__
-    func = types.FunctionType(f.__code__, f.__globals__, name, f.__defaults__, f.__closure__)
-    func.__qualname__ = f.__qualname__
-    func.__original_qualname__ = f.__original_qualname__
-    func.__original_module__ = f.__module__
-    return func
-
-
 def find_brackets(line, p_count, b_count):
     for char in line:
         if char == "(":

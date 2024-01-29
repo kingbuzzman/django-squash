@@ -465,6 +465,12 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
                 ),
                 migrations.RunPython(
                     code=same_name_2,
+                    reverse_code=same_name,
+                    elidable=False,
+                ),
+                migrations.RunPython(
+                    code=same_name,
+                    reverse_code=same_name_2,
                     elidable=False,
                 ),
                 migrations.RunPython(
