@@ -36,7 +36,7 @@ def check_django_migration_hash():
         warnings.warn(messsage, Warning)
 
 
-# check_django_migration_hash()
+check_django_migration_hash()
 
 
 class ReplacementMigrationWriter(dj_writer.MigrationWriter):
@@ -78,7 +78,6 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
 
         # Format dependencies and write out swappable dependencies right
         dependencies = []
-        import ipdb; print('\a'); ipdb.sset_trace()
         for dependency in self.migration.dependencies:
             if dependency[0] == "__setting__":
                 dependencies.append("        migrations.swappable_dependency(settings.%s)," % dependency[1])
