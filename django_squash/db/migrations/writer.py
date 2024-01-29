@@ -22,9 +22,6 @@ def check_django_migration_hash():
     """
     Check if the django migrations writer file has changed and may not be compatible with django-squash.
     """
-    if utils.dev_mode():
-        return
-
     current_django_migration_hash = utils.file_hash(dj_writer.__file__)
     if current_django_migration_hash not in SUPPORTED_DJANGO_WRITER:
         messsage = textwrap.dedent(

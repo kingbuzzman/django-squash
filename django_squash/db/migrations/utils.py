@@ -178,8 +178,3 @@ def replace_migration_attribute(source, attr, value):
 
     # Overwrite the existing migration file to update it.
     return "\n".join(output) + "\n"
-
-
-def dev_mode():
-    """Return True if the code is running in development mode"""
-    return not is_code_in_site_packages("django_squash")
