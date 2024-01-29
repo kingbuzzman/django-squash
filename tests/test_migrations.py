@@ -127,17 +127,11 @@ def test_squashing_elidable_migration_simple(settings, isolated_apps, migration_
             pass
 
 
-        SQL_1 = \"\"\"
-        select 1
-        \"\"\"
+        SQL_1 = 'select 1 from "sqlite_master"'
 
-        SQL_1_ROLLBACK = \"\"\"
-        select 2
-        \"\"\"
+        SQL_1_ROLLBACK = ["select 2", "select 21", "select 23", 'select 24 from "sqlite_master"']
 
-        SQL_2 = \"\"\"
-        select 4
-        \"\"\"
+        SQL_2 = "\\nselect 4\\n"
 
 
         class Migration(migrations.Migration):
@@ -472,6 +466,12 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
                 ),
                 migrations.RunPython(
                     code=same_name_2,
+                    reverse_code=same_name,
+                    elidable=False,
+                ),
+                migrations.RunPython(
+                    code=same_name,
+                    reverse_code=same_name_2,
                     elidable=False,
                 ),
                 migrations.RunPython(
