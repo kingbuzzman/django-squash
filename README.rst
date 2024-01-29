@@ -1,9 +1,9 @@
 django-squash
 ========================
 
-.. image:: https://travis-ci.com/kingbuzzman/django-squash.svg?branch=master
+.. image:: https://github.com/kingbuzzman/django-squash/actions
     :alt: Build Status
-    :target: https://github.com/pytest-dev/django-squash/actions
+    :target: https://github.com/kingbuzzman/django-squash/actions
 
 .. image:: https://img.shields.io/pypi/v/django-squash.svg?style=flat
     :alt: Supported PyPi Version
