@@ -40,21 +40,23 @@ def rollback_admin_MUST_ALWAYS_EXIST(apps, schema_editor):
     print("Ignoring, there is no need to do this.")
 
 
-important_sql = """
-select 1
-"""
+# fmt: off
+important_sql = """\
+select 1 from \"sqlite_master\""""
 
-important_rollback_sql = """
-select 2
-"""
+important_rollback_sql = [
+    "select 2",
+    'select 21',
+    """select 23""",
+    """select 24 from \"sqlite_master\""""
+]
 
-not_important_sql = """
-select 3
-"""
+not_important_sql = "select 3"
 
 also_important_sql = """
 select 4
 """
+# fmt: on
 
 
 class Migration(migrations.Migration):
