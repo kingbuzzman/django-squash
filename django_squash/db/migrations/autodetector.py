@@ -6,13 +6,13 @@ from collections import defaultdict
 
 from django.apps import apps
 from django.conf import settings
-from django.db import migrations as migration_module
+from django.db import migrations as dj_migrations
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
 from . import operators, utils
 
 
-class Migration(migration_module.Migration):
+class Migration(dj_migrations.Migration):
 
     _deleted = False
     _dependencies_change = False
@@ -54,11 +54,11 @@ def all_custom_operations(operations, unique_names):
         if operation.elidable:
             continue
 
-        if isinstance(operation, migration_module.RunSQL):
+        if isinstance(operation, dj_migrations.RunSQL):
             yield operators.RunSQL.from_operation(operation, unique_names)
-        elif isinstance(operation, migration_module.RunPython):
+        elif isinstance(operation, dj_migrations.RunPython):
             yield operators.RunPython.from_operation(operation, unique_names)
-        elif isinstance(operation, migration_module.SeparateDatabaseAndState):
+        elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
             # A valid use case for this should be given before any work is done.
             pass
 
@@ -83,7 +83,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 module = sys.modules[migration.__module__]
                 imports.extend(utils.get_imports(module))
                 for operation in all_custom_operations(migration.operations, unique_names):
-                    if isinstance(operation, migration_module.RunPython):
+                    if isinstance(operation, dj_migrations.RunPython):
                         operation.code = utils.copy_func(operation.code)
                         operation.code.__in_migration_file__ = module.__name__ == operation.code.__module__
 
