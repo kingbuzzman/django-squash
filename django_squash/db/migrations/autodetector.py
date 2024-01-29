@@ -79,6 +79,9 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             operations = []
             imports = []
 
+            if app == "aws_service":
+                import ipdb; print('\a'); ipdb.sset_trace()
+
             for migration in replacing_migrations_by_app[app]:
                 module = sys.modules[migration.__module__]
                 imports.extend(utils.get_imports(module))
