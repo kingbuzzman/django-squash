@@ -10,6 +10,7 @@ import tempfile
 from importlib import import_module
 from django.utils.module_loading import import_string
 
+import pytest
 from django.apps import apps
 from django.core.management import call_command
 from django.test.utils import extend_sys_path, isolate_apps
