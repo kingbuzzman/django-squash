@@ -137,3 +137,16 @@ def test_file_hash():
         f.write(b"test")
         f.flush()
         assert utils.file_hash(f.name) == "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+
+
+def test_normalize_function_name():
+    reassigned_func2 = func2
+    reassigned_func2_impostor = func2_impostor
+
+    assert utils.normalize_function_name(func.__qualname__) == "<lambda>"
+    assert utils.normalize_function_name(func2.__qualname__) == "func2"
+    assert utils.normalize_function_name(reassigned_func2.__qualname__) == "func2"
+    assert utils.normalize_function_name(func2_impostor.__qualname__) == "func2"
+    assert utils.normalize_function_name(reassigned_func2_impostor.__qualname__) == "func2"
+    assert utils.normalize_function_name(A().func.__qualname__) == "func"
+    assert utils.normalize_function_name(D.func.__qualname__) == "func"
