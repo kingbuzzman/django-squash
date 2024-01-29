@@ -7,6 +7,7 @@ import os
 import sysconfig
 import types
 from collections import defaultdict
+
 from django.db import migrations
 from django.utils.module_loading import import_string
 

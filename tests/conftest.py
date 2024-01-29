@@ -1,21 +1,19 @@
-from collections import defaultdict
-from contextlib import ExitStack
-import pytest
 import io
 import os
-import sys
 import shutil
-from types import ModuleType
+import sys
 import tempfile
+from collections import defaultdict
+from contextlib import ExitStack
 from importlib import import_module
-from django.utils.module_loading import import_string
+from types import ModuleType
 
 import pytest
 from django.apps import apps
+from django.conf import settings as django_settings
 from django.core.management import call_command
 from django.test.utils import extend_sys_path, isolate_apps
-from django.utils.module_loading import module_dir
-from django.conf import settings as django_settings
+from django.utils.module_loading import import_string, module_dir
 
 INSTALLED_APPS = django_settings.INSTALLED_APPS.copy()
 
@@ -137,6 +135,7 @@ def isolated_apps(settings, monkeypatch):
     # apps.populate(INSTALLED_APPS)
 
     import itertools
+
     print(list(itertools.chain.from_iterable(apps.all_models.values())))
 
     yield

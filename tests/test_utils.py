@@ -1,9 +1,8 @@
-from django.db import migrations
-import pytest
 import tempfile
 
 import django
 import pytest
+from django.db import migrations
 
 import django_squash
 from django_squash.db.migrations import utils
