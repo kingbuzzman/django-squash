@@ -1,7 +1,25 @@
 django-squash
 ========================
 
-|CI| |PyPi Version| |Python Versions| |Django Versions| |codecov|
+.. image:: https://travis-ci.com/kingbuzzman/django-squash.svg?branch=master
+    :alt: Build Status
+    :target: https://github.com/pytest-dev/django-squash/actions
+
+.. image:: https://img.shields.io/pypi/v/django-squash.svg?style=flat
+    :alt: Supported PyPi Version
+    :target: https://pypi.python.org/pypi/django-squash
+
+.. image:: https://img.shields.io/pypi/pyversions/django-squash.svg
+    :alt: Supported Python versions
+    :target: https://pypi.python.org/pypi/django-squash
+
+.. image:: https://img.shields.io/pypi/djversions/django-squash.svg
+    :alt: Supported Django versions
+    :target: https://pypi.org/project/django-squash/
+
+.. image:: https://codecov.io/gh/kingbuzzman/django-squash/branch/master/graph/badge.svg
+    :alt: Coverage
+    :target: https://codecov.io/gh/kingbuzzman/django-squash
 
 "django-squash" is an enhancement built on top of the migration classes that come standard with Django. The vision and architecture of Django migrations are unchanged. We replace one command to eliminate the bloat and slowness that grows in proportion to the changes you introduce to your models over time.
 
@@ -158,23 +176,3 @@ Run tests
     isort .
     black --config .black .
     flake8 .
-
-
-.. |CI| image:: https://travis-ci.com/kingbuzzman/django-squash.svg?branch=master
-    :alt: Build Status
-    :target: https://github.com/pytest-dev/django-squash/actions
-
-.. |Python Versions| image:: https://img.shields.io/pypi/pyversions/django-squash.svg
-    :alt: Supported Python versions
-    :target: https://pypi.python.org/pypi/django-squash
-
-.. |codecov| image:: https://codecov.io/gh/kingbuzzman/django-squash/branch/master/graph/badge.svg
-    :alt: Coverage
-    :target: https://codecov.io/gh/kingbuzzman/django-squash
-
-.. |Django Versions| image:: https://img.shields.io/pypi/djversions/django-squash.svg
-    :alt: Supported Django versions
-    :target: https://pypi.org/project/django-squash/
-
-.. |PyPi Version| image:: https://img.shields.io/pypi/v/django-squash.svg?style=flat
-    :target: https://pypi.python.org/pypi/django-squash
