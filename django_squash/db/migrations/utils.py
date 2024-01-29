@@ -1,9 +1,10 @@
 import ast
 import hashlib
+import importlib
 import inspect
 import itertools
 import os
-import pkgutil
+import sysconfig
 import types
 from collections import defaultdict
 from django.db import migrations
@@ -132,11 +133,10 @@ def find_brackets(line, p_count, b_count):
 
 def is_code_in_site_packages(module_name):
     # Find the module in the site-packages directory
+    site_packages_path = sysconfig.get_path("purelib")  # returns the "../site-packages" directory
     try:
-        loader = pkgutil.find_loader(module_name)
-        # Get the file path of the module
-        file_path = os.path.abspath(loader.get_filename())
-        return "/site-packages/" in file_path
+        loader = importlib.util.find_spec(module_name)
+        return site_packages_path in loader.origin
     except ImportError:
         return False
 

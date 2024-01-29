@@ -1,10 +1,12 @@
 from django.db import migrations
 import pytest
+import tempfile
 
-from django_squash.db.migrations import utils
 import django
+import pytest
 
 import django_squash
+from django_squash.db.migrations import utils
 
 func = lambda: 1  # noqa
 
@@ -129,3 +131,10 @@ def test_unique_function_names():
     assert uniq2.function(func2) == "func2_2"
     assert uniq2.function(func2) == "func2_2"
     assert uniq2.function(D.func2) == "func2_5"
+
+
+def test_file_hash():
+    with tempfile.NamedTemporaryFile() as f:
+        f.write(b"test")
+        f.flush()
+        assert utils.file_hash(f.name) == "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"

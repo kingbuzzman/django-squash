@@ -1,3 +1,3 @@
-import pkg_resources
+from importlib.metadata import version
 
-__version__ = pkg_resources.get_distribution("django").version
+__version__ = version("django_squash")

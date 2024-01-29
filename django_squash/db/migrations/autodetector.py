@@ -7,9 +7,7 @@ from collections import defaultdict
 from django.apps import apps
 from django.conf import settings
 from django.db import migrations as migration_module
-from django.db.migrations.autodetector import (
-    MigrationAutodetector as MigrationAutodetectorBase,
-)
+from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
 from . import operators, utils
 
