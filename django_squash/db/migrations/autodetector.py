@@ -66,7 +66,6 @@ def all_custom_operations(operations, unique_names):
 class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
     def add_non_elidables(self, original, loader, changes):
-        unique_names = utils.UniqueVariableName()
         replacing_migrations_by_app = {
             app: [original.disk_migrations[r] for r in itertools.chain.from_iterable([m.replaces for m in migrations])]
             for app, migrations in changes.items()
@@ -80,6 +79,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 import ipdb; print('\a'); ipdb.sset_trace()
 
             for migration in replacing_migrations_by_app[app]:
+                unique_names = utils.UniqueVariableName()
                 module = sys.modules[migration.__module__]
                 imports.extend(utils.get_imports(module))
                 for operation in all_custom_operations(migration.operations, unique_names):
