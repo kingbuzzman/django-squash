@@ -30,15 +30,13 @@ class RunPython(RunPythonBase):
         if operation.reverse_code:
             operation.reverse_code.__original_qualname__ = operation.reverse_code.__qualname__
             operation.reverse_code.__qualname__ = unique_names.function(operation.reverse_code)
-        operation_ = cls(
+        return cls(
             code=operation.code,
             reverse_code=operation.reverse_code,
             atomic=operation.atomic,
             hints=operation.hints,
             elidable=operation.elidable,
         )
-        operation_.__original_operation__ = operation
-        return operation_
 
 
 class RunSQL(RunSQLBase):
@@ -55,12 +53,10 @@ class RunSQL(RunSQLBase):
         name = unique_names("SQL", force_number=True)
         reverse_sql = Variable("%s_ROLLBACK" % name, operation.reverse_sql) if operation.reverse_sql else None
 
-        operation_ = cls(
+        return cls(
             sql=Variable(name, operation.sql),
             reverse_sql=reverse_sql,
             state_operations=operation.state_operations,
             hints=operation.hints,
             elidable=operation.elidable,
         )
-        operation_.__original_operation__ = operation
-        return operation_
