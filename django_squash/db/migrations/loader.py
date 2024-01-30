@@ -10,7 +10,10 @@ from django.db.migrations.loader import MigrationLoader
 
 class SquashMigrationLoader(MigrationLoader):
     def __init__(self, *args, **kwargs):
-        original_migration_modules = settings.MIGRATION_MODULES.copy()
+        # keep a copy of the original migration modules to restore it later
+        original_migration_modules = settings.MIGRATION_MODULES
+        # make a copy of the migration modules so we can modify it
+        settings.MIGRATION_MODULES = settings.MIGRATION_MODULES.copy()
         project_path = os.path.abspath(os.curdir)
 
         with ExitStack() as stack:
