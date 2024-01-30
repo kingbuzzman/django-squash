@@ -57,22 +57,33 @@ Configuration
 
 The following settings are available:
 
-``DJANGO_SQUASH_IGNORE_APPS``
-type: list of strings
-default: ``[]``
-example: (``["app1", "app2"]``)
-hardcoded list of apps to always ignore, no matter what, the same as ``--ignore`` in the ``./manage.py squash_migrations`` command
+* ``DJANGO_SQUASH_IGNORE_APPS``
 
-``DJANGO_SQUASH_MIGRATION_NAME`` = getattr(global_settings, "DJANGO_SQUASH_MIGRATION_NAME", None) or "squashed"
-type: string
-default: ``"squashed"``
-the generated migration name when ``./manage.py squash_migrations`` command is ran
+  type: list of strings
 
-``DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION`` = getattr(global_settings, "DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", None) or None
-type: string or None
-default: ``None``
-example: "path.to.generator_function"
-path to the function that will rename the functions found inside ``RunPython`` operations.
+  default: ``[]``
+
+  example: (``["app1", "app2"]``)
+
+  hardcoded list of apps to always ignore, no matter what, the same as ``--ignore`` in the ``./manage.py squash_migrations`` command
+
+* ``DJANGO_SQUASH_MIGRATION_NAME``
+
+  type: string
+
+  default: ``"squashed"``
+
+  the generated migration name when ``./manage.py squash_migrations`` command is ran
+
+* ``DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION``
+
+  type: string or None
+
+  default: ``None``
+
+  example: "path.to.generator_function"
+
+  path to the function that will rename the functions found inside ``RunPython`` operations.
 
 What this does
 ~~~~~~~~~~~~~~~~~~~~~~~~
