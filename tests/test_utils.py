@@ -174,9 +174,9 @@ def test_get_custom_rename_function(monkeypatch):
 
     assert not utils.get_custom_rename_function()
 
-    monkeypatch.setattr('django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION', 'tests.test_utils.func2')
+    monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "tests.test_utils.func2")
     assert utils.get_custom_rename_function() == func2
 
-    monkeypatch.setattr('django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION', 'does.not.exist')
+    monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "does.not.exist")
     with pytest.raises(ModuleNotFoundError):
         utils.get_custom_rename_function()
