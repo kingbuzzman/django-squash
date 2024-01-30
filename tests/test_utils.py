@@ -168,3 +168,15 @@ def test_normalize_function_name():
     assert utils.normalize_function_name(reassigned_func2_impostor.__qualname__) == "func2"
     assert utils.normalize_function_name(A().func.__qualname__) == "func"
     assert utils.normalize_function_name(D.func.__qualname__) == "func"
+
+
+def test_get_custom_rename_function(monkeypatch):
+
+    assert not utils.get_custom_rename_function()
+
+    monkeypatch.setattr('django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION', 'tests.test_utils.func2')
+    assert utils.get_custom_rename_function() == func2
+
+    monkeypatch.setattr('django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION', 'does.not.exist')
+    with pytest.raises(ModuleNotFoundError):
+        utils.get_custom_rename_function()
