@@ -65,8 +65,8 @@ def all_custom_operations(operations, unique_names):
 
 class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
-    def add_non_elidables(self, original, loader, changes):
-        unique_names = utils.UniqueVariableName()
+    def add_non_elidables(self, original, changes):
+        custom_naming_function = utils.get_custom_rename_function()
         replacing_migrations_by_app = {
             app: [
                 original.disk_migrations[r]
@@ -76,13 +76,16 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         }
 
         for app in changes.keys():
+            unique_names = utils.UniqueVariableName({"app": app}, naming_function=custom_naming_function)
             operations = []
             imports = []
 
             for migration in replacing_migrations_by_app[app]:
+                unique_names.update_context({"migration": migration})
                 module = sys.modules[migration.__module__]
                 imports.extend(utils.get_imports(module))
                 for operation in all_custom_operations(migration.operations, unique_names):
+                    unique_names.update_context({"operation": operation})
                     if isinstance(operation, dj_migrations.RunPython):
                         operation.code = utils.copy_func(operation.code)
                         operation.code.__in_migration_file__ = module.__name__ == operation.code.__module__
@@ -203,7 +206,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         self.convert_migration_references_to_objects(real_loader, graph, changes)
         self.rename_migrations(real_loader, graph, changes, migration_name)
         self.replace_current_migrations(real_loader, graph, changes)
-        self.add_non_elidables(real_loader, squash_loader, changes)
+        self.add_non_elidables(real_loader, changes)
 
         for app, change in changes_.items():
             changes[app].extend(change)

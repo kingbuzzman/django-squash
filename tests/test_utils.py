@@ -65,14 +65,14 @@ def test_is_code_in_site_packages():
 
 
 def test_unique_names():
-    names = utils.UniqueVariableName()
+    names = utils.UniqueVariableName({})
     assert names("var") == "var"
     assert names("var") == "var_2"
     assert names("var_2") == "var_2_2"
 
 
 def test_unique_function_names_errors():
-    names = utils.UniqueVariableName()
+    names = utils.UniqueVariableName({})
 
     with pytest.raises(ValueError):
         names.function("not-a-function")
@@ -96,9 +96,27 @@ def test_unique_function_names_errors():
         names.function(D.func)
 
 
+def test_unique_function_names_context():
+    def custom_name(name, context):
+        return "{module}_{i}_{name}".format(**context, name=name)
+
+    names = utils.UniqueVariableName({"module": __name__.replace(".", "_")}, naming_function=custom_name)
+    collector = []
+    for i, func in enumerate((func2, func2_3, func2_impostor, func2_impostor2)):
+        names.update_context({"func": func, "i": i})
+        collector.append(names.function(func))
+
+    assert collector == [
+        "tests_test_utils_0_func2",
+        "tests_test_utils_1_func2_3",
+        "tests_test_utils_2_func2",
+        "tests_test_utils_3_func2",
+    ]
+
+
 def test_unique_function_names():
-    uniq1 = utils.UniqueVariableName()
-    uniq2 = utils.UniqueVariableName()
+    uniq1 = utils.UniqueVariableName({})
+    uniq2 = utils.UniqueVariableName({})
 
     reassigned_func2 = func2
     reassigned_func2_impostor = func2_impostor
