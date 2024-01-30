@@ -38,9 +38,11 @@ class UniqueVariableName:
     This class will return a unique name for a variable / function.
     """
 
-    def __init__(self):
+    def __init__(self, context, naming_function=None):
         self.names = defaultdict(int)
         self.functions = {}
+        self.context = context
+        self.naming_function = naming_function or lamdba n, c: n
 
     def function(self, func):
         if not callable(func):
@@ -52,39 +54,37 @@ class UniqueVariableName:
         if inspect.ismethod(func) or inspect.signature(func).parameters.get("self") is not None:
             raise ValueError("func cannot be part of an instance")
 
-        name = original_name = func.__qualname__
+        name = func.__qualname__
         if "." in name:
             parent_name, actual_name = name.rsplit(".", 1)
             parent = getattr(import_string(func.__module__), parent_name)
             if issubclass(parent, migrations.Migration):
-                name = name = original_name = actual_name
-        already_accounted = func in self.functions
-        if already_accounted:
+                name = actual_name
+
+        if func in self.functions:
             return self.functions[func]
 
+        name = self.naming_function(name, {**context, 'type_': 'function', 'func': func})
+        self.functions[func] = self.uniq(name)
+
+        return name
+
+    @staticmethod
+    def uniq(name):
+        original_name = name
         # Endless loop that will try different combinations until it finds a unique name
         for i, _ in enumerate(itertools.count(), 2):
             if self.names[name] == 0:
-                self.functions[func] = name
                 self.names[name] += 1
                 break
 
             name = "%s_%s" % (original_name, i)
-
-        self.functions[func] = name
-
         return name
 
     def __call__(self, name, force_number=False):
-        self.names[name] += 1
-        count = self.names[name]
-        if not force_number and count == 1:
-            return name
-        else:
-            new_name = "%s_%s" % (name, count)
-            # Make sure that the function name is fully unique
-            # You can potentially have the same name already defined.
-            return self(new_name)
+        name = self.naming_function(name, {**context, 'type_': 'variable'})
+        return self.uniq(name)
+        
 
 
 def get_imports(module):
