@@ -124,9 +124,7 @@ def get_imports(module):
 
 
 def normalize_function_name(name):
-    class_name, _, function_name = name.rpartition(".")
-    if class_name and not function_name:
-        function_name = class_name
+    _, _, function_name = name.rpartition(".")
     return function_name
 
 
