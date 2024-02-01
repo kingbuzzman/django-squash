@@ -74,6 +74,8 @@ jobs:
         run: |
           SQUASH_VERSION=$(python3 setup.py --version)
           echo "SQUASH_VERSION=$SQUASH_VERSION" >> "$GITHUB_ENV"
+
+          git tag v$SQUASH_VERSION  # Delete!!!!
       - name: Package version has corresponding git tag
         id: tagged
         shell: bash
