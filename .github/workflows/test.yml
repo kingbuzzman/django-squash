@@ -72,7 +72,7 @@ jobs:
         run: python3 -m build
       - name: Extract django-squash version
         run: |
-          VERSION=$(python setup.py --version)
+          SQUASH_VERSION=$(python3 setup.py --version)
           echo "SQUASH_VERSION=$SQUASH_VERSION" >> "$GITHUB_ENV"
       - name: Package version has corresponding git tag
         id: tagged
