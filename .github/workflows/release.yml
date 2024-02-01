@@ -1,0 +1,56 @@
+name: Tests
+
+concurrency:
+  group: django-squash-${{ github.head_ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  django-squash:
+    uses: .github/workflows/_tests.yml
+    with:
+      head_ref: ${{ github.head_ref }}
+
+
+  # TODO: UNCOMMENT WHEN SAFE!!!!
+  # pypi-publish:
+  #   name: Upload release to PyPI
+  #   runs-on: ubuntu-latest
+  #   needs: django-squash
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: "3.x"
+  #     - name: Install pypa/build
+  #       run: python3 -m pip install build setuptools
+  #     - name: Build a binary wheel and a source tarball
+  #       run: python3 -m build
+  #     - name: Extract django-squash version
+  #       run: |
+  #         SQUASH_VERSION=$(python3 setup.py --version)
+  #         echo "SQUASH_VERSION=$SQUASH_VERSION" >> "$GITHUB_ENV"
+  #     - name: Package version has corresponding git tag
+  #       id: tagged
+  #       shell: bash
+  #       run: |
+  #         git fetch --tags
+  #         (git show-ref --tags --verify --quiet -- "refs/tags/v$SQUASH_VERSION" && echo "tagged=1" || echo "tagged=0") >> $GITHUB_OUTPUT
+  #     - name: Create tags
+  #       if: steps.tagged.outputs.tagged == 0
+  #       run: |
+  #         git tag v$SQUASH_VERSION
+  #         git push origin v$SQUASH_VERSION
+  #     - name: Publish distribution 📦 to PyPI
+  #       if: steps.tagged.outputs.tagged == 0
+  #       uses: pypa/gh-action-pypi-publish@release/v1
+  #       with:
+  #         verbose: true
+  #         user: __token__
+  #         password: ${{ secrets.PYPI_API_TOKEN }}

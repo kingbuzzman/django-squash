@@ -1,0 +1,10 @@
+name: Daily Tests
+
+on:
+  schedule:
+    - cron: 0 0 * * *  # Run every day at midnight
+
+jobs:
+  daily-tests:
+    name: Django nightlies work
+    uses: .github/workflows/_tests.yml
