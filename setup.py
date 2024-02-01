@@ -43,7 +43,7 @@ setup(
     author_email="buzzi.javier@gmail.com",
     url="https://github.com/kingbuzzman/django-squash",
     license="MIT",
-    packages=find_packages(exclude=["tests*"]),
+    packages=find_packages(exclude=["tests*", "docs*"]),
     platforms=["any"],
     zip_safe=True,
     python_requires=">=3.8",
