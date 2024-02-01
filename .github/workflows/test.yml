@@ -67,11 +67,24 @@ jobs:
         with:
           python-version: "3.x"
       - name: Install pypa/build
-        run: >-
-          python3 -m pip install build
+        run: python3 -m pip install build
       - name: Build a binary wheel and a source tarball
         run: python3 -m build
+      - name: Extract django-squash version
+        run: |
+          VERSION=$(python setup.py --version)
+          echo "SQUASH_VERSION=$SQUASH_VERSION" >> "$GITHUB_ENV"
+      - name: Package version has corresponding git tag
+        id: tagged
+        shell: bash
+        run: git show-ref --tags --verify --quiet -- "refs/tags/v$SQUASH_VERSION" && echo "::set-output name=tagged::0" || echo "::set-output name=tagged::1"
+      - name: Create tags
+        if: steps.tagged.outputs.tagged == 0
+        run: |
+          git tag v$SQUASH_VERSION
+          git push origin v$SQUASH_VERSION
       - name: Publish distribution 📦 to PyPI
+        if: steps.tagged.outputs.tagged == 0
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
