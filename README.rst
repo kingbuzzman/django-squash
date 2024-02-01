@@ -17,7 +17,7 @@
 django-squash
 ========================
 
-"django-squash" is a migration enhancement built on top of Django_'s standard migration classes. It aims to eliminate bloat and slowness in migration processes by replacing certain commands. The vision and architecture of Django_ migrations remain unchanged.
+"django-squash" is a migration enhancement built on top of Django_'s standard migration classes. It aims to eliminate bloat and slowness in migration processes by replacing certain commands. The vision and architecture of Django migrations remain unchanged.
 
 Before using "django-squash," it's important to understand the normal Django ``makemigrations`` and ``squashmigrations`` commands. Migration files consist of operations that may or may not affect the database table for a model. "elidable" operations can be eliminated when squashing migrations, while "non-elidable" operations cannot. Best way to think about the word "elidable" is to simply think "forgetable" or "disgardable" -- can this operation be disgarded once it's been ran?
 
@@ -28,6 +28,8 @@ The catch lies in proper usage of elidable vs. non-elidable operations and the r
 It's crucial to run the ``squash_migrations`` command once per release after cutting the release. All databases must be on the current release, the prior release, or somewhere in between. Databases before the prior release cannot directly upgrade to the current release; they must first apply the prior release's migrations and then the current release's minimal operations.
 
 This approach is not a tutorial on migration strategy but emphasizes the need for understanding multi-app systems, avoiding circular dependencies, and designing efficient migration processes. The tool is developed based on experience and frustration, aiming to automate and improve the migration squashing process.
+
+You can read more about our motivation_ to creating this tool.
 
 Setup
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -79,3 +81,4 @@ Alternatively, you can also create a virtual environment and run
 
 .. _Django: http://djangoproject.com
 .. _`settings`: docs/settings.rst
+.. _`motivation`: docs/motivation.rst
