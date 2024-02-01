@@ -75,6 +75,7 @@ Alternatively, you can also create a virtual environment and run
     isort .
     black --config .black .
     flake8 .
+    rst-lint .
 
 .. _Django: http://djangoproject.com
 .. _`settings`: docs/settings.rst
