@@ -54,6 +54,8 @@ jobs:
         run: isort --check .
       - name: Black check
         run: black --config .black --check .
+      - name: rst check
+        run: rst-lint .
 
   pypi-publish:
     name: Upload release to PyPI
@@ -67,11 +69,24 @@ jobs:
         with:
           python-version: "3.x"
       - name: Install pypa/build
-        run: >-
-          python3 -m pip install build
+        run: python3 -m pip install build setuptools
       - name: Build a binary wheel and a source tarball
         run: python3 -m build
+      - name: Extract django-squash version
+        run: |
+          SQUASH_VERSION=$(python3 setup.py --version)
+          echo "SQUASH_VERSION=$SQUASH_VERSION" >> "$GITHUB_ENV"
+      - name: Package version has corresponding git tag
+        id: tagged
+        shell: bash
+        run: (git show-ref --tags --verify --quiet -- "refs/tags/v$SQUASH_VERSION" && echo "tagged=1" || echo "tagged=0") >> $GITHUB_OUTPUT
+      - name: Create tags
+        if: steps.tagged.outputs.tagged == 0
+        run: |
+          git tag v$SQUASH_VERSION
+          git push origin v$SQUASH_VERSION
       - name: Publish distribution 📦 to PyPI
+        if: steps.tagged.outputs.tagged == 0
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           verbose: true
