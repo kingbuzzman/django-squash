@@ -17,7 +17,7 @@
 django-squash
 ========================
 
-"django-squash" is a migration enhancement built on top of Django's standard migration classes. It aims to eliminate bloat and slowness in migration processes by replacing certain commands. The vision and architecture of Django migrations remain unchanged.
+"django-squash" is a migration enhancement built on top of Django_'s standard migration classes. It aims to eliminate bloat and slowness in migration processes by replacing certain commands. The vision and architecture of Django_ migrations remain unchanged.
 
 Before using "django-squash," it's important to understand the normal Django ``makemigrations`` and ``squashmigrations`` commands. Migration files consist of operations that may or may not affect the database table for a model. "elidable" operations can be eliminated when squashing migrations, while "non-elidable" operations cannot. Best way to think about the word "elidable" is to simply think "forgetable" or "disgardable" -- can this operation be disgarded once it's been ran?
 
@@ -36,7 +36,7 @@ Setup
 
 2. Add ``django_squash`` to your ``INSTALLED_APPS``.
 
-  (optional) There are some :doc:`relative/path/to/file` you can customize
+   (optional) There are some settings_ you can customize
 
 3. Run ``./manage.py squash_migrations`` once *after* each release
 
@@ -175,3 +175,6 @@ Alternatively, you can also create a virtual environment and run
     isort .
     black --config .black .
     flake8 .
+
+.. _Django: http://djangoproject.com
+.. _`settings`: docs/settings.rst
