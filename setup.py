@@ -12,7 +12,7 @@ with io.open(os.path.join(here, "README.rst"), encoding="utf-8") as fp:
 
 setup(
     name="django_squash",
-    version="0.0.9",
+    version="0.0.10",
     description="A migration squasher that doesn't care how Humpty Dumpty was put together.",
     long_description=README,
     classifiers=[
