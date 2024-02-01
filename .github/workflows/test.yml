@@ -79,7 +79,9 @@ jobs:
       - name: Package version has corresponding git tag
         id: tagged
         shell: bash
-        run: (git show-ref --tags --verify --quiet -- "refs/tags/v$SQUASH_VERSION" && echo "tagged=1" || echo "tagged=0") >> $GITHUB_OUTPUT
+        run: |
+          git fetch --tags
+          (git show-ref --tags --verify --quiet -- "refs/tags/v$SQUASH_VERSION" && echo "tagged=1" || echo "tagged=0") >> $GITHUB_OUTPUT
       - name: Create tags
         if: steps.tagged.outputs.tagged == 0
         run: |
