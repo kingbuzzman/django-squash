@@ -60,6 +60,7 @@ setup(
             "libcst",
             "isort",
             "black",
+            "restructuredtext-lint",
         ],
     },
 )

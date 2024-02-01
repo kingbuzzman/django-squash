@@ -54,6 +54,8 @@ jobs:
         run: isort --check .
       - name: Black check
         run: black --config .black --check .
+      - name: rst check
+        run: rst-lint .
 
   pypi-publish:
     name: Upload release to PyPI
