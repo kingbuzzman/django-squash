@@ -80,7 +80,7 @@ jobs:
         id: tagged
         shell: bash
         run: |
-          git fetch --tags
+          # git fetch --tags
           (git show-ref --tags --verify --quiet -- "refs/tags/v$SQUASH_VERSION" && echo "tagged=1" || echo "tagged=0") >> $GITHUB_OUTPUT
       - name: Create tags
         if: steps.tagged.outputs.tagged == 0
