@@ -12,7 +12,7 @@ with io.open(os.path.join(here, "README.rst"), encoding="utf-8") as fp:
 
 setup(
     name="django_squash",
-    version="0.0.9",
+    version="0.0.10",
     description="A migration squasher that doesn't care how Humpty Dumpty was put together.",
     long_description=README,
     classifiers=[
@@ -43,23 +43,24 @@ setup(
     author_email="buzzi.javier@gmail.com",
     url="https://github.com/kingbuzzman/django-squash",
     license="MIT",
-    packages=find_packages(exclude=["tests*"]),
+    packages=find_packages(exclude=["tests*", "docs*"]),
     platforms=["any"],
     zip_safe=True,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=[
         "django>=3.2",
     ],
     tests_require=[],
     extras_require={
         "test": [
-            "pytest-cov",
-            "pytest-django",
+            "black",
             "flake8",
             "ipdb",
-            "libcst",
             "isort",
-            "black",
+            "libcst",
+            "pytest-cov",
+            "pytest-django",
+            "restructuredtext-lint",
         ],
     },
 )
