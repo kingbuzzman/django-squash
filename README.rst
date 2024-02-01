@@ -36,7 +36,7 @@ Setup
 
 2. Add ``django_squash`` to your ``INSTALLED_APPS``.
 
-2.1 There are some :ref:`settings docs/settings.rst` you can customize
+  (optional) There are some :doc:`relative/path/to/file` you can customize
 
 3. Run ``./manage.py squash_migrations`` once *after* each release
 
