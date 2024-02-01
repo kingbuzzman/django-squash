@@ -13,55 +13,55 @@ on:
       - master
 
 jobs:
-  # django-squash:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       python-version:
-  #         - "3.8"
-  #         - "3.9"
-  #         - "3.10"
-  #         - "3.11"
-  #         - "3.12"
-  #       django-version:
-  #         - "3.2.*"
-  #         - "4.1.*"
-  #         - "4.2.*"
-  #         - "5.0.*"
-  #       exclude:
-  #         - { django-version: "5.0.*", python-version: "3.8" }
-  #         - { django-version: "5.0.*", python-version: "3.9" }
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-python@v4
-  #       with:
-  #         python-version: ${{ matrix.python-version }}
-  #     - name: Install prerequisites
-  #       run: python -m pip install --upgrade pip setuptools codecov pip install codecov django==${{ matrix.django-version }}
-  #     - name: Install packages
-  #       run: pip install -e '.[test]'
-  #     - name: Run tests
-  #       run: pytest --cov django_squash --cov-report=xml --cov-report=term
-  #     - name: Upload coverage to Codecov
-  #       continue-on-error: true
-  #       uses: codecov/codecov-action@v3
-  #       with:
-  #         fail_ci_if_error: true
-  #     - name: Flake8 check
-  #       run: flake8
-  #     - name: iSort check
-  #       run: isort --check .
-  #     - name: Black check
-  #       run: black --config .black --check .
-  #     - name: rst check
-  #       run: rst-lint .
+  django-squash:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+        django-version:
+          - "3.2.*"
+          - "4.1.*"
+          - "4.2.*"
+          - "5.0.*"
+        exclude:
+          - { django-version: "5.0.*", python-version: "3.8" }
+          - { django-version: "5.0.*", python-version: "3.9" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install prerequisites
+        run: python -m pip install --upgrade pip setuptools codecov pip install codecov django==${{ matrix.django-version }}
+      - name: Install packages
+        run: pip install -e '.[test]'
+      - name: Run tests
+        run: pytest --cov django_squash --cov-report=xml --cov-report=term
+      - name: Upload coverage to Codecov
+        continue-on-error: true
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: true
+      - name: Flake8 check
+        run: flake8
+      - name: iSort check
+        run: isort --check .
+      - name: Black check
+        run: black --config .black --check .
+      - name: rst check
+        run: rst-lint .
 
   pypi-publish:
     name: Upload release to PyPI
     runs-on: ubuntu-latest
-    # needs: django-squash
-    # if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: django-squash
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -80,17 +80,17 @@ jobs:
         id: tagged
         shell: bash
         run: |
-          # git fetch --tags
+          git fetch --tags
           (git show-ref --tags --verify --quiet -- "refs/tags/v$SQUASH_VERSION" && echo "tagged=1" || echo "tagged=0") >> $GITHUB_OUTPUT
       - name: Create tags
         if: steps.tagged.outputs.tagged == 0
         run: |
           git tag v$SQUASH_VERSION
-      #     git push origin v$SQUASH_VERSION
-      # - name: Publish distribution 📦 to PyPI
-      #   if: steps.tagged.outputs.tagged == 0
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     verbose: true
-      #     user: __token__
-      #     password: ${{ secrets.PYPI_API_TOKEN }}
+          git push origin v$SQUASH_VERSION
+      - name: Publish distribution 📦 to PyPI
+        if: steps.tagged.outputs.tagged == 0
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
