@@ -19,7 +19,7 @@ django-squash
 
 "django-squash" is a migration enhancement built on top of Django's standard migration classes. It aims to eliminate bloat and slowness in migration processes by replacing certain commands. The vision and architecture of Django migrations remain unchanged.
 
-Before using "django-squash," it's important to understand the normal Django makemigrations and squashmigrations commands. Migration files consist of operations that may or may not affect the database table for a model. "elidable" operations can be eliminated when squashing migrations, while "non-elidable" operations cannot.
+Before using "django-squash," it's important to understand the normal Django ``makemigrations`` and ``squashmigrations`` commands. Migration files consist of operations that may or may not affect the database table for a model. "elidable" operations can be eliminated when squashing migrations, while "non-elidable" operations cannot. Best way to think about the word "elidable" is to simply think "forgetable" or "disgardable" -- can this operation be disgarded once it's been ran?
 
 The package introduces a command named ``squash_migrations`` as an alternative to Django's ``squashmigrations``. This command minimizes the number of operations needed to build the database's schema, resulting in faster testing pipelines and deployments, especially in scenarios with multiple tenants.
 
@@ -35,6 +35,8 @@ Setup
 1. ``pip install django-squash``
 
 2. Add ``django_squash`` to your ``INSTALLED_APPS``.
+
+2.1 There are some :ref:`settings docs/settings.rst` you can customize
 
 3. Run ``./manage.py squash_migrations`` once *after* each release
 
