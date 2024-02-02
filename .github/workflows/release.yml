@@ -11,7 +11,7 @@ on:
 
 jobs:
   django-squash:
-    uses: .github/workflows/_tests.yml
+    uses: ./.github/workflows/_tests.yml
     with:
       head_ref: ${{ github.head_ref }}
 

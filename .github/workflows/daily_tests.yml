@@ -11,6 +11,6 @@ on:
 jobs:
   daily-tests:
     name: Django nightlies work
-    uses: .github/workflows/_tests.yml
+    uses: ./.github/workflows/_tests.yml
     with:
       repository: master
