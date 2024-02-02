@@ -1,4 +1,4 @@
-name: Tests
+name: Test & Release
 
 concurrency:
   group: django-squash-${{ github.head_ref }}
