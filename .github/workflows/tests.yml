@@ -12,5 +12,6 @@ on:
 jobs:
   django-squash:
     uses: ./.github/workflows/_tests.yml
+    secrets: inherit
     with:
       repository: ${{ github.repository }}
