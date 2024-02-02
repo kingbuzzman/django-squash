@@ -3,13 +3,7 @@ name: Tests
 on:
   workflow_call:
     inputs:
-      version:
-        required: true
-        type: string
-      deploy_tag:
-        required: true
-        type: string
-      environment:
+      repository:
         required: true
         type: string
 
@@ -35,6 +29,8 @@ jobs:
           - { django-version: "5.0.*", python-version: "3.9" }
     steps:
       - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository }}
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
