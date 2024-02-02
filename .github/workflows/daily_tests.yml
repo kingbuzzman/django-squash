@@ -1,5 +1,9 @@
 name: Daily Tests
 
+concurrency:
+  group: django-squash-${{ github.head_ref }}
+  cancel-in-progress: true
+
 on:
   schedule:
     - cron: 0 0 * * *  # Run every day at midnight
@@ -8,3 +12,5 @@ jobs:
   daily-tests:
     name: Django nightlies work
     uses: .github/workflows/_tests.yml
+    with:
+      repository: master
