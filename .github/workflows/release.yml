@@ -14,7 +14,7 @@ jobs:
   django-squash:
     uses: ./.github/workflows/_tests.yml
     with:
-      head_ref: ${{ github.head_ref }}
+      repository: ${{ github.repository }}
 
   pypi-publish:
     name: Upload release to PyPI
