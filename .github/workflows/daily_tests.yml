@@ -6,7 +6,8 @@ concurrency:
 
 on:
   schedule:
-    - cron: 0 0 * * *  # Run every day at midnight
+    # - cron: 0 0 * * *  # Run every day at midnight
+    - cron: '*/5 * * * *'
 
 jobs:
   daily-tests:
