@@ -1,19 +1,14 @@
-name: Tests
-
-concurrency:
-  group: django-squash-${{ github.head_ref }}
-  cancel-in-progress: true
+name: Test Include
 
 on:
-  pull_request:
-    branches:
-      - "**"
-  push:
-    branches:
-      - master
+  workflow_call:
+    inputs:
+      repository:
+        required: true
+        type: string
 
 jobs:
-  django-squash:
+  tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -29,16 +24,26 @@ jobs:
           - "4.1.*"
           - "4.2.*"
           - "5.0.*"
+          - "main"
         exclude:
           - { django-version: "5.0.*", python-version: "3.8" }
+          - { django-version: "main", python-version: "3.8" }
           - { django-version: "5.0.*", python-version: "3.9" }
+          - { django-version: "main", python-version: "3.9" }
     steps:
       - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository }}
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install prerequisites
-        run: python -m pip install --upgrade pip setuptools codecov pip install codecov django==${{ matrix.django-version }}
+        run: |
+          DJANGO="django==${{ matrix.django-version }}"
+          if [[ "${{ matrix.django-version }}" == "main" ]]; then
+            DJANGO="git+https://github.com/django/django.git@main"
+          fi
+          python -m pip install --upgrade pip setuptools codecov pip install codecov $DJANGO
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
@@ -54,26 +59,5 @@ jobs:
         run: isort --check .
       - name: Black check
         run: black --config .black --check .
-
-  pypi-publish:
-    name: Upload release to PyPI
-    runs-on: ubuntu-latest
-    needs: django-squash
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-      - name: Install pypa/build
-        run: >-
-          python3 -m pip install build
-      - name: Build a binary wheel and a source tarball
-        run: python3 -m build
-      - name: Publish distribution 📦 to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          verbose: true
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: rst check
+        run: rst-lint .
