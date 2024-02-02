@@ -39,8 +39,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install prerequisites
         run: |
-          DJANGO=${{ matrix.django-version }}
-          if [[ "$DJANGO" == "main" ]]; then
+          DJANGO="django==${{ matrix.django-version }}"
+          if [[ "${{ matrix.django-version }}" == "main" ]]; then
             DJANGO="git+https://github.com/django/django.git@main"
           fi
           python -m pip install --upgrade pip setuptools codecov pip install codecov $DJANGO
