@@ -7,8 +7,7 @@ concurrency:
 on:
   push:
     branches:
-      # - master
-      - fix-release
+      - master
 
 jobs:
   django-squash:
@@ -17,7 +16,7 @@ jobs:
       repository: ${{ github.repository }}
 
   pypi-publish:
-    name: Upload release to PyPI
+    name: Tag and Release
     runs-on: ubuntu-latest
     environment: deploy
     needs: django-squash
@@ -41,15 +40,15 @@ jobs:
         run: |
           git fetch --tags
           (git show-ref --tags --verify --quiet -- "refs/tags/v$SQUASH_VERSION" && echo "tagged=1" || echo "tagged=0") >> $GITHUB_OUTPUT
-      # - name: Create tags
-      #   if: steps.tagged.outputs.tagged == 0
-      #   run: |
-      #     git tag v$SQUASH_VERSION
-      #     git push origin v$SQUASH_VERSION
-      # - name: Publish distribution 📦 to PyPI
-      #   if: steps.tagged.outputs.tagged == 0
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     verbose: true
-      #     user: __token__
-      #     password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Create tags
+        if: steps.tagged.outputs.tagged == 0
+        run: |
+          git tag v$SQUASH_VERSION
+          git push origin v$SQUASH_VERSION
+      - name: Publish distribution 📦 to PyPI
+        if: steps.tagged.outputs.tagged == 0
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
