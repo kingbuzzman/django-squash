@@ -1,0 +1,64 @@
+name: Test Include
+
+on:
+  workflow_call:
+    inputs:
+      repository:
+        required: true
+        type: string
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
+        django-version:
+          - "3.2.*"
+          - "4.1.*"
+          - "4.2.*"
+          - "5.0.*"
+          - "main"
+        exclude:
+          - { django-version: "5.0.*", python-version: "3.8" }
+          - { django-version: "main", python-version: "3.8" }
+          - { django-version: "5.0.*", python-version: "3.9" }
+          - { django-version: "main", python-version: "3.9" }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install prerequisites
+        run: |
+          DJANGO="django==${{ matrix.django-version }}"
+          if [[ "${{ matrix.django-version }}" == "main" ]]; then
+            DJANGO="git+https://github.com/django/django.git@main"
+          fi
+          python -m pip install --upgrade pip setuptools codecov pip install codecov $DJANGO
+      - name: Install packages
+        run: pip install -e '.[test]'
+      - name: Run tests
+        run: pytest --cov django_squash --cov-report=xml --cov-report=term
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          env_vars: OS,RUST
+      - name: Flake8 check
+        run: flake8
+      - name: iSort check
+        run: isort --check .
+      - name: Black check
+        run: black --config .black --check .
+      - name: rst check
+        run: rst-lint .
