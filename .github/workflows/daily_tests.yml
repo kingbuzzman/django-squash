@@ -13,4 +13,4 @@ jobs:
     name: Django nightlies work
     uses: ./.github/workflows/_tests.yml
     with:
-      repository: master
+      ref: master
