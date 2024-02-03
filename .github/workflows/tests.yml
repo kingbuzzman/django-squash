@@ -14,4 +14,4 @@ jobs:
     uses: ./.github/workflows/_tests.yml
     secrets: inherit
     with:
-      ref: fix-nighly-repo
+      ref: ${{ github.ref }}
