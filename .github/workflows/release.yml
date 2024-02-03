@@ -13,7 +13,7 @@ jobs:
   django-squash:
     uses: ./.github/workflows/_tests.yml
     with:
-      repository: ${{ github.repository }}
+      ref: ${{ github.ref }}
 
   pypi-publish:
     name: Tag and Release
