@@ -3,7 +3,7 @@ name: Test Include
 on:
   workflow_call:
     inputs:
-      repository:
+      ref:
         required: true
         type: string
 
@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
