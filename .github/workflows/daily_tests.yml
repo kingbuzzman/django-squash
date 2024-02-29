@@ -12,5 +12,6 @@ jobs:
   daily-tests:
     name: Django nightlies work
     uses: ./.github/workflows/_tests.yml
+    secrets: inherit
     with:
-      repository: master
+      ref: master
