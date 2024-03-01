@@ -10,28 +10,23 @@ on:
 jobs:
   prepare-matrix:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
       - uses: actions/setup-python@v5
       - name: Generate matrix from setup.py
-        id: set-matrix
         run: |
           set -x
-          MATRIX_JSON=$(python -c "from setup import PYTHON_VERSIONS, DJANGO_VERSIONS; import json, itertools; print(json.dumps({'python-version': PYTHON_VERSIONS, 'django-version': [f'{v}.*' for v in DJANGO_VERSIONS] + ['main'], 'exclude': [{'django-version': d, 'python-version': p} for p, d in itertools.product(['3.8', '3.9'], ['main', '5.0.*'])]}))") 
-          echo "MATRIX_JSON<<EOF" >> $GITHUB_ENV
-          echo "$MATRIX_JSON" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          python -c "from setup import PYTHON_VERSIONS, DJANGO_VERSIONS; import json, itertools; print(json.dumps({'python-version': PYTHON_VERSIONS, 'django-version': [f'{v}.*' for v in DJANGO_VERSIONS] + ['main'], 'exclude': [{'django-version': d, 'python-version': p} for p, d in itertools.product(['3.8', '3.9'], ['main', '5.0.*'])]}))" > matrix.json
+          echo "MATRIX_JSON=$(<matrix.json)" >> $GITHUB_ENV
 
   tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
+        matrix: ${{fromJson(env.MATRIX_JSON)}}
         # python-version:
         #   - "3.8"
         #   - "3.9"
