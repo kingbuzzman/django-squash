@@ -5,7 +5,6 @@ import itertools
 import json
 import os
 
-from setuptools import find_packages, setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 with io.open(os.path.join(here, "README.rst"), encoding="utf-8") as fp:
@@ -26,6 +25,8 @@ GITHUB_MATRIX = json.dumps(
 )
 
 if __name__ == "__main__":
+    from setuptools import find_packages, setup
+
     setup(
         name="django_squash",
         version="0.0.10",
