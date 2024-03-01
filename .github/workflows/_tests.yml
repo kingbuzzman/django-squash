@@ -40,7 +40,7 @@ jobs:
               with urlopen(Request(url)) as httpresponse:
                   eol = json.loads(httpresponse.read())['eol']
                   if datetime.strptime(eol, '%Y-%m-%d').date() < today:
-                      print(f'::warning ::{product} v{version}: EOL was {eol}')"
+                      print(f'::error ::{product} v{version}: EOL was {eol}')"
 
   tests:
     runs-on: ubuntu-latest
