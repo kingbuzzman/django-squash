@@ -44,19 +44,30 @@ class Command(BaseCommand):
                 print(f"{app_label} not found")
                 continue
             for migration in migrations:
+                bad_dependencies = []
                 for depends_on_app_label, _ in migration.dependencies:
                     if depends_on_app_label == "__setting__":
                         continue
                     depends_on_app_label = apps.get_app_config(depends_on_app_label).name
                     depends_on_app_ranking = dependency_list.index(depends_on_app_label)
                     if depends_on_app_ranking > app_ranking:
-                        print(f"{app_label} ({app_ranking}) > {depends_on_app_label} ({depends_on_app_ranking})")
+                        print(f"* {app_label} ({app_ranking}) > {depends_on_app_label} ({depends_on_app_ranking})")
+                        bad_dependencies.append((app_label, depends_on_app_label))
+
+                if not bad_dependencies:
+                    continue
+
+                import ipdb; print('\a'); ipdb.sset_trace()
+                for operation in migration.operations:
+                    for field in operation.fields:
+                        continue
+
+
                     # elif depends_on_app_ranking < app_ranking:
                     #     print(f"{app_label} ({app_ranking}) < {depends_on_app_label} ({depends_on_app_ranking})")
 
 
 
-        import ipdb; print('\a'); ipdb.sset_trace()
         a=a
 
 
