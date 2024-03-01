@@ -21,7 +21,7 @@ jobs:
         id: set-matrix
         run: |
           set -x
-          python -c "from .setup import PYTHON_VERSIONS, DJANGO_VERSIONS; print(PYTHON_VERSIONS)"
+          python -c "from setup import PYTHON_VERSIONS, DJANGO_VERSIONS; print(PYTHON_VERSIONS)"
           echo "MATRIX_JSON=$(python -c "import .setup; print()")" >> $GITHUB_ENV
           echo "::set-output name=matrix::$(cat $GITHUB_ENV | grep MATRIX_JSON | sed 's/MATRIX_JSON=//')"
         # This requires you to create a `generate_matrix.py` script that reads versions.ini and generates a JSON object for the matrix
