@@ -21,7 +21,7 @@ jobs:
         id: set-matrix
         run: |
           set -x
-          echo "MATRIX_JSON=$(python -c "'"'""from setup import PYTHON_VERSIONS, DJANGO_VERSIONS; print(json.dumps({'python-version': PYTHON_VERSIONS, 'django-version': [f'{v}.*' for v in DJANGO_VERSIONS] + ["main"], 'exclude': [{'django-version': d, 'python-version': p} for p, d in itertools.product(['3.8', '3.9'], ['main', '5.0.*'])]}))"'"'"")" >> $GITHUB_ENV
+          echo "MATRIX_JSON=$(python -c "'"'"from setup import PYTHON_VERSIONS, DJANGO_VERSIONS; print(json.dumps({'python-version': PYTHON_VERSIONS, 'django-version': [f'{v}.*' for v in DJANGO_VERSIONS] + ["main"], 'exclude': [{'django-version': d, 'python-version': p} for p, d in itertools.product(['3.8', '3.9'], ['main', '5.0.*'])]}))"'"'")" >> $GITHUB_ENV
           echo "::set-output name=matrix::$(cat $GITHUB_ENV | grep MATRIX_JSON | sed 's/MATRIX_JSON=//')"
         # This requires you to create a `generate_matrix.py` script that reads versions.ini and generates a JSON object for the matrix
 
