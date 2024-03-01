@@ -30,17 +30,21 @@ jobs:
           set -x
           python -c "import json
           from urllib.request import Request, urlopen
-          from datetime import date, datetime
+          from datetime import date, datetime, timedelta
           from itertools import chain, zip_longest
           from setup import DJANGO_VERSIONS, PYTHON_VERSIONS
           today = date.today()
+          WARNING_DAYS = timedelta(days=90)
           versions = chain.from_iterable([zip_longest(['django'] * len(DJANGO_VERSIONS), DJANGO_VERSIONS), zip_longest(['python'] * len(PYTHON_VERSIONS), PYTHON_VERSIONS)])
           for product, version in versions:
               url = f'https://endoflife.date/api/{product}/{version}.json'
               with urlopen(Request(url)) as httpresponse:
                   eol = json.loads(httpresponse.read())['eol']
-                  if datetime.strptime(eol, '%Y-%m-%d').date() < today:
+                  eol_date = datetime.strptime(eol, '%Y-%m-%d').date()
+                  if eol_date < today:
                       print(f'::error ::{product} v{version}: EOL was {eol}')"
+                  elif eol_date - today < WARNING_DAYS:
+                      print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')"
 
   tests:
     runs-on: ubuntu-latest
