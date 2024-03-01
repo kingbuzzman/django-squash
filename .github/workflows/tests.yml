@@ -11,6 +11,7 @@ on:
 
 jobs:
   django-squash:
+    name: Tests
     uses: ./.github/workflows/_tests.yml
     secrets: inherit
     with:
