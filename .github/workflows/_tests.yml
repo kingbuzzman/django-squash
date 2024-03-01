@@ -22,7 +22,7 @@ jobs:
         run: |
           set -x
           python -c "from setup import GITHUB_MATRIX; print(GITHUB_MATRIX)" > matrix.json
-          echo "MATRIX_JSON=$(<matrix.json)" >> $GITHUB_ENV
+          echo "matrix=$(<matrix.json)" >> $GITHUB_OUTPUT
 
   tests:
     runs-on: ubuntu-latest
