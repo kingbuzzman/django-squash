@@ -10,12 +10,15 @@ on:
 jobs:
   prepare-matrix:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
       - uses: actions/setup-python@v5
       - name: Generate matrix from setup.py
+        id: set-matrix
         run: |
           set -x
           python -c "from setup import GITHUB_MATRIX; print(GITHUB_MATRIX)" > matrix.json
@@ -26,7 +29,7 @@ jobs:
     needs: prepare-matrix
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(env.MATRIX_JSON) }}
+      matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
       # matrix:
         # python-version:
         #   - "3.8"
