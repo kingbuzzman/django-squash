@@ -13,22 +13,15 @@ with io.open(os.path.join(here, "README.rst"), encoding="utf-8") as fp:
 
 DJANGO_VERSIONS = ["3.2", "4.1", "4.2", "5.0"]  # "main" is fictitiously here
 PYTHON_VERSIONS = ["3.8", "3.9", "3.11", "3.12"]
-MIN_DJANGO_VERSION = ".".join(
-    map(str, min([tuple(map(int, v.split("."))) for v in DJANGO_VERSIONS]))
-)
-MIN_PYTHON_VERSION = ".".join(
-    map(str, min([tuple(map(int, v.split("."))) for v in PYTHON_VERSIONS]))
-)
+MIN_DJANGO_VERSION = ".".join(map(str, min([tuple(map(int, v.split("."))) for v in DJANGO_VERSIONS])))
+MIN_PYTHON_VERSION = ".".join(map(str, min([tuple(map(int, v.split("."))) for v in PYTHON_VERSIONS])))
 # Python/Django exceptions
 EXCLUDE_MATRIX = (["3.8", "3.9"], ["5.0.*", "main"])
 GITHUB_MATRIX = json.dumps(
     {
         "python-version": PYTHON_VERSIONS,
         "django-version": [f"{v}.*" for v in DJANGO_VERSIONS] + ["main"],
-        "exclude": [
-            {"django-version": d, "python-version": p}
-            for p, d in itertools.product(*EXCLUDE_MATRIX)
-        ],
+        "exclude": [{"django-version": d, "python-version": p} for p, d in itertools.product(*EXCLUDE_MATRIX)],
     }
 )
 
