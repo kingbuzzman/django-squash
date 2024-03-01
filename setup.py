@@ -55,7 +55,7 @@ if __name__ == "__main__":
         zip_safe=True,
         python_requires=f">={MIN_PYTHON_VERSION}",
         install_requires=[
-            "django>={MIN_DJANGO_VERSION}",
+            f"django>={MIN_DJANGO_VERSION}",
         ],
         tests_require=[],
         extras_require={
