@@ -26,12 +26,8 @@ jobs:
     needs: prepare-matrix
     strategy:
       fail-fast: false
-      matrix:
-        python-version:
-          - "3.8"
-        django-version:
-          - "3.2.*"
-        # matrix: ${{fromJson(envs.MATRIX_JSON)}}
+      matrix: ${{ fromJson(env.MATRIX_JSON) }}
+      # matrix:
         # python-version:
         #   - "3.8"
         #   - "3.9"
