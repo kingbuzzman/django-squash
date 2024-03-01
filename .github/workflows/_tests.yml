@@ -30,24 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
-      # matrix:
-        # python-version:
-        #   - "3.8"
-        #   - "3.9"
-        #   - "3.10"
-        #   - "3.11"
-        #   - "3.12"
-        # django-version:
-        #   - "3.2.*"
-        #   - "4.1.*"
-        #   - "4.2.*"
-        #   - "5.0.*"
-        #   - "main"
-        # exclude:
-        #   - { django-version: "5.0.*", python-version: "3.8" }
-        #   - { django-version: "main", python-version: "3.8" }
-        #   - { django-version: "5.0.*", python-version: "3.9" }
-        #   - { django-version: "main", python-version: "3.9" }
+    name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}
     steps:
       - uses: actions/checkout@v4
         with:
