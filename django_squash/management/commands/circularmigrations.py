@@ -52,22 +52,22 @@ class Command(BaseCommand):
                     depends_on_app_ranking = dependency_list.index(depends_on_app_label)
                     if depends_on_app_ranking > app_ranking:
                         print(f"* {app_label} ({app_ranking}) > {depends_on_app_label} ({depends_on_app_ranking})")
-                        bad_dependencies.append((app_label, depends_on_app_label))
+                        bad_dependencies.append(depends_on_app_label.split('.')[-1])
 
                 if not bad_dependencies:
                     continue
 
-                import ipdb; print('\a'); ipdb.sset_trace()
+                references_found = []
                 for operation in migration.operations:
-                    for field in operation.fields:
-                        continue
+                    if hasattr(operation, "field") and hasattr(operation.field, "related_model"):
+                        if operation.field.related_model._meta.app_label in bad_dependencies:
+                            references_found.append((operation.model_name, operation.name, operation.field.related_model))
 
+                    if hasattr(operation, "fields"):
+                        for name, field in operation.fields:
+                            if hasattr(field, "related_model") and field.related_model and not isinstance(field.related_model, str):
+                                if field.related_model._meta.app_label in bad_dependencies:
+                                    references_found.append((operation.name, name, field.related_model))
 
-                    # elif depends_on_app_ranking < app_ranking:
-                    #     print(f"{app_label} ({app_ranking}) < {depends_on_app_label} ({depends_on_app_ranking})")
-
-
-
-        a=a
-
-
+                for model_name, field_name, model in references_found:
+                    print(f"  references {model._meta.app_label}.{model._meta.object_name} via {model_name}.{field_name}")
