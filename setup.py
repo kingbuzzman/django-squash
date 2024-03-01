@@ -5,7 +5,6 @@ import itertools
 import json
 import os
 
-
 here = os.path.abspath(os.path.dirname(__file__))
 with io.open(os.path.join(here, "README.rst"), encoding="utf-8") as fp:
     README = fp.read()
