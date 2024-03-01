@@ -42,7 +42,7 @@ jobs:
                   eol = json.loads(httpresponse.read())['eol']
                   eol_date = datetime.strptime(eol, '%Y-%m-%d').date()
                   if eol_date < today:
-                      print(f'::error ::{product} v{version}: EOL was {eol}')"
+                      print(f'::error ::{product} v{version}: EOL was {eol}')
                   elif eol_date - today < WARNING_DAYS:
                       print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')"
 
