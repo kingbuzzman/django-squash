@@ -14,6 +14,10 @@
     :alt: Coverage
     :target: https://codecov.io/gh/kingbuzzman/django-squash
 
+.. image:: https://img.shields.io/pypi/dm/django-squash
+   :alt: PyPI - Downloads
+   :target: https://pypistats.org/packages/django-squash
+
 django-squash
 ========================
 
