@@ -18,7 +18,7 @@ jobs:
       - name: Generate matrix from setup.py
         run: |
           set -x
-          python -c "from setup import PYTHON_VERSIONS, DJANGO_VERSIONS; import json, itertools; print(json.dumps({'python-version': PYTHON_VERSIONS, 'django-version': [f'{v}.*' for v in DJANGO_VERSIONS] + ['main'], 'exclude': [{'django-version': d, 'python-version': p} for p, d in itertools.product(['3.8', '3.9'], ['main', '5.0.*'])]}))" > matrix.json
+          python -c "from setup import GITHUB_MATRIX; print(GITHUB_MATRIX)" > matrix.json
           echo "MATRIX_JSON=$(<matrix.json)" >> $GITHUB_ENV
 
   tests:
@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        matrix: ${{fromJson(envs.MATRIX_JSON)}}
+        # matrix: ${{fromJson(envs.MATRIX_JSON)}}
         # python-version:
         #   - "3.8"
         #   - "3.9"

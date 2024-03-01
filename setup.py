@@ -2,6 +2,8 @@
 
 import io
 import os
+import json
+import itertools
 
 from setuptools import find_packages, setup
 
@@ -9,10 +11,17 @@ here = os.path.abspath(os.path.dirname(__file__))
 with io.open(os.path.join(here, "README.rst"), encoding="utf-8") as fp:
     README = fp.read()
 
-DJANGO_VERSIONS = ["3.2", "4.1", "4.2", "5.0"]
+DJANGO_VERSIONS = ["3.2", "4.1", "4.2", "5.0"]  # "main" is fictitiously here 
 PYTHON_VERSIONS = ["3.8", "3.9", "3.11", "3.12"]
 MIN_DJANGO_VERSION = min(DJANGO_VERSIONS)
 MIN_PYTHON_VERSION = min(PYTHON_VERSIONS)
+# Python/Django exceptions
+EXCLUDE_MATRIX = (["3.8", "3.9"], ["5.0.*", "main"])
+GITHUB_MATRIX = json.dumps({
+    'python-version': PYTHON_VERSIONS, 
+    'django-version': [f'{v}.*' for v in DJANGO_VERSIONS] + ['main'], 
+    'exclude': [{'django-version': d, 'python-version': p} for p, d in itertools.product(*EXCLUDE_MATRIX)]
+})
 
 if __name__ == "__main__":
     setup(
