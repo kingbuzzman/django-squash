@@ -244,10 +244,18 @@ def test_invalid_apps(call_squash_migrations):
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--ignore-app",
-            "a",
-            "b",
+            "aaa",
+            "bbb",
         )
-    assert str(error.value) == "The following apps are not valid: a, b"
+    assert str(error.value) == "The following apps are not valid: aaa, bbb"
+
+
+@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
+def test_invalid_apps_ignore(monkeypatch, call_squash_migrations):
+    monkeypatch.setattr('django_squash.settings.DJANGO_SQUASH_IGNORE_APPS', ["aaa", "bbb"])
+    with pytest.raises(CommandError) as error:
+        call_squash_migrations()
+    assert str(error.value) == "The following apps are not valid: aaa, bbb"
 
 
 @pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
