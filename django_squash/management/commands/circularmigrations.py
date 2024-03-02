@@ -20,9 +20,7 @@ class Command(BaseCommand):
         dependency_list = settings.INSTALLED_APPS
         apps.all_models
 
-        questioner = NonInteractiveMigrationQuestioner(
-            specified_apps=None, dry_run=False
-        )
+        questioner = NonInteractiveMigrationQuestioner(specified_apps=None, dry_run=False)
         squash_loader = SquashMigrationLoader(None, ignore_no_migrations=True)
         autodetector = SquashMigrationAutodetector(
             squash_loader.project_state(),
@@ -48,14 +46,10 @@ class Command(BaseCommand):
                 for depends_on_app_label, _ in migration.dependencies:
                     if depends_on_app_label == "__setting__":
                         continue
-                    depends_on_app_label = apps.get_app_config(
-                        depends_on_app_label
-                    ).name
+                    depends_on_app_label = apps.get_app_config(depends_on_app_label).name
                     depends_on_app_ranking = dependency_list.index(depends_on_app_label)
                     if depends_on_app_ranking > app_ranking:
-                        print(
-                            f"* {app_label} ({app_ranking}) > {depends_on_app_label} ({depends_on_app_ranking})"
-                        )
+                        print(f"* {app_label} ({app_ranking}) > {depends_on_app_label} ({depends_on_app_ranking})")
                         bad_dependencies.append(depends_on_app_label.split(".")[-1])
 
                 if not bad_dependencies:
@@ -63,13 +57,8 @@ class Command(BaseCommand):
 
                 references_found = []
                 for operation in migration.operations:
-                    if hasattr(operation, "field") and hasattr(
-                        operation.field, "related_model"
-                    ):
-                        if (
-                            operation.field.related_model._meta.app_label
-                            in bad_dependencies
-                        ):
+                    if hasattr(operation, "field") and hasattr(operation.field, "related_model"):
+                        if operation.field.related_model._meta.app_label in bad_dependencies:
                             references_found.append(
                                 (
                                     operation.model_name,
@@ -85,13 +74,8 @@ class Command(BaseCommand):
                                 and field.related_model
                                 and not isinstance(field.related_model, str)
                             ):
-                                if (
-                                    field.related_model._meta.app_label
-                                    in bad_dependencies
-                                ):
-                                    references_found.append(
-                                        (operation.name, name, field.related_model)
-                                    )
+                                if field.related_model._meta.app_label in bad_dependencies:
+                                    references_found.append((operation.name, name, field.related_model))
 
                 for model_name, field_name, model in references_found:
                     print(
