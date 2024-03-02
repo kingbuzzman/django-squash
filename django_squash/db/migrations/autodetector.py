@@ -151,12 +151,13 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             for migration in migrations:
                 new_dependencies = []
                 for dependency in migration.dependencies:
-                    if migration_id[0] in ignore_apps:
+                    dep_app_label, dep_migration = dependency
+                    if dep_app_label in ignore_apps:
                         new_dependencies.append(original.graph.leaf_nodes(migration_id[0])[0])
                         continue
 
-                    if dependency[0] == "__setting__":
-                        app_label = getattr(settings, dependency[1]).split(".")[0]
+                    if dep_app_label == "__setting__":
+                        app_label = getattr(settings, dep_migration).split(".")[0]
                         migrations = [
                             migration for (app, _), migration in migrations_by_name.items() if app == app_label
                         ]
@@ -166,10 +167,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                             # Leave as is, the django's migration writer will handle this by default
                             new_dependencies.append(dependency)
                             continue
-                    elif dependency[1] == "__first__":
-                        dependency = original.graph.root_nodes(dependency[0])[0]
-                    elif dependency[1] == "__latest__":
-                        dependency = original.graph.leaf_nodes(dependency[0])[0]
+                    elif dep_migration == "__first__":
+                        dependency = original.graph.root_nodes(dep_app_label)[0]
+                    elif dep_migration == "__latest__":
+                        dependency = original.graph.leaf_nodes(dep_app_label)[0]
 
                     migration_id = dependency
                     if migration_id not in migrations_by_name:
@@ -194,7 +195,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             instance.replaces = migrations
             changes[app_label] = [instance]
 
-    def squash(self, real_loader, squash_loader, ignore_apps=None, migration_name=None):
+    def squash(self, real_loader, squash_loader, ignore_apps, migration_name=None):
         changes_ = self.delete_old_squashed(real_loader, ignore_apps)
 
         graph = squash_loader.graph
@@ -214,12 +215,13 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         return changes
 
-    def delete_old_squashed(self, loader, ignore_apps=None):
+    def delete_old_squashed(self, loader, ignore_apps):
         changes = defaultdict(set)
         project_path = os.path.abspath(os.curdir)
         project_apps = [
             app.label for app in apps.get_app_configs() if utils.source_directory(app.module).startswith(project_path)
         ]
+        import ipdb; print('\a'); ipdb.sset_trace()
 
         real_migrations = (
             Migration.from_migration(loader.disk_migrations[key]) for key in loader.graph.node_map.keys()
@@ -227,14 +229,14 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         project_migrations = [
             migration
             for migration in real_migrations
-            if migration.app_label in project_apps and migration.app_label not in ignore_apps or []
+            if migration.app_label in project_apps and migration.app_label not in ignore_apps
         ]
         replaced_migrations = [
             Migration.from_migration(migration) for migration in project_migrations if migration.replaces
         ]
 
         migrations_to_remove = set()
-        for migration in (y for x in replaced_migrations for y in x.replaces if y[0] not in ignore_apps or []):
+        for migration in (y for x in replaced_migrations for y in x.replaces if y[0] not in ignore_apps):
             real_migration = Migration.from_migration(loader.disk_migrations[migration])
             real_migration._deleted = True
             migrations_to_remove.add(migration)
