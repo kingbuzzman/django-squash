@@ -221,16 +221,9 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         project_apps = [
             app.label for app in apps.get_app_configs() if utils.source_directory(app.module).startswith(project_path)
         ]
-        import ipdb; print('\a'); ipdb.sset_trace()
 
-        real_migrations = (
-            Migration.from_migration(loader.disk_migrations[key]) for key in loader.graph.node_map.keys()
-        )
-        project_migrations = [
-            migration
-            for migration in real_migrations
-            if migration.app_label in project_apps and migration.app_label not in ignore_apps
-        ]
+        real_migrations = [Migration.from_migration(loader.disk_migrations[key]) for key in loader.graph.node_map.keys()]
+        project_migrations = [migration for migration in real_migrations if migration.app_label in project_apps and migration.app_label not in ignore_apps]
         replaced_migrations = [
             Migration.from_migration(migration) for migration in project_migrations if migration.replaces
         ]
