@@ -249,8 +249,8 @@ def test_squashing_migration_simple_ignore(migration_app_dir, migration_app2_dir
             app_label = "app2"
 
     call_squash_migrations(
-            "--ignore-app",
-            "app2",
+        "--ignore-app",
+        "app2",
     )
 
     files_in_app = os.listdir(migration_app_dir)
