@@ -4,5 +4,7 @@ __pycache__
 *.sqlite3
 .eggs
 .coverage
+coverage.xml
+htmlcov
 build
 dist
