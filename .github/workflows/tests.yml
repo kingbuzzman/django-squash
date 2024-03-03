@@ -1,0 +1,18 @@
+name: Tests
+
+concurrency:
+  group: django-squash-${{ github.head_ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  django-squash:
+    name: Tests
+    uses: ./.github/workflows/_tests.yml
+    secrets: inherit
+    with:
+      ref: ${{ github.ref }}

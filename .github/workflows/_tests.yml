@@ -1,0 +1,87 @@
+name: Test Include
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+
+jobs:
+  prepare-matrix:
+    name: Prepare Python/Django matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+      - name: Generate matrix from setup.py
+        id: set-matrix
+        run: |
+          python -c "from setup import GITHUB_MATRIX; print(GITHUB_MATRIX)" > matrix.json
+          echo "matrix=$(<matrix.json)" >> $GITHUB_OUTPUT
+      - name: Check version EOF
+        run: |
+          set -x
+          python -c "import json
+          from urllib.request import Request, urlopen
+          from datetime import date, datetime, timedelta
+          from itertools import chain, zip_longest
+          from setup import DJANGO_VERSIONS, PYTHON_VERSIONS
+          today = date.today()
+          WARNING_DAYS = timedelta(days=90)
+          versions = chain.from_iterable([zip_longest(['django'] * len(DJANGO_VERSIONS), DJANGO_VERSIONS), zip_longest(['python'] * len(PYTHON_VERSIONS), PYTHON_VERSIONS)])
+          for product, version in versions:
+              url = f'https://endoflife.date/api/{product}/{version}.json'
+              with urlopen(Request(url)) as httpresponse:
+                  eol = json.loads(httpresponse.read())['eol']
+                  eol_date = datetime.strptime(eol, '%Y-%m-%d').date()
+                  if eol_date < today:
+                      print(f'::error ::{product} v{version}: EOL was {eol}')
+                  elif eol_date - today < WARNING_DAYS:
+                      print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')"
+
+  tests:
+    runs-on: ubuntu-latest
+    needs: prepare-matrix
+    strategy:
+      fail-fast: false
+      matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
+    name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install prerequisites
+        run: |
+          DJANGO="django==${{ matrix.django-version }}"
+          if [[ "${{ matrix.django-version }}" == "main" ]]; then
+            DJANGO="git+https://github.com/django/django.git@main"
+          fi
+          python -m pip install --upgrade pip setuptools codecov pip install codecov $DJANGO
+      - name: Install packages
+        run: pip install -e '.[test]'
+      - name: Run tests
+        run: pytest --cov django_squash --cov-report=xml --cov-report=term
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          env_vars: OS,RUST
+      - name: Flake8 check
+        run: flake8
+      - name: iSort check
+        run: isort --check .
+      - name: Black check
+        run: black --config .black --check .
+      - name: rst check
+        run: rst-lint .
