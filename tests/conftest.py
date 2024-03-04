@@ -13,11 +13,21 @@ from django.db.models.options import Options
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
 
+from . import utils
+
 
 class MigrationPath(Path):
     """
     A subclass of Path that provides a method to list migration files.
     """
+
+    if utils.is_pyvsuported("3.11"):
+        from pathlib import _PosixFlavour, _WindowsFlavour
+
+        # TODO: delete after python 3.11 is no longer supported
+        _flavour = _PosixFlavour() if os.name == "posix" else _WindowsFlavour()
+    else:
+        raise Exception("Remove this whole block please!")
 
     def migration_files(self):
         """
