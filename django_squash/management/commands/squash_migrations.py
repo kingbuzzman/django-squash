@@ -62,7 +62,9 @@ class Command(BaseCommand):
                     only_apps.append(app_label)
                     # Edge case: if the app was previously ignored, remove it from the ignore list
                     if app_label in ignore_apps:
-                        ignore_apps.remove(app_label)
+                        raise CommandError(
+                            "The following app cannot be ignored and selected at the same time: %s" % app_label
+                        )
                 except (LookupError, TypeError):
                     bad_apps.append(app_label)
 

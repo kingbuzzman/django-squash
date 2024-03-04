@@ -297,16 +297,11 @@ def test_invalid_apps_ignore(monkeypatch, call_squash_migrations):
     assert str(error.value) == "The following apps are not valid: aaa, bbb"
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_only_apps_with_ignored_app(call_squash_migrations, monkeypatch):
+@pytest.mark.filterwarnings("ignore")
+def test_only_apps_with_ignored_app(call_squash_migrations, monkeypatch, settings):
     """
     Edge case: if the app was previously ignored, remove it from the ignore list
     """
-    mock_squash = unittest.mock.MagicMock()
-    monkeypatch.setattr(
-        "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
-        mock_squash,
-    )
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--ignore-app",
@@ -314,11 +309,8 @@ def test_only_apps_with_ignored_app(call_squash_migrations, monkeypatch):
             "app",
             "--only",
             "app2",
-            "app",
         )
-    assert str(error.value) == "There are no migrations to squash."
-    assert mock_squash.called
-    assert set(mock_squash.call_args[1]["ignore_apps"]) == {"django_squash", "app3"}
+    assert str(error.value) == "The following app cannot be ignored and selected at the same time: app2"
 
 
 @pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
