@@ -11,6 +11,8 @@ from django.db.migrations.autodetector import MigrationAutodetector as Migration
 
 from . import operators, utils
 
+RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
+
 
 class Migration(dj_migrations.Migration):
 
@@ -44,10 +46,9 @@ class Migration(dj_migrations.Migration):
         if cls in type(migration).mro():
             return migration
 
-        assert not hasattr(migration, "_deleted")
-        assert not hasattr(migration, "_dependencies_change")
-        assert not hasattr(migration, "_replaces_change")
-        assert not hasattr(migration, "_original_migration")
+        for keyword in RESERVED_MIGRATION_KEYWORDS:
+            if hasattr(migration, keyword):
+                raise Exception('Cannot use keyword "%s" in Migration %s.%s' % (keyword, self.app_label, self.name))
 
         new = cls(name=migration.name, app_label=migration.app_label)
         new.__dict__.update(migration.__dict__)
