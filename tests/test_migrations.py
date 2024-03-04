@@ -184,7 +184,7 @@ def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migr
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
-@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
+@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2")
 def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
@@ -356,7 +356,8 @@ def test_only_argument(call_squash_migrations, settings, monkeypatch):
         )
     assert str(error.value) == "There are no migrations to squash."
     assert mock_squash.called
-    assert set(mock_squash.call_args[1]["ignore_apps"]) == set(settings.INSTALLED_APPS) - {"app2", "app"}
+    installed_apps = {full_app.rsplit(".")[-1] for full_app in settings.INSTALLED_APPS}
+    assert set(mock_squash.call_args[1]["ignore_apps"]) == installed_apps - {"app2", "app"}
 
 
 @pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
@@ -563,11 +564,6 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.swappable_dependency", app_label="app")
 def test_swappable_dependency_migrations(migration_app_dir, settings, call_squash_migrations):
-    settings.INSTALLED_APPS += [
-        "django.contrib.auth",
-        "django.contrib.contenttypes",
-    ]
-
     class UserProfile(models.Model):
         user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
         dob = models.DateField()
