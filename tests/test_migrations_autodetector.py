@@ -35,7 +35,7 @@ def test_migration_using_keywords():
 
     autodetector.Migration.from_migration(FakeMigration())
 
-    for keyword in ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration"):
+    for keyword in autodetector.RESERVED_MIGRATION_KEYWORDS:
         migration = OriginalMigration("0001_inital", "app")
         fake_migration = FakeMigration()
         new_migration = autodetector.Migration("0001_inital", "app")
@@ -44,10 +44,10 @@ def test_migration_using_keywords():
         setattr(fake_migration, keyword, True)
         setattr(new_migration, keyword, True)
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(RuntimeError):
             autodetector.Migration.from_migration(migration)
 
-        with pytest.raises(AssertionError):
+        with pytest.raises(RuntimeError):
             autodetector.Migration.from_migration(fake_migration)
 
         autodetector.Migration.from_migration(new_migration)

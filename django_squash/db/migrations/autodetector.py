@@ -48,7 +48,9 @@ class Migration(dj_migrations.Migration):
 
         for keyword in RESERVED_MIGRATION_KEYWORDS:
             if hasattr(migration, keyword):
-                raise Exception('Cannot use keyword "%s" in Migration %s.%s' % (keyword, self.app_label, self.name))
+                raise RuntimeError(
+                    'Cannot use keyword "%s" in Migration %s.%s' % (keyword, migration.app_label, migration.name)
+                )
 
         new = cls(name=migration.name, app_label=migration.app_label)
         new.__dict__.update(migration.__dict__)
