@@ -22,10 +22,13 @@ class MigrationPath(Path):
     """
 
     if utils.is_pyvsuported("3.11"):
-        from pathlib import _PosixFlavour, _WindowsFlavour
+        try:
+            from pathlib import _PosixFlavour, _WindowsFlavour
 
-        # TODO: delete after python 3.11 is no longer supported
-        _flavour = _PosixFlavour() if os.name == "posix" else _WindowsFlavour()
+            # TODO: delete after python 3.11 is no longer supported
+            _flavour = _PosixFlavour() if os.name == "posix" else _WindowsFlavour()
+        except ImportError:
+            pass
     else:
         raise Exception("Remove this whole block please!")
 
