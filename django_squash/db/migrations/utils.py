@@ -205,15 +205,12 @@ def replace_migration_attribute(source, attr, value):
     # Remove the lines that form the multi-line "replaces" statement.
     p_count = 0
     b_count = 0
-    col_offset = None
-    name = None
     output = []
     for lineno, line in enumerate(source.splitlines()):
         if lineno + 1 in comment_out_nodes.keys():
             output.append(" " * comment_out_nodes[lineno + 1][0] + attr + " = " + str(value))
             p_count = 0
             b_count = 0
-            col_offset, name = comment_out_nodes[lineno + 1]
             p_count, b_count = find_brackets(line, p_count, b_count)
         elif p_count != 0 or b_count != 0:
             p_count, b_count = find_brackets(line, p_count, b_count)

@@ -11,12 +11,17 @@ from django.db.migrations.autodetector import MigrationAutodetector as Migration
 
 from . import operators, utils
 
+RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
+
 
 class Migration(dj_migrations.Migration):
 
-    _deleted = False
-    _dependencies_change = False
-    _replaces_change = False
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._deleted = False
+        self._dependencies_change = False
+        self._replaces_change = False
+        self._original_migration = None
 
     def describe(self):
         if self._deleted:
@@ -38,8 +43,17 @@ class Migration(dj_migrations.Migration):
 
     @classmethod
     def from_migration(cls, migration):
-        new = Migration(name=migration.name, app_label=migration.app_label)
-        new.__dict__ = migration.__dict__.copy()
+        if cls in type(migration).mro():
+            return migration
+
+        for keyword in RESERVED_MIGRATION_KEYWORDS:
+            if hasattr(migration, keyword):
+                raise RuntimeError(
+                    'Cannot use keyword "%s" in Migration %s.%s' % (keyword, migration.app_label, migration.name)
+                )
+
+        new = cls(name=migration.name, app_label=migration.app_label)
+        new.__dict__.update(migration.__dict__)
         new._original_migration = migration
         return new
 
@@ -132,7 +146,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                     migration_name or "squashed",
                 )
 
-    def convert_migration_references_to_objects(self, original, graph, changes):
+    def convert_migration_references_to_objects(self, original, changes, ignore_apps):
         """
         Swap django.db.migrations.Migration with a custom one that behaves like a tuple when read, but is still an
         object for the purpose of easy renames.
@@ -193,7 +207,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             instance.replaces = migrations
             changes[app_label] = [instance]
 
-    def squash(self, real_loader, squash_loader, ignore_apps=None, migration_name=None):
+    def squash(self, real_loader, squash_loader, ignore_apps, migration_name=None):
         changes_ = self.delete_old_squashed(real_loader, ignore_apps)
 
         graph = squash_loader.graph
@@ -203,7 +217,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             changes.pop(app, None)
 
         self.create_deleted_models_migrations(real_loader, changes)
-        self.convert_migration_references_to_objects(real_loader, graph, changes)
+        self.convert_migration_references_to_objects(real_loader, changes, ignore_apps)
         self.rename_migrations(real_loader, graph, changes, migration_name)
         self.replace_current_migrations(real_loader, graph, changes)
         self.add_non_elidables(real_loader, changes)
