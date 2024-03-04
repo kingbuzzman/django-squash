@@ -5,12 +5,25 @@ import tempfile
 from collections import defaultdict
 from contextlib import ExitStack
 from importlib import import_module
+from pathlib import Path
 
 import pytest
 from django.core.management import call_command
 from django.db.models.options import Options
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
+
+
+class MigrationPath(Path):
+    """
+    A subclass of Path that provides a method to list migration files.
+    """
+
+    def migration_files(self):
+        """
+        Returns a list of migration files in this directory.
+        """
+        return sorted(p.name for p in self.glob("*.py"))
 
 
 @pytest.fixture
@@ -36,7 +49,10 @@ def _migration_app_dir(marker_name, request, settings):
     module is used, if it exists.
     Returns the filesystem path to the temporary migrations module.
     """
-    mark = next(request.node.iter_markers(marker_name))
+    marks = list(request.node.iter_markers(marker_name))
+    if len(marks) != 1:
+        raise ValueError(f"Expected exactly one {marker_name!r} marker")
+    mark = marks[0]
 
     app_label = mark.kwargs["app_label"]
     module = mark.kwargs.get("module")
@@ -46,7 +62,7 @@ def _migration_app_dir(marker_name, request, settings):
     target_module_path = module_dir(target_module)
     shutil.rmtree(target_module_path)
     shutil.copytree(source_module_path, target_module_path)
-    yield target_module_path
+    yield MigrationPath(target_module_path)
 
 
 @pytest.fixture(autouse=True)
@@ -83,16 +99,16 @@ def isolated_apps(settings, monkeypatch):
         temp_dir = tempfile.TemporaryDirectory()
         stack.enter_context(temp_dir)
         stack.enter_context(extend_sys_path(temp_dir.name))
-        with open(os.path.join(temp_dir.name, "__init__.py"), "w"):
+        with (Path(temp_dir.name) / "__init__.py").open("w"):
             pass
 
         for app_label in installed_app:
             target_dir = tempfile.mkdtemp(prefix=f"{app_label}_", dir=temp_dir.name)
-            with open(os.path.join(target_dir, "__init__.py"), "w"):
+            with (Path(target_dir) / "__init__.py").open("w"):
                 pass
             migration_path = os.path.join(target_dir, "migrations")
             os.mkdir(migration_path)
-            with open(os.path.join(migration_path, "__init__.py"), "w"):
+            with (Path(migration_path) / "__init__.py").open("w"):
                 pass
             module_name = f"{os.path.basename(target_dir)}.migrations"
 
