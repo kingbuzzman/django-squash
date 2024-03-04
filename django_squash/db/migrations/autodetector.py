@@ -14,9 +14,12 @@ from . import operators, utils
 
 class Migration(dj_migrations.Migration):
 
-    _deleted = False
-    _dependencies_change = False
-    _replaces_change = False
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._deleted = False
+        self._dependencies_change = False
+        self._replaces_change = False
+        self._original_migration = None
 
     def describe(self):
         if self._deleted:
@@ -38,8 +41,16 @@ class Migration(dj_migrations.Migration):
 
     @classmethod
     def from_migration(cls, migration):
-        new = Migration(name=migration.name, app_label=migration.app_label)
-        new.__dict__ = migration.__dict__.copy()
+        if cls in type(migration).mro():
+            return migration
+
+        assert not hasattr(migration, "_deleted")
+        assert not hasattr(migration, "_dependencies_change")
+        assert not hasattr(migration, "_replaces_change")
+        assert not hasattr(migration, "_original_migration")
+
+        new = cls(name=migration.name, app_label=migration.app_label)
+        new.__dict__.update(migration.__dict__)
         new._original_migration = migration
         return new
 
@@ -230,9 +241,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             for migration in real_migrations
             if migration.app_label in project_apps and migration.app_label not in ignore_apps
         ]
-        replaced_migrations = [
-            Migration.from_migration(migration) for migration in project_migrations if migration.replaces
-        ]
+        replaced_migrations = [migration for migration in project_migrations if migration.replaces]
 
         migrations_to_remove = set()
         for migration in (y for x in replaced_migrations for y in x.replaces if y[0] not in ignore_apps):
