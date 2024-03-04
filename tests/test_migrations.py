@@ -1,6 +1,5 @@
 import importlib.util
 import inspect
-import os
 import textwrap
 import unittest.mock
 
