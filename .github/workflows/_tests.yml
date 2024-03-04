@@ -60,6 +60,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }}
       - name: Install prerequisites
         run: |
           DJANGO="django==${{ matrix.django-version }}"
