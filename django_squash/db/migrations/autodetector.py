@@ -190,9 +190,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                     if migration_id not in migrations_by_name:
                         new_migration = Migration.from_migration(original.disk_migrations[migration_id])
                         migrations_by_name[migration_id] = new_migration
-                        new_dependencies.append(migration_id)
-                    else:
-                        new_dependencies.append(migrations_by_name[migration_id])
+                    new_dependencies.append(migrations_by_name[migration_id])
 
                 migration.dependencies = new_dependencies
 
