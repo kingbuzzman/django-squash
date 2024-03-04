@@ -291,7 +291,8 @@ def test_only_argument(call_squash_migrations, settings, monkeypatch):
         )
     assert str(error.value) == "There are no migrations to squash."
     assert mock_squash.called
-    assert set(mock_squash.call_args[1]["ignore_apps"]) == set(settings.INSTALLED_APPS) - {"app2", "app"}
+    installed_apps = {full_app.rsplit('.')[-1] for full_app in settings.INSTALLED_APPS}
+    assert set(mock_squash.call_args[1]["ignore_apps"]) == installed_apps - {"app2", "app"}
 
 
 @pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
@@ -496,12 +497,69 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
     assert pretty_extract_piece(app_squash, "") == expected
 
 
+# def test_test(settings, monkeypatch):
+#     installed_app = settings.INSTALLED_APPS
+#     # + [
+#     #     "django.contrib.auth",
+#     #     "django.contrib.contenttypes",
+#     # ]
+#     from django.test.utils import isolate_apps
+#     from django.db.models.options import Options
+#     from django.apps.registry import Apps
+
+#     new_apps = Apps()
+#     monkeypatch.setattr(Options, "default_apps", new_apps)
+#     monkeypatch.setattr("django.apps.apps.all_models", new_apps.all_models)
+#     monkeypatch.setattr("django.apps.apps.app_configs", new_apps.app_configs)
+#     monkeypatch.setattr("django.apps.apps.stored_app_configs", new_apps.stored_app_configs)
+#     monkeypatch.setattr("django.apps.apps.apps_ready", new_apps.apps_ready)
+#     monkeypatch.setattr("django.apps.apps.loading", new_apps.loading)
+#     monkeypatch.setattr("django.apps.apps.models_ready", new_apps.models_ready)
+#     monkeypatch.setattr("django.apps.apps._pending_operations", new_apps._pending_operations)
+#     new_apps.populate(installed_app)
+
+#     class Person(models.Model):
+#         name = models.CharField(max_length=10)
+#         dob = models.DateField()
+
+#         class Meta:
+#             app_label = "app"
+#             apps = new_apps
+
+#     new_apps = Apps()
+#     monkeypatch.setattr(Options, "default_apps", new_apps)
+#     monkeypatch.setattr("django.apps.apps.all_models", new_apps.all_models)
+#     monkeypatch.setattr("django.apps.apps.app_configs", new_apps.app_configs)
+#     monkeypatch.setattr("django.apps.apps.stored_app_configs", new_apps.stored_app_configs)
+#     monkeypatch.setattr("django.apps.apps.apps_ready", new_apps.apps_ready)
+#     monkeypatch.setattr("django.apps.apps.loading", new_apps.loading)
+#     monkeypatch.setattr("django.apps.apps.models_ready", new_apps.models_ready)
+#     monkeypatch.setattr("django.apps.apps._pending_operations", new_apps._pending_operations)
+#     new_apps.populate(installed_app)
+
+#     class Person(models.Model):
+#         name = models.CharField(max_length=10)
+#         dob = models.DateField()
+
+#         class Meta:
+#             app_label = "app"
+#             apps = new_apps
+
+#     # class UserProfile(models.Model):
+#     #     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+#     #     dob = models.DateField()
+
+#     #     class Meta:
+#     #         app_label = "app"
+
+
+
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.swappable_dependency", app_label="app")
 def test_swappable_dependency_migrations(isolated_apps, migration_app_dir, settings, call_squash_migrations):
-    settings.INSTALLED_APPS += [
-        "django.contrib.auth",
-        "django.contrib.contenttypes",
-    ]
+    # settings.INSTALLED_APPS += [
+    #     "django.contrib.auth",
+    #     "django.contrib.contenttypes",
+    # ]
 
     class UserProfile(models.Model):
         user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -558,9 +616,9 @@ def test_swappable_dependency_migrations(isolated_apps, migration_app_dir, setti
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.xxx", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app3.tests.migrations.moved", app_label="app3")
 def xtest_nested(isolated_apps, migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
-    settings.INSTALLED_APPS += [
-        "django.contrib.contenttypes",
-    ]
+    # settings.INSTALLED_APPS += [
+    #     "django.contrib.contenttypes",
+    # ]
 
     from django.contrib.contenttypes.models import ContentType
 

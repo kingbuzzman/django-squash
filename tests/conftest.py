@@ -12,7 +12,9 @@ import pytest
 from django.apps import apps
 from django.conf import settings as django_settings
 from django.core.management import call_command
-from django.test.utils import extend_sys_path, isolate_apps
+from django.test.utils import extend_sys_path
+from django.db.models.options import Options
+from django.apps.registry import Apps
 from django.utils.module_loading import import_string, module_dir
 
 INSTALLED_APPS = django_settings.INSTALLED_APPS.copy()
@@ -83,20 +85,76 @@ def _migration_app_dir(marker_name, request, settings):
 # def _set_missing_migration_app_dir(settings):
 #     for settings.INSTALLED_APPS
 
+class BidirectionalProxy:
+    def __init__(self, primary_target, secondary_target, *attrs_to_proxy):
+        super().__setattr__('_primary_target', primary_target)
+        super().__setattr__('_secondary_target', secondary_target)
+        super().__setattr__('_attrs_to_proxy', set(attrs_to_proxy))
+
+    def __getattr__(self, name):
+        if name in self._attrs_to_proxy:
+            return getattr(self._primary_target, name)
+        else:
+            return super().__getattribute__(name)
+
+    def __setattr__(self, name, value):
+        if name in self._attrs_to_proxy:
+            setattr(self._primary_target, name, value)
+            setattr(self._secondary_target, name, value)
+        else:
+            super().__setattr__(name, value)
+
+    def __delattr__(self, name):
+        if name in self._attrs_to_proxy:
+            delattr(self._primary_target, name)
+            delattr(self._secondary_target, name)
+        else:
+            super().__delattr__(name)
+
 
 @pytest.fixture(autouse=True)
-def isolated_apps(settings, monkeypatch):
+def isolated_apps(settings, monkeypatch, request):
     """
     Django registers models in the apps cache, this is a helper to remove them, otherwise django throws warnings
     that this model already exists.
     """
-    with ExitStack() as stack, isolate_apps(*INSTALLED_APPS) as new_apps:
-        monkeypatch.setattr("django_squash.management.commands.squash_migrations.apps", new_apps)
-        monkeypatch.setattr("django.test.utils.apps", new_apps)
-        monkeypatch.setattr("django.db.models.base.apps", new_apps)
-        monkeypatch.setattr("django.contrib.auth.django_apps", new_apps)
-        monkeypatch.setattr("django.db.migrations.loader.apps", new_apps)
-        monkeypatch.setattr("django.db.migrations.writer.apps", new_apps)
+    with ExitStack() as stack: #, isolate_apps(*INSTALLED_APPS) as new_apps:
+        # monkeypatch.setattr("django_squash.management.commands.squash_migrations.apps", new_apps)
+        # monkeypatch.setattr("django.test.utils.apps", new_apps)
+        # monkeypatch.setattr("django.db.models.base.apps", new_apps)
+        # monkeypatch.setattr("django.contrib.auth.django_apps", new_apps)
+        # monkeypatch.setattr("django.db.migrations.loader.apps", new_apps)
+        # monkeypatch.setattr("django.db.migrations.writer.apps", new_apps)
+
+        # new_apps = Apps()
+        # print('models', Options.default_apps.all_models)
+        # print('app_configs', Options.default_apps.app_configs)
+        # print('stored_app_configs', Options.default_apps.stored_app_configs)
+        original_apps = Options.default_apps
+        original_all_models = original_apps.all_models
+        original_app_configs = original_apps.app_configs
+        new_all_models = defaultdict(dict)
+        new_app_configs = {}
+
+        # monkeypatch.setattr(Options, "default_apps", new_apps)
+        # monkeypatch.setattr("django.apps.apps", new_apps.all_models)
+        monkeypatch.setattr("django.apps.apps.all_models", new_all_models)
+        monkeypatch.setattr("django.apps.apps.app_configs", new_app_configs)
+        monkeypatch.setattr("django.apps.apps.stored_app_configs", [])
+        monkeypatch.setattr("django.apps.apps.apps_ready", False)
+        monkeypatch.setattr("django.apps.apps.models_ready", False)
+        monkeypatch.setattr("django.apps.apps.ready", False)
+        monkeypatch.setattr("django.apps.apps.loading", False)
+        monkeypatch.setattr("django.apps.apps._pending_operations", defaultdict(list))
+        installed_app = settings.INSTALLED_APPS.copy()
+        _installed_app = installed_app.copy()
+        _installed_app.remove('django.contrib.auth')
+        _installed_app.remove('django.contrib.contenttypes')
+        original_apps.populate(_installed_app)
+
+        for app_label in {'auth', 'contenttypes'}:
+            new_all_models[app_label] = original_all_models[app_label]
+            new_app_configs[app_label] = original_app_configs[app_label]
 
         temp_dir = tempfile.TemporaryDirectory()
         stack.enter_context(temp_dir)
@@ -104,7 +162,7 @@ def isolated_apps(settings, monkeypatch):
         with open(os.path.join(temp_dir.name, "__init__.py"), "w"):
             pass
 
-        for app_label in INSTALLED_APPS:
+        for app_label in installed_app:
             target_dir = tempfile.mkdtemp(prefix=f"{app_label}_", dir=temp_dir.name)
             with open(os.path.join(target_dir, "__init__.py"), "w"):
                 pass
@@ -117,7 +175,7 @@ def isolated_apps(settings, monkeypatch):
             settings.MIGRATION_MODULES[app_label] = module_name
             stack.enter_context(extend_sys_path(target_dir))
 
-        yield new_apps
+        yield original_apps
 
     return
     # from unittest import mock
