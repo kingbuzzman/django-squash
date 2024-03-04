@@ -7,13 +7,10 @@ from contextlib import ExitStack
 from importlib import import_module
 
 import pytest
-from django.conf import settings as django_settings
 from django.core.management import call_command
 from django.db.models.options import Options
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
-
-INSTALLED_APPS = django_settings.INSTALLED_APPS.copy()
 
 
 @pytest.fixture
