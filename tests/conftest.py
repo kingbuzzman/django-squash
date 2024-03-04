@@ -36,7 +36,10 @@ def _migration_app_dir(marker_name, request, settings):
     module is used, if it exists.
     Returns the filesystem path to the temporary migrations module.
     """
-    mark = next(request.node.iter_markers(marker_name))
+    marks = list(request.node.iter_markers(marker_name))
+    if len(marks) != 1:
+        raise ValueError(f"Expected exactly one {marker_name!r} marker")
+    mark = marks[0]
 
     app_label = mark.kwargs["app_label"]
     module = mark.kwargs.get("module")

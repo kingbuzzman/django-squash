@@ -605,3 +605,51 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
         """  # noqa
     )
     assert pretty_extract_piece(app_squash, "") == expected
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.first_last", app_label="app2")
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.first", app_label="app")
+def test_with_first(migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
+    class Address(models.Model):
+
+        class Meta:
+            app_label = "app2"
+
+    class Person(models.Model):
+        address = models.ForeignKey(Address, on_delete=models.deletion.CASCADE)
+
+        class Meta:
+            app_label = "app"
+
+    # import ipdb; print('\a'); ipdb.sset_trace()
+    # call_squash_migrations()
+    from django.core.management import call_command
+
+    call_command("migrate")
+
+    # a=a
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.first_last", app_label="app2")
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.lastest", app_label="app")
+def test_with_lastest(migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
+    class Address(models.Model):
+
+        class Meta:
+            app_label = "app2"
+
+    class Person(models.Model):
+        address = models.ForeignKey(Address, on_delete=models.deletion.CASCADE)
+
+        class Meta:
+            app_label = "app"
+
+    # import ipdb; print('\a'); ipdb.sset_trace()
+    # call_squash_migrations()
+    from django.core.management import call_command
+
+    call_command("migrate")
+
+    # a=a

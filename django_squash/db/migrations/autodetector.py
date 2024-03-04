@@ -140,7 +140,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                     migration_name or "squashed",
                 )
 
-    def convert_migration_references_to_objects(self, original, graph, changes, ignore_apps):
+    def convert_migration_references_to_objects(self, original, changes, ignore_apps):
         """
         Swap django.db.migrations.Migration with a custom one that behaves like a tuple when read, but is still an
         object for the purpose of easy renames.
@@ -216,7 +216,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             changes.pop(app, None)
 
         self.create_deleted_models_migrations(real_loader, changes)
-        self.convert_migration_references_to_objects(real_loader, graph, changes, ignore_apps)
+        self.convert_migration_references_to_objects(real_loader, changes, ignore_apps)
         self.rename_migrations(real_loader, graph, changes, migration_name)
         self.replace_current_migrations(real_loader, graph, changes)
         self.add_non_elidables(real_loader, squash_loader, changes)
