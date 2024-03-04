@@ -545,7 +545,7 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.xxx", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app3.tests.migrations.moved", app_label="app3")
-def xtest_nested(migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
+def test_nested(migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
     from django.contrib.contenttypes.fields import GenericForeignKey
     from django.contrib.contenttypes.models import ContentType
 
