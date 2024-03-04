@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 from django.core.management import call_command
+from django.db import connections
 from django.db.models.options import Options
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
@@ -146,3 +147,28 @@ def call_squash_migrations():
         call_command("squash_migrations", *args, **kwargs)
 
     yield _call_squash_migrations
+
+
+@pytest.fixture
+def clean_db(django_db_blocker):
+    """
+    Clean the database after each test. As in a new database.
+
+    Usage:
+
+        @pytest.mark.usefixtures("clean_db")
+        @pytest.mark.django_db(transaction=True)
+        def test_something():
+            ...
+    """
+    with django_db_blocker.unblock():
+        # Because we're using an in memory sqlite database, we can just reset the connection
+        # When the connection is reestablished, the database will be empty
+        connections["default"].connection.close()
+        del connections["default"]
+
+        with connections["default"].cursor() as c:
+            # make sure the database is of any tables
+            assert connections["default"].introspection.get_table_list(c) == []
+
+        yield
