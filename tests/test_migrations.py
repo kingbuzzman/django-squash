@@ -226,7 +226,7 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
-def test_squashing_migration_simple_ignore(migration_app_dir, migration_app2_dir, call_squash_migrations):
+def test_squashing_migration_simple_ignore(migration_app_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -252,10 +252,10 @@ def test_squashing_migration_simple_ignore(migration_app_dir, migration_app2_dir
         "app2",
     )
 
-    files_in_app = os.listdir(migration_app_dir)
+    files_in_app = migration_app_dir.migration_files()
     assert "0004_squashed.py" in files_in_app
 
-    app_squash = load_migration_module(os.path.join(migration_app_dir, "0004_squashed.py"))
+    app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
     assert app_squash.Migration.replaces == [
         ("app", "0001_initial"),
         ("app", "0002_person_age"),
@@ -606,6 +606,7 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
     assert pretty_extract_piece(app_squash, "") == expected
 
 
+@pytest.mark.usefixtures("clean_db")
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.first_last", app_label="app2")
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.first", app_label="app")
@@ -630,6 +631,7 @@ def test_with_first(migration_app_dir, migration_app2_dir, call_squash_migration
     # a=a
 
 
+@pytest.mark.usefixtures("clean_db")
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.first_last", app_label="app2")
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.lastest", app_label="app")
