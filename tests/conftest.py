@@ -43,7 +43,6 @@ def _migration_app_dir(marker_name, request, settings):
 
     app_label = mark.kwargs["app_label"]
     module = mark.kwargs.get("module")
-    join = mark.kwargs.get("join") or False
 
     source_module_path = module_dir(import_module(module))
     target_module = import_module(settings.MIGRATION_MODULES[app_label])

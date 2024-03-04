@@ -184,7 +184,7 @@ def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migr
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
-@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
+@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2")
 def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
