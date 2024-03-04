@@ -298,7 +298,7 @@ def test_invalid_apps_ignore(monkeypatch, call_squash_migrations):
 
 
 @pytest.mark.filterwarnings("ignore")
-def test_only_apps_with_ignored_app(call_squash_migrations, monkeypatch, settings):
+def test_only_apps_with_ignored_app(call_squash_migrations):
     """
     Edge case: if the app was previously ignored, remove it from the ignore list
     """
