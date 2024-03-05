@@ -9,6 +9,8 @@ from django.conf import settings
 from django.db import migrations as dj_migrations
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
+from django_squash.contrib import postgres
+
 from . import utils
 
 try:
@@ -68,10 +70,10 @@ class Migration(dj_migrations.Migration):
 
 class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
-    def add_non_elidables(self, original, loader, changes):
+    def add_non_elidables(self, loader, changes):
         replacing_migrations_by_app = {
             app: [
-                original.disk_migrations[r]
+                loader.disk_migrations[r]
                 for r in list(dict.fromkeys(itertools.chain.from_iterable([m.replaces for m in migrations])))
             ]
             for app, migrations in changes.items()
@@ -79,6 +81,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         for app in changes.keys():
             new_operations = []
+            new_operations_bubble_top = []
             new_imports = []
 
             for migration in replacing_migrations_by_app[app]:
@@ -92,11 +95,16 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                         new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.RunPython):
                         new_operations.append(operation)
-                    elif isinstance(operation, PGCreateExtension):
-                        new_operations.append(operation)
+                    elif isinstance(operation, postgres.PGCreateExtension):
+                        new_operations_bubble_top.append(operation)
                     elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
                         # A valid use case for this should be given before any work is done.
                         pass
+
+            if new_operations_bubble_top:
+                migration = changes[app][0]
+                migration.operations = new_operations_bubble_top + migration.operations
+                migration.extra_imports = new_imports
 
             migration = changes[app][-1]
             migration.operations += new_operations
@@ -213,7 +221,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         self.convert_migration_references_to_objects(real_loader, changes, ignore_apps)
         self.rename_migrations(real_loader, graph, changes, migration_name)
         self.replace_current_migrations(real_loader, graph, changes)
-        self.add_non_elidables(real_loader, squash_loader, changes)
+        self.add_non_elidables(real_loader, changes)
 
         for app, change in changes_.items():
             changes[app].extend(change)
