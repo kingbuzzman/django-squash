@@ -1,7 +1,7 @@
 import pytest
 from django.db.migrations import Migration as OriginalMigration
 
-from django_squash.db.migrations import autodetector, operators, utils
+from django_squash.db.migrations import autodetector
 
 
 def test_migration():
