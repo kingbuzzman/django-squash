@@ -8,6 +8,13 @@ from django.db import migrations as dj_migrations
 from django.db.migrations import writer as dj_writer
 from django.utils.timezone import now
 
+try:
+    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
+except ImportError:
+
+    class PGCreateExtension:
+        pass
+
 from django_squash.db.migrations import operators, utils
 
 SUPPORTED_DJANGO_WRITER = (
@@ -159,6 +166,11 @@ class Migration(migrations.Migration):
             operation._deconstruct = operation.__class__.deconstruct
 
             def deconstruct(self):
+                """
+                RunPython and RunSQL operations does not serialize "eliadable" attribute.
+
+                We need this so we know if the function is to be copied or not.
+                """
                 name, args, kwargs = self._deconstruct(self)
                 kwargs["elidable"] = self.elidable
                 return name, args, kwargs
@@ -186,6 +198,9 @@ class Migration(migrations.Migration):
                     reverse_variable_name = "%s_ROLLBACK" % variable_name
                     variables.append(self.template_variable % (reverse_variable_name, repr(operation.reverse_sql)))
                     operation.reverse_sql = operators.Variable(reverse_variable_name, operation.reverse_sql)
+            elif isinstance(operation, PGCreateExtension):
+                # Bind the deconstruct() to the instance to get the elidable
+                operation.deconstruct = deconstruct.__get__(operation, operation.__class__)
 
         return super().as_string()
 

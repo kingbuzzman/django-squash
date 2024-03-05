@@ -9,6 +9,13 @@ from django.conf import settings
 from django.db import migrations as dj_migrations
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
+try:
+    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
+except ImportError:
+
+    class PGCreateExtension:
+        pass
+
 from . import utils
 
 RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
@@ -84,6 +91,8 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                         new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.RunPython):
                         new_operations.append(operation)
+                    elif isinstance(operation, PGCreateExtension):
+                        new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
                         # A valid use case for this should be given before any work is done.
                         pass
@@ -146,8 +155,13 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
             for migration in migrations:
                 new_dependencies = []
                 for dependency in migration.dependencies:
-                    if dependency[0] == "__setting__":
-                        app_label = getattr(settings, dependency[1]).split(".")[0]
+                    dep_app_label, dep_migration = dependency
+                    if dep_app_label in ignore_apps:
+                        new_dependencies.append(original.graph.leaf_nodes(dependency[0])[0])
+                        continue
+
+                    if dep_app_label == "__setting__":
+                        app_label = getattr(settings, dep_migration).split(".")[0]
                         migrations = [
                             migration for (app, _), migration in migrations_by_name.items() if app == app_label
                         ]
@@ -157,10 +171,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                             # Leave as is, the django's migration writer will handle this by default
                             new_dependencies.append(dependency)
                             continue
-                    elif dependency[1] == "__first__":
-                        dependency = original.graph.root_nodes(dependency[0])[0]
-                    elif dependency[1] == "__latest__":
-                        dependency = original.graph.leaf_nodes(dependency[0])[0]
+                    elif dep_migration == "__first__":
+                        dependency = original.graph.root_nodes(dep_app_label)[0]
+                    elif dep_migration == "__latest__":
+                        dependency = original.graph.leaf_nodes(dep_app_label)[0]
 
                     migration_id = dependency
                     if migration_id not in migrations_by_name:
