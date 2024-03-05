@@ -10,6 +10,14 @@ from django.utils.timezone import now
 
 from django_squash.db.migrations import operators, utils
 
+try:
+    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
+except ImportError:
+
+    class PGCreateExtension:
+        pass
+
+
 SUPPORTED_DJANGO_WRITER = (
     "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0
     "2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582",  # 4.1 / 4.2
@@ -36,6 +44,16 @@ def check_django_migration_hash():
 
 
 check_django_migration_hash()
+
+
+class OperationWriter(dj_writer.OperationWriter):
+    def serialize(self):
+        if isinstance(self.operation, PGCreateExtension):
+            import ipdb
+
+            print("\a")
+            ipdb.sset_trace()
+        return super().serialize()
 
 
 class ReplacementMigrationWriter(dj_writer.MigrationWriter):
@@ -70,7 +88,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         # Deconstruct operations
         operations = []
         for operation in self.migration.operations:
-            operation_string, operation_imports = dj_writer.OperationWriter(operation).serialize()
+            operation_string, operation_imports = OperationWriter(operation).serialize()
             imports.update(operation_imports)
             operations.append(operation_string)
         items["operations"] = "\n".join(operations) + "\n" if operations else ""

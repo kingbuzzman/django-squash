@@ -11,6 +11,14 @@ from django.db.migrations.autodetector import MigrationAutodetector as Migration
 
 from . import utils
 
+try:
+    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
+except ImportError:
+
+    class PGCreateExtension:
+        pass
+
+
 RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
 
 
@@ -83,6 +91,8 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                     if isinstance(operation, dj_migrations.RunSQL):
                         new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.RunPython):
+                        new_operations.append(operation)
+                    elif isinstance(operation, PGCreateExtension):
                         new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
                         # A valid use case for this should be given before any work is done.
@@ -205,7 +215,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
         return changes
 
-    def delete_old_squashed(self, loader, ignore_apps=None):
+    def delete_old_squashed(self, loader, ignore_apps):
         changes = defaultdict(set)
         project_path = os.path.abspath(os.curdir)
         project_apps = [
