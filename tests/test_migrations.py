@@ -6,6 +6,7 @@ import unittest.mock
 import black
 import libcst
 import pytest
+from django.contrib.postgres.indexes import GinIndex
 from django.core.management import CommandError
 from django.db import models
 
@@ -540,3 +541,17 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
         """  # noqa
     )
     assert pretty_extract_piece(app_squash, "") == expected
+
+
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.pg_indexes", app_label="app")
+def test_squashing_migration_pg_indexes(migration_app_dir, call_squash_migrations):
+
+    class Message(models.Model):
+        score = models.IntegerField(default=0)
+        unicode_name = models.CharField(max_length=255, db_index=True)
+
+        class Meta:
+            indexes = [models.Index(fields=["-score"]), GinIndex(fields=["unicode_name"])]
+            app_label = "app"
+
+    call_squash_migrations()
