@@ -5,12 +5,41 @@ import tempfile
 from collections import defaultdict
 from contextlib import ExitStack
 from importlib import import_module
+from pathlib import Path
 
 import pytest
 from django.core.management import call_command
+from django.db import connections
 from django.db.models.options import Options
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
+
+from django_squash.db.migrations.utils import get_custom_rename_function
+
+from . import utils
+
+
+class MigrationPath(Path):
+    """
+    A subclass of Path that provides a method to list migration files.
+    """
+
+    if utils.is_pyvsuported("3.11"):
+        try:
+            from pathlib import _PosixFlavour, _WindowsFlavour
+
+            # TODO: delete after python 3.11 is no longer supported
+            _flavour = _PosixFlavour() if os.name == "posix" else _WindowsFlavour()
+        except ImportError:
+            pass
+    else:
+        raise Exception("Remove this whole block please!")
+
+    def migration_files(self):
+        """
+        Returns a list of migration files in this directory.
+        """
+        return sorted(p.name for p in self.glob("*.py"))
 
 
 @pytest.fixture
@@ -36,7 +65,10 @@ def _migration_app_dir(marker_name, request, settings):
     module is used, if it exists.
     Returns the filesystem path to the temporary migrations module.
     """
-    mark = next(request.node.iter_markers(marker_name))
+    marks = list(request.node.iter_markers(marker_name))
+    if len(marks) != 1:
+        raise ValueError(f"Expected exactly one {marker_name!r} marker")
+    mark = marks[0]
 
     app_label = mark.kwargs["app_label"]
     module = mark.kwargs.get("module")
@@ -46,7 +78,7 @@ def _migration_app_dir(marker_name, request, settings):
     target_module_path = module_dir(target_module)
     shutil.rmtree(target_module_path)
     shutil.copytree(source_module_path, target_module_path)
-    yield target_module_path
+    yield MigrationPath(target_module_path)
 
 
 @pytest.fixture(autouse=True)
@@ -83,16 +115,16 @@ def isolated_apps(settings, monkeypatch):
         temp_dir = tempfile.TemporaryDirectory()
         stack.enter_context(temp_dir)
         stack.enter_context(extend_sys_path(temp_dir.name))
-        with open(os.path.join(temp_dir.name, "__init__.py"), "w"):
+        with (Path(temp_dir.name) / "__init__.py").open("w"):
             pass
 
         for app_label in installed_app:
             target_dir = tempfile.mkdtemp(prefix=f"{app_label}_", dir=temp_dir.name)
-            with open(os.path.join(target_dir, "__init__.py"), "w"):
+            with (Path(target_dir) / "__init__.py").open("w"):
                 pass
             migration_path = os.path.join(target_dir, "migrations")
             os.mkdir(migration_path)
-            with open(os.path.join(migration_path, "__init__.py"), "w"):
+            with (Path(migration_path) / "__init__.py").open("w"):
                 pass
             module_name = f"{os.path.basename(target_dir)}.migrations"
 
@@ -117,3 +149,39 @@ def call_squash_migrations():
         call_command("squash_migrations", *args, **kwargs)
 
     yield _call_squash_migrations
+
+
+@pytest.fixture(autouse=True)
+def clear_get_custom_rename_function_cache():
+    """
+    To ensure that this function doesn't get cached with the wrong value and breaks tests,
+    we always clear it before and after each test.
+    """
+    get_custom_rename_function.cache_clear()
+    yield
+    get_custom_rename_function.cache_clear()
+
+
+@pytest.fixture
+def clean_db(django_db_blocker):
+    """
+    Clean the database after each test. As in a new database.
+
+    Usage:
+
+        @pytest.mark.usefixtures("clean_db")
+        @pytest.mark.django_db(transaction=True)
+        def test_something():
+            ...
+    """
+    with django_db_blocker.unblock():
+        # Because we're using an in memory sqlite database, we can just reset the connection
+        # When the connection is reestablished, the database will be empty
+        connections["default"].connection.close()
+        del connections["default"]
+
+        with connections["default"].cursor() as c:
+            # make sure the database is of any tables
+            assert connections["default"].introspection.get_table_list(c) == []
+
+        yield

@@ -1,4 +1,5 @@
 import ast
+import functools
 import hashlib
 import importlib
 import inspect
@@ -11,6 +12,19 @@ from collections import defaultdict
 
 from django.db import migrations
 from django.utils.module_loading import import_string
+
+from django_squash import settings as app_settings
+
+
+@functools.lru_cache(maxsize=1)
+def get_custom_rename_function():
+    """
+    Custom function naming when copying elidable functions from one file to another.
+    """
+    custom_rename_function = app_settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION
+
+    if custom_rename_function:
+        return import_string(custom_rename_function)
 
 
 def file_hash(file_path):
@@ -38,9 +52,14 @@ class UniqueVariableName:
     This class will return a unique name for a variable / function.
     """
 
-    def __init__(self):
+    def __init__(self, context, naming_function=None):
         self.names = defaultdict(int)
         self.functions = {}
+        self.context = context
+        self.naming_function = naming_function or (lambda n, c: n)
+
+    def update_context(self, context):
+        self.context.update(context)
 
     def function(self, func):
         if not callable(func):
@@ -52,39 +71,37 @@ class UniqueVariableName:
         if inspect.ismethod(func) or inspect.signature(func).parameters.get("self") is not None:
             raise ValueError("func cannot be part of an instance")
 
-        name = original_name = func.__qualname__
+        name = func.__qualname__
         if "." in name:
             parent_name, actual_name = name.rsplit(".", 1)
             parent = getattr(import_string(func.__module__), parent_name)
             if issubclass(parent, migrations.Migration):
-                name = name = original_name = actual_name
-        already_accounted = func in self.functions
-        if already_accounted:
+                name = actual_name
+
+        if func in self.functions:
             return self.functions[func]
 
+        name = self.naming_function(name, {**self.context, "type_": "function", "func": func})
+        new_name = self.functions[func] = self.uniq(name)
+
+        return new_name
+
+    def uniq(self, name, original_name=None):
+        original_name = original_name or name
         # Endless loop that will try different combinations until it finds a unique name
         for i, _ in enumerate(itertools.count(), 2):
             if self.names[name] == 0:
-                self.functions[func] = name
                 self.names[name] += 1
                 break
 
             name = "%s_%s" % (original_name, i)
-
-        self.functions[func] = name
-
         return name
 
     def __call__(self, name, force_number=False):
-        self.names[name] += 1
-        count = self.names[name]
-        if not force_number and count == 1:
-            return name
-        else:
-            new_name = "%s_%s" % (name, count)
-            # Make sure that the function name is fully unique
-            # You can potentially have the same name already defined.
-            return self(new_name)
+        original_name = name
+        if force_number:
+            name = f"{name}_1"
+        return self.uniq(name, original_name)
 
 
 def get_imports(module):
@@ -109,36 +126,23 @@ def get_imports(module):
 
 
 def normalize_function_name(name):
-    class_name, _, function_name = name.rpartition(".")
-    if class_name and not function_name:
-        function_name = class_name
+    _, _, function_name = name.rpartition(".")
+    if function_name[0].isdigit():
+        # Functions CANNOT start with a number
+        function_name = "f_" + function_name
     return function_name
 
 
-def extract_function_source(f):
-    function_source = inspect.getsource(f)
-    if normalize_function_name(f.__original_qualname__) == normalize_function_name(f.__qualname__):
-        return function_source
-
-    function_source = re.sub(
-        rf"(def\s+){normalize_function_name(f.__original_qualname__)}",
-        rf"\1{normalize_function_name(f.__qualname__)}",
-        function_source,
-        1,
-    )
-    return function_source
-
-
-def copy_func(f, name=None):
+def copy_func(f, name):
     """
     Return a function with same code, globals, defaults, closure, and name (or provide a new name)
     """
-    name = name or f.__qualname__
     func = types.FunctionType(f.__code__, f.__globals__, name, f.__defaults__, f.__closure__)
-    func.__qualname__ = f.__qualname__
-    func.__original_qualname__ = f.__original_qualname__
-    func.__original_module__ = f.__module__
-    func.__original_function__ = f
+    func.__qualname__ = name
+    func.__original__ = f
+    func.__source__ = re.sub(
+        rf"(def\s+){normalize_function_name(f.__qualname__)}", rf"\1{name}", inspect.getsource(f), 1
+    )
     return func
 
 
