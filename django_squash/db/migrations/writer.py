@@ -42,7 +42,10 @@ check_django_migration_hash()
 class OperationWriter(dj_writer.OperationWriter):
     def serialize(self):
         if isinstance(self.operation, PGCreateExtension):
-            import ipdb; print('\a'); ipdb.sset_trace()
+            import ipdb
+
+            print("\a")
+            ipdb.sset_trace()
         return super().serialize()
 
 
