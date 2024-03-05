@@ -28,4 +28,4 @@ Example: "path.to.generator_function"
 
 Dot path to the function that will rename the functions found inside ``RunPython`` operations.
 
-Function needs to accept 2 arguments: ``name`` (``str``) and ``context`` (`dict`)
+Function needs to accept 2 arguments: ``name`` (``str``) and ``context`` (``dict``)
