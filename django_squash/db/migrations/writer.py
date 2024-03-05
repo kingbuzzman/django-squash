@@ -6,10 +6,17 @@ import warnings
 from django import get_version
 from django.db import migrations as dj_migrations
 from django.db.migrations import writer as dj_writer
-from django.utils.inspect import get_func_args
 from django.utils.timezone import now
 
 from django_squash.db.migrations import operators, utils
+
+try:
+    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
+except ImportError:
+
+    class PGCreateExtension:
+        pass
+
 
 SUPPORTED_DJANGO_WRITER = (
     "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0

@@ -9,6 +9,8 @@ from django.conf import settings
 from django.db import migrations as dj_migrations
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
+from . import utils
+
 try:
     from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
 except ImportError:
@@ -16,8 +18,6 @@ except ImportError:
     class PGCreateExtension:
         pass
 
-
-from . import utils
 
 RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
 
