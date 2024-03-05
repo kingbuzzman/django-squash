@@ -13,14 +13,6 @@ from django_squash.contrib import postgres
 
 from . import utils
 
-try:
-    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
-except ImportError:
-
-    class PGCreateExtension:
-        pass
-
-
 RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
 
 
