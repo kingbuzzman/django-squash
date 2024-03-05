@@ -632,6 +632,7 @@ def test_with_first(migration_app_dir, migration_app2_dir, call_squash_migration
 
     # a=a
 
+
 @pytest.mark.usefixtures("clean_db")
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.first_last", app_label="app2")
