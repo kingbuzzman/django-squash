@@ -185,6 +185,45 @@ def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migr
     assert pretty_extract_piece(app_squash, "") == expected
 
 
+def custom_func_naming(original_name, context):
+    """
+    Used in test_squashing_elidable_migration_unique_name_formatting to format the function names
+    """
+    return f"{context['migration'].name}_{original_name}"
+
+
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.elidable", app_label="app")
+def test_squashing_elidable_migration_unique_name_formatting(migration_app_dir, call_squash_migrations, monkeypatch):
+    """
+    Test that DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION integration works properly
+    """
+    monkeypatch.setattr(
+        "django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", f"{__name__}.custom_func_naming"
+    )
+
+    class Person(models.Model):
+        name = models.CharField(max_length=10)
+        dob = models.DateField()
+
+        class Meta:
+            app_label = "app"
+
+    call_squash_migrations()
+
+    app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
+    source = pretty_extract_piece(app_squash, "")
+    assert source.count("f_0002_person_age_same_name(") == 1
+    assert source.count("code=f_0002_person_age_same_name,") == 1
+    assert source.count("f_0002_person_age_same_name_2(") == 1
+    assert source.count("code=f_0002_person_age_same_name_2,") == 1
+    assert source.count("f_0003_add_dob_same_name(") == 1
+    assert source.count("code=f_0003_add_dob_same_name,") == 1
+    assert source.count("f_0003_add_dob_create_admin_MUST_ALWAYS_EXIST(") == 1
+    assert source.count("code=f_0003_add_dob_create_admin_MUST_ALWAYS_EXIST,") == 1
+    assert source.count("f_0003_add_dob_rollback_admin_MUST_ALWAYS_EXIST(") == 1
+    assert source.count("code=f_0003_add_dob_rollback_admin_MUST_ALWAYS_EXIST,") == 1
+
+
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2")
 def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_squash_migrations):

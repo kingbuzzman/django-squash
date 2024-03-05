@@ -1,4 +1,5 @@
 import ast
+import functools
 import hashlib
 import importlib
 import inspect
@@ -15,6 +16,7 @@ from django.utils.module_loading import import_string
 from django_squash import settings as app_settings
 
 
+@functools.lru_cache(maxsize=1)
 def get_custom_rename_function():
     """
     Custom function naming when copying elidable functions from one file to another.
@@ -125,6 +127,9 @@ def get_imports(module):
 
 def normalize_function_name(name):
     _, _, function_name = name.rpartition(".")
+    if function_name[0].isdigit():
+        # Functions CANNOT start with a number
+        function_name = "f_" + function_name
     return function_name
 
 
@@ -136,10 +141,7 @@ def copy_func(f, name):
     func.__qualname__ = name
     func.__original__ = f
     func.__source__ = re.sub(
-        rf"(def\s+){normalize_function_name(f.__qualname__)}",
-        rf"\1{normalize_function_name(name)}",
-        inspect.getsource(f),
-        1,
+        rf"(def\s+){normalize_function_name(f.__qualname__)}", rf"\1{name}", inspect.getsource(f), 1
     )
     return func
 

@@ -14,6 +14,8 @@ from django.db.models.options import Options
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
 
+from django_squash.db.migrations.utils import get_custom_rename_function
+
 from . import utils
 
 
@@ -147,6 +149,17 @@ def call_squash_migrations():
         call_command("squash_migrations", *args, **kwargs)
 
     yield _call_squash_migrations
+
+
+@pytest.fixture(autouse=True)
+def clear_get_custom_rename_function_cache():
+    """
+    To ensure that this function doesn't get cached with the wrong value and breaks tests,
+    we always clear it before and after each test.
+    """
+    get_custom_rename_function.cache_clear()
+    yield
+    get_custom_rename_function.cache_clear()
 
 
 @pytest.fixture
