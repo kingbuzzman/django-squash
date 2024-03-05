@@ -9,7 +9,7 @@ from django.conf import settings
 from django.db import migrations as dj_migrations
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
-from . import operators, utils
+from . import utils
 
 RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
 
@@ -83,8 +83,6 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                     if isinstance(operation, dj_migrations.RunSQL):
                         new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.RunPython):
-                        new_operations.append(operation)
-                    elif isinstance(operation, PGCreateExtension):
                         new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
                         # A valid use case for this should be given before any work is done.
