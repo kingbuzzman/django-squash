@@ -18,7 +18,7 @@ Hardcoded list of apps to always ignore, no matter what, the same as ``--ignore`
 Default: ``"squashed"`` (string)
 
 The generated migration name when ``./manage.py squash_migrations`` command is ran.
- 
+
 ``DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION``
 ----------------------------------------
 
@@ -27,3 +27,5 @@ Default: ``None`` (None)
 Example: "path.to.generator_function"
 
 Dot path to the function that will rename the functions found inside ``RunPython`` operations.
+
+Function needs to accept 2 arguments: ``name`` (``str``) and ``context`` (`dict`)
