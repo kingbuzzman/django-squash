@@ -17,7 +17,7 @@ Hardcoded list of apps to always ignore, no matter what, the same as ``--ignore`
 
 Default: ``"squashed"`` (string)
 
-The generated migration name when ``./manage.py squash_migrations`` command is ran.
+The generated migration name when ``./manage.py squash_migrations`` command is run.
 
 ``DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION``
 ----------------------------------------
