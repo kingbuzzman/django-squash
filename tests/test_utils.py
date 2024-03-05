@@ -171,11 +171,17 @@ def test_normalize_function_name():
 
 
 def test_get_custom_rename_function(monkeypatch):
-
+    """
+    Cover all cases where DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION can go wrong
+    """
     assert not utils.get_custom_rename_function()
 
     monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "tests.test_utils.func2")
     assert utils.get_custom_rename_function() == func2
+
+    monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "tests.test_utils.bad")
+    with pytest.raises(ImportError):
+        utils.get_custom_rename_function()
 
     monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "does.not.exist")
     with pytest.raises(ModuleNotFoundError):
