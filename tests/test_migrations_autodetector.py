@@ -1,7 +1,7 @@
 import pytest
 from django.db.migrations import Migration as OriginalMigration
 
-from django_squash.db.migrations import autodetector, operators, utils
+from django_squash.db.migrations import autodetector
 
 
 def test_migration():
@@ -51,35 +51,3 @@ def test_migration_using_keywords():
             autodetector.Migration.from_migration(fake_migration)
 
         autodetector.Migration.from_migration(new_migration)
-
-
-def noop(*a, **k):
-    pass
-
-
-def test_all_custom_operations():
-    """
-    Test that all_custom_operations returns the correct operations
-    """
-    var = utils.UniqueVariableName()
-
-    class Migration(autodetector.Migration):
-        operations = [
-            operators.RunSQL("SELECT 1", elidable=True),
-            operators.RunPython(noop, elidable=True),
-            operators.RunSQL("SELECT 2", elidable=True),
-        ]
-
-    assert list(autodetector.all_custom_operations(Migration.operations, var)) == []
-
-    class Migration(autodetector.Migration):
-        operations = [
-            operators.RunSQL("SELECT 1", elidable=False),
-            operators.RunPython(noop, elidable=False),
-            operators.RunSQL("SELECT 2", elidable=True),
-        ]
-
-    assert [type(x).__name__ for x in autodetector.all_custom_operations(Migration.operations, var)] == [
-        "RunSQL",
-        "RunPython",
-    ]

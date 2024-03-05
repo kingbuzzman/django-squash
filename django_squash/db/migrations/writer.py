@@ -8,7 +8,7 @@ from django.db import migrations as dj_migrations
 from django.db.migrations import writer as dj_writer
 from django.utils.timezone import now
 
-from django_squash.db.migrations import utils
+from django_squash.db.migrations import operators, utils
 
 SUPPORTED_DJANGO_WRITER = (
     "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0
@@ -152,8 +152,42 @@ class Migration(migrations.Migration):
     def as_string(self):
         if hasattr(self.migration, "is_migration_level") and self.migration.is_migration_level:
             return self.replace_in_migration()
-        else:
-            return super().as_string()
+
+        variables = []
+        unique_names = utils.UniqueVariableName()
+        for operation in self.migration.operations:
+            operation._deconstruct = operation.__class__.deconstruct
+
+            def deconstruct(self):
+                name, args, kwargs = self._deconstruct(self)
+                kwargs["elidable"] = self.elidable
+                return name, args, kwargs
+
+            if isinstance(operation, dj_migrations.RunPython):
+                # Bind the deconstruct() to the instance to get the elidable
+                operation.deconstruct = deconstruct.__get__(operation, operation.__class__)
+                if not utils.is_code_in_site_packages(operation.code.__module__):
+                    code_name = unique_names.function(operation.code)
+                    operation.code = utils.copy_func(operation.code, code_name)
+                    operation.code.__in_migration_file__ = True
+                if operation.reverse_code:
+                    if not utils.is_code_in_site_packages(operation.reverse_code.__module__):
+                        reversed_code_name = unique_names.function(operation.reverse_code)
+                        operation.reverse_code = utils.copy_func(operation.reverse_code, reversed_code_name)
+                        operation.reverse_code.__in_migration_file__ = True
+            elif isinstance(operation, dj_migrations.RunSQL):
+                # Bind the deconstruct() to the instance to get the elidable
+                operation.deconstruct = deconstruct.__get__(operation, operation.__class__)
+
+                variable_name = unique_names("SQL", force_number=True)
+                variables.append(self.template_variable % (variable_name, repr(operation.sql)))
+                operation.sql = operators.Variable(variable_name, operation.sql)
+                if operation.reverse_sql:
+                    reverse_variable_name = "%s_ROLLBACK" % variable_name
+                    variables.append(self.template_variable % (reverse_variable_name, repr(operation.reverse_sql)))
+                    operation.reverse_sql = operators.Variable(reverse_variable_name, operation.reverse_sql)
+
+        return super().as_string()
 
     def replace_in_migration(self):
         if self.migration._deleted:
@@ -177,29 +211,33 @@ class Migration(migrations.Migration):
 
     def get_kwargs(self):
         kwargs = super().get_kwargs()
-
         functions_references = []
         functions = []
         variables = []
         for operation in self.migration.operations:
             if isinstance(operation, dj_migrations.RunPython):
-                code_reference = operation.code
-                if hasattr(operation.code, "__original_function__"):
-                    code_reference = operation.code.__original_function__
-                if code_reference in functions_references:
-                    continue
-                functions_references.append(code_reference)
-                if not utils.is_code_in_site_packages(operation.code.__module__):
-                    functions.append(textwrap.dedent(utils.extract_function_source(operation.code)))
-                if operation.reverse_code:
-                    reverse_code_reference = operation.reverse_code
-                    if hasattr(operation.reverse_code, "__original_function__"):
-                        reverse_code_reference = operation.reverse_code.__original_function__
-                    if reverse_code_reference in functions_references:
+                if hasattr(operation.code, "__original__"):
+                    if operation.code.__original__ in functions_references:
                         continue
-                    functions_references.append(reverse_code_reference)
+                    functions_references.append(operation.code.__original__)
+                else:
+                    if operation.code in functions_references:
+                        continue
+                    functions_references.append(operation.code)
+
+                if not utils.is_code_in_site_packages(operation.code.__module__):
+                    functions.append(textwrap.dedent(operation.code.__source__))
+                if operation.reverse_code:
+                    if hasattr(operation.reverse_code, "__original__"):
+                        if operation.reverse_code.__original__ in functions_references:
+                            continue
+                        functions_references.append(operation.reverse_code.__original__)
+                    else:
+                        if operation.reverse_code in functions_references:
+                            continue
+                        functions_references.append(operation.reverse_code)
                     if not utils.is_code_in_site_packages(operation.reverse_code.__module__):
-                        functions.append(textwrap.dedent(utils.extract_function_source(operation.reverse_code)))
+                        functions.append(textwrap.dedent(operation.reverse_code.__source__))
             elif isinstance(operation, dj_migrations.RunSQL):
                 variables.append(self.template_variable % (operation.sql.name, repr(operation.sql.value)))
                 if operation.reverse_sql:
