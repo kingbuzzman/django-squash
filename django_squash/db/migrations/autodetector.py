@@ -84,10 +84,13 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                         continue
 
                     if isinstance(operation, dj_migrations.RunSQL):
+                        operation._original_migration = migration
                         new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.RunPython):
+                        operation._original_migration = migration
                         new_operations.append(operation)
                     elif isinstance(operation, postgres.PGCreateExtension):
+                        operation._original_migration = migration
                         new_operations_bubble_top.append(operation)
                     elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
                         # A valid use case for this should be given before any work is done.
