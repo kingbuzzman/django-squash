@@ -18,7 +18,9 @@ def load_migration_module(path):
         spec.loader.exec_module(module)
     except Exception as e:
         with open(path) as f:
-            raise type(e)(f"{e}.\nError loading module file containing:\n\n{f.read()}") from e
+            lines = f.readlines()
+            formatted_lines = "".join(f"{i}: {line}" for i, line in enumerate(lines, start=1))
+            raise type(e)(f"{e}.\nError loading module file containing:\n\n{formatted_lines}") from e
     return module
 
 
@@ -502,13 +504,12 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
     call_squash_migrations()
     files_in_app = migration_app_dir.migration_files()
 
-    expected_files = [
+    assert files_in_app == [
         "0001_initial.py",
         "0002_add_dob.py",
         "0003_squashed.py",
         "__init__.py",
     ]
-    assert files_in_app == expected_files
 
     app_squash = load_migration_module(migration_app_dir / "0003_squashed.py")
     expected = textwrap.dedent(
@@ -555,3 +556,107 @@ def test_squashing_migration_pg_indexes(migration_app_dir, call_squash_migration
             app_label = "app"
 
     call_squash_migrations()
+    assert migration_app_dir.migration_files() == [
+        "0001_initial.py",
+        "0002_use_index.py",
+        "0003_squashed.py",
+        "__init__.py",
+    ]
+    app_squash = load_migration_module(migration_app_dir / "0003_squashed.py")
+    expected = textwrap.dedent(
+        """\
+        import django.contrib.postgres.indexes
+        import django.contrib.postgres.operations
+        from django.contrib.postgres.operations import BtreeGinExtension
+        from django.db import migrations
+        from django.db import migrations, models
+
+
+        class Migration(migrations.Migration):
+
+            replaces = [("app", "0001_initial"), ("app", "0002_use_index")]
+
+            initial = True
+
+            dependencies = []
+
+            operations = [
+                django.contrib.postgres.operations.BtreeGinExtension(),
+                migrations.CreateModel(
+                    name="Message",
+                    fields=[
+                        ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                        ("score", models.IntegerField(default=0)),
+                        ("unicode_name", models.CharField(db_index=True, max_length=255)),
+                    ],
+                    options={
+                        "indexes": [models.Index(fields=["-score"], name="app_message_score_6182ab_idx"), django.contrib.postgres.indexes.GinIndex(fields=["unicode_name"], name="app_message_unicode_c14097_gin")],
+                    },
+                ),
+            ]
+        """  # noqa
+    )
+    assert pretty_extract_piece(app_squash, "") == expected
+
+
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.pg_indexes_custom", app_label="app")
+def test_squashing_migration_pg_indexes_custom(migration_app_dir, call_squash_migrations):
+
+    class Message(models.Model):
+        score = models.IntegerField(default=0)
+        unicode_name = models.CharField(max_length=255, db_index=True)
+
+        class Meta:
+            indexes = [models.Index(fields=["-score"]), GinIndex(fields=["unicode_name"])]
+            app_label = "app"
+
+    call_squash_migrations()
+    assert migration_app_dir.migration_files() == [
+        "0001_initial.py",
+        "0002_use_index.py",
+        "0003_squashed.py",
+        "__init__.py",
+    ]
+    app_squash = load_migration_module(migration_app_dir / "0003_squashed.py")
+    expected = textwrap.dedent(
+        """\
+        import django.contrib.postgres.indexes
+        from django.contrib.postgres.operations import BtreeGinExtension
+        from django.db import migrations
+        from django.db import migrations, models
+
+
+        class IgnoreRollbackBtreeGinExtension(BtreeGinExtension):
+            \"\"\"
+            Custom extension that doesn't rollback no matter what
+            \"\"\"
+
+            def database_backwards(self, *args, **kwargs):
+                pass
+
+
+        class Migration(migrations.Migration):
+
+            replaces = [("app", "0001_initial"), ("app", "0002_use_index")]
+
+            initial = True
+
+            dependencies = []
+
+            operations = [
+                IgnoreRollbackBtreeGinExtension(),
+                migrations.CreateModel(
+                    name="Message",
+                    fields=[
+                        ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                        ("score", models.IntegerField(default=0)),
+                        ("unicode_name", models.CharField(db_index=True, max_length=255)),
+                    ],
+                    options={
+                        "indexes": [models.Index(fields=["-score"], name="app_message_score_6182ab_idx"), django.contrib.postgres.indexes.GinIndex(fields=["unicode_name"], name="app_message_unicode_c14097_gin")],
+                    },
+                ),
+            ]
+        """  # noqa
+    )
+    assert pretty_extract_piece(app_squash, "") == expected

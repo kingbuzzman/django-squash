@@ -1,3 +1,4 @@
+import inspect
 import os
 import re
 import textwrap
@@ -8,15 +9,8 @@ from django.db import migrations as dj_migrations
 from django.db.migrations import writer as dj_writer
 from django.utils.timezone import now
 
+from django_squash.contrib import postgres
 from django_squash.db.migrations import operators, utils
-
-try:
-    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
-except ImportError:
-
-    class PGCreateExtension:
-        pass
-
 
 SUPPORTED_DJANGO_WRITER = (
     "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0
@@ -48,11 +42,11 @@ check_django_migration_hash()
 
 class OperationWriter(dj_writer.OperationWriter):
     def serialize(self):
-        if isinstance(self.operation, PGCreateExtension):
-            import ipdb
+        if isinstance(self.operation, postgres.PGCreateExtension):
+            if not utils.is_code_in_site_packages(self.operation.__class__.__module__):
+                self.feed("%s()," % (self.operation.__class__.__name__))
+                return self.render(), set()
 
-            print("\a")
-            ipdb.sset_trace()
         return super().serialize()
 
 
@@ -223,7 +217,7 @@ class Migration(migrations.Migration):
             source = utils.replace_migration_attribute(source, "replaces", self.migration.replaces)
             changed = True
         if not changed:
-            raise NotImplementedError()
+            raise NotImplementedError()  # pragma: no cover
 
         return source
 
@@ -262,6 +256,9 @@ class Migration(migrations.Migration):
                     variables.append(
                         self.template_variable % (operation.reverse_sql.name, repr(operation.reverse_sql.value))
                     )
+            elif isinstance(operation, postgres.PGCreateExtension):
+                if not utils.is_code_in_site_packages(operation.__class__.__module__):
+                    functions.append(textwrap.dedent(inspect.getsource(operation.__class__)))
 
         kwargs["functions"] = ("\n\n" if functions else "") + "\n\n".join(functions)
         kwargs["variables"] = ("\n\n" if variables else "") + "\n\n".join(variables)
