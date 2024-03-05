@@ -1,3 +1,4 @@
+import inspect
 import os
 import re
 import textwrap
@@ -8,6 +9,7 @@ from django.db import migrations as dj_migrations
 from django.db.migrations import writer as dj_writer
 from django.utils.timezone import now
 
+from django_squash.contrib import postgres
 from django_squash.db.migrations import operators, utils
 
 SUPPORTED_DJANGO_WRITER = (
@@ -36,6 +38,16 @@ def check_django_migration_hash():
 
 
 check_django_migration_hash()
+
+
+class OperationWriter(dj_writer.OperationWriter):
+    def serialize(self):
+        if isinstance(self.operation, postgres.PGCreateExtension):
+            if not utils.is_code_in_site_packages(self.operation.__class__.__module__):
+                self.feed("%s()," % (self.operation.__class__.__name__))
+                return self.render(), set()
+
+        return super().serialize()
 
 
 class ReplacementMigrationWriter(dj_writer.MigrationWriter):
@@ -70,7 +82,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         # Deconstruct operations
         operations = []
         for operation in self.migration.operations:
-            operation_string, operation_imports = dj_writer.OperationWriter(operation).serialize()
+            operation_string, operation_imports = OperationWriter(operation).serialize()
             imports.update(operation_imports)
             operations.append(operation_string)
         items["operations"] = "\n".join(operations) + "\n" if operations else ""
@@ -205,7 +217,7 @@ class Migration(migrations.Migration):
             source = utils.replace_migration_attribute(source, "replaces", self.migration.replaces)
             changed = True
         if not changed:
-            raise NotImplementedError()
+            raise NotImplementedError()  # pragma: no cover
 
         return source
 
@@ -244,6 +256,9 @@ class Migration(migrations.Migration):
                     variables.append(
                         self.template_variable % (operation.reverse_sql.name, repr(operation.reverse_sql.value))
                     )
+            elif isinstance(operation, postgres.PGCreateExtension):
+                if not utils.is_code_in_site_packages(operation.__class__.__module__):
+                    functions.append(textwrap.dedent(inspect.getsource(operation.__class__)))
 
         kwargs["functions"] = ("\n\n" if functions else "") + "\n\n".join(functions)
         kwargs["variables"] = ("\n\n" if variables else "") + "\n\n".join(variables)
