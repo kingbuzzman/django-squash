@@ -39,6 +39,13 @@ def check_django_migration_hash():
 check_django_migration_hash()
 
 
+class OperationWriter(dj_writer.OperationWriter):
+    def serialize(self):
+        if isinstance(self.operation, PGCreateExtension):
+            import ipdb; print('\a'); ipdb.sset_trace()
+        return super().serialize()
+
+
 class ReplacementMigrationWriter(dj_writer.MigrationWriter):
     """
     Take a Migration instance and is able to produce the contents
@@ -71,7 +78,7 @@ class ReplacementMigrationWriter(dj_writer.MigrationWriter):
         # Deconstruct operations
         operations = []
         for operation in self.migration.operations:
-            operation_string, operation_imports = dj_writer.OperationWriter(operation).serialize()
+            operation_string, operation_imports = OperationWriter(operation).serialize()
             imports.update(operation_imports)
             operations.append(operation_string)
         items["operations"] = "\n".join(operations) + "\n" if operations else ""
