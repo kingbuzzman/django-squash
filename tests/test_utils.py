@@ -177,6 +177,10 @@ def test_get_custom_rename_function(monkeypatch):
     assert not utils.get_custom_rename_function()
     utils.get_custom_rename_function.cache_clear()
 
+    monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "")
+    assert not utils.get_custom_rename_function()
+    utils.get_custom_rename_function.cache_clear()
+
     monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "tests.test_utils.func2")
     assert utils.get_custom_rename_function() == func2
     utils.get_custom_rename_function.cache_clear()
