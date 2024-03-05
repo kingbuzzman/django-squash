@@ -12,14 +12,6 @@ from django.utils.timezone import now
 from django_squash.contrib import postgres
 from django_squash.db.migrations import operators, utils
 
-try:
-    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
-except ImportError:
-
-    class PGCreateExtension:
-        pass
-
-
 SUPPORTED_DJANGO_WRITER = (
     "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0
     "2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582",  # 4.1 / 4.2
