@@ -9,7 +9,9 @@ from django.conf import settings
 from django.db import migrations as dj_migrations
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
-from . import operators, utils
+from django_squash.contrib import postgres
+
+from . import utils
 
 RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
 
@@ -58,58 +60,47 @@ class Migration(dj_migrations.Migration):
         return new
 
 
-def all_custom_operations(operations, unique_names):
-    """
-    Generator that loops over all the operations and traverses sub-operations such as those inside a -
-    SeparateDatabaseAndState class.
-    """
-
-    for operation in operations:
-        if operation.elidable:
-            continue
-
-        if isinstance(operation, dj_migrations.RunSQL):
-            yield operators.RunSQL.from_operation(operation, unique_names)
-        elif isinstance(operation, dj_migrations.RunPython):
-            yield operators.RunPython.from_operation(operation, unique_names)
-        elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
-            # A valid use case for this should be given before any work is done.
-            pass
-
-
 class SquashMigrationAutodetector(MigrationAutodetectorBase):
 
-    def add_non_elidables(self, original, loader, changes):
-        unique_names = utils.UniqueVariableName()
+    def add_non_elidables(self, loader, changes):
         replacing_migrations_by_app = {
             app: [
-                original.disk_migrations[r]
+                loader.disk_migrations[r]
                 for r in list(dict.fromkeys(itertools.chain.from_iterable([m.replaces for m in migrations])))
             ]
             for app, migrations in changes.items()
         }
 
         for app in changes.keys():
-            operations = []
-            imports = []
+            new_operations = []
+            new_operations_bubble_top = []
+            new_imports = []
 
             for migration in replacing_migrations_by_app[app]:
                 module = sys.modules[migration.__module__]
-                imports.extend(utils.get_imports(module))
-                for operation in all_custom_operations(migration.operations, unique_names):
-                    if isinstance(operation, dj_migrations.RunPython):
-                        operation.code = utils.copy_func(operation.code)
-                        operation.code.__in_migration_file__ = module.__name__ == operation.code.__module__
+                new_imports.extend(utils.get_imports(module))
+                for operation in migration.operations:
+                    if operation.elidable:
+                        continue
 
-                        if operation.reverse_code:
-                            operation.reverse_code = utils.copy_func(operation.reverse_code)
-                            in_migration_file = module.__name__ == operation.reverse_code.__module__
-                            operation.reverse_code.__in_migration_file__ = in_migration_file
-                    operations.append(operation)
+                    if isinstance(operation, dj_migrations.RunSQL):
+                        new_operations.append(operation)
+                    elif isinstance(operation, dj_migrations.RunPython):
+                        new_operations.append(operation)
+                    elif isinstance(operation, postgres.PGCreateExtension):
+                        new_operations_bubble_top.append(operation)
+                    elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
+                        # A valid use case for this should be given before any work is done.
+                        pass
+
+            if new_operations_bubble_top:
+                migration = changes[app][0]
+                migration.operations = new_operations_bubble_top + migration.operations
+                migration.extra_imports = new_imports
 
             migration = changes[app][-1]
-            migration.operations += operations
-            migration.extra_imports = imports
+            migration.operations += new_operations
+            migration.extra_imports = new_imports
 
     def replace_current_migrations(self, original, graph, changes):
         """
@@ -222,7 +213,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
         self.convert_migration_references_to_objects(real_loader, changes, ignore_apps)
         self.rename_migrations(real_loader, graph, changes, migration_name)
         self.replace_current_migrations(real_loader, graph, changes)
-        self.add_non_elidables(real_loader, squash_loader, changes)
+        self.add_non_elidables(real_loader, changes)
 
         for app, change in changes_.items():
             changes[app].extend(change)
