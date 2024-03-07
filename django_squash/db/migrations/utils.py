@@ -1,11 +1,11 @@
 import ast
+import functools
 import hashlib
 import importlib
 import inspect
 import itertools
 import os
 import re
-import functools
 import sysconfig
 import types
 from collections import defaultdict
