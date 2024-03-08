@@ -166,8 +166,20 @@ class Migration(migrations.Migration):
             return self.replace_in_migration()
 
         variables = []
-        unique_names = utils.UniqueVariableName()
+        custom_naming_function = utils.get_custom_rename_function()
+        unique_names = utils.UniqueVariableName(
+            {"app": self.migration.app_label}, naming_function=custom_naming_function
+        )
         for operation in self.migration.operations:
+            unique_names.update_context(
+                {
+                    "new_migration": self.migration,
+                    "operation": operation,
+                    "migration": (
+                        operation._original_migration if hasattr(operation, "_original_migration") else self.migration
+                    ),
+                }
+            )
             operation._deconstruct = operation.__class__.deconstruct
 
             def deconstruct(self):
@@ -179,12 +191,14 @@ class Migration(migrations.Migration):
                 # Bind the deconstruct() to the instance to get the elidable
                 operation.deconstruct = deconstruct.__get__(operation, operation.__class__)
                 if not utils.is_code_in_site_packages(operation.code.__module__):
-                    code_name = unique_names.function(operation.code)
+                    code_name = utils.normalize_function_name(unique_names.function(operation.code))
                     operation.code = utils.copy_func(operation.code, code_name)
                     operation.code.__in_migration_file__ = True
                 if operation.reverse_code:
                     if not utils.is_code_in_site_packages(operation.reverse_code.__module__):
-                        reversed_code_name = unique_names.function(operation.reverse_code)
+                        reversed_code_name = utils.normalize_function_name(
+                            unique_names.function(operation.reverse_code)
+                        )
                         operation.reverse_code = utils.copy_func(operation.reverse_code, reversed_code_name)
                         operation.reverse_code.__in_migration_file__ = True
             elif isinstance(operation, dj_migrations.RunSQL):
