@@ -10,7 +10,7 @@ with io.open(os.path.join(here, "README.rst"), encoding="utf-8") as fp:
     README = fp.read()
 
 DJANGO_VERSIONS = ["3.2", "4.1", "4.2", "5.0"]  # "main" is fictitiously here
-PYTHON_VERSIONS = ["3.8", "3.9", "3.11", "3.12"]
+PYTHON_VERSIONS = ["3.8", "3.9", "3.10", "3.11", "3.12"]
 MIN_DJANGO_VERSION = ".".join(map(str, min([tuple(map(int, v.split("."))) for v in DJANGO_VERSIONS])))
 MIN_PYTHON_VERSION = ".".join(map(str, min([tuple(map(int, v.split("."))) for v in PYTHON_VERSIONS])))
 # Python/Django exceptions
