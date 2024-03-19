@@ -62,9 +62,11 @@ def download_and_extract_tar(url):
 def test_standalone_app():
     url = "https://github.com/consideratecode/django-tutorial-step-by-step/archive/refs/tags/2.0/7.4.tar.gz"
     with download_and_extract_tar(url) as tmp_dir:
+        django_squash = os.getcwd()
         with contextlib.chdir(tmp_dir):
-            os.system('python -m venv venv')
-            os.system('venv/bin/python manage.py squash_migrations')
+            assert os.system('python -m venv venv') == 0
+            assert os.system(f'venv/bin/pip install django {django_squash}') == 0
+            assert os.system('venv/bin/python manage.py squash_migrations') == 0
 
             import ipdb; print('\a'); ipdb.sset_trace()
             a=a
