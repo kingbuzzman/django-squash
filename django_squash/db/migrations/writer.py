@@ -1,4 +1,3 @@
-import inspect
 import os
 import re
 import textwrap
@@ -9,8 +8,15 @@ from django.db import migrations as dj_migrations
 from django.db.migrations import writer as dj_writer
 from django.utils.timezone import now
 
-from django_squash.contrib import postgres
 from django_squash.db.migrations import operators, utils
+
+try:
+    from django.contrib.postgres.operations import CreateExtension as PGCreateExtension
+except ImportError:
+
+    class PGCreateExtension:
+        pass
+
 
 SUPPORTED_DJANGO_WRITER = (
     "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.0
@@ -42,11 +48,11 @@ check_django_migration_hash()
 
 class OperationWriter(dj_writer.OperationWriter):
     def serialize(self):
-        if isinstance(self.operation, postgres.PGCreateExtension):
-            if not utils.is_code_in_site_packages(self.operation.__class__.__module__):
-                self.feed("%s()," % (self.operation.__class__.__name__))
-                return self.render(), set()
+        if isinstance(self.operation, PGCreateExtension):
+            import ipdb
 
+            print("\a")
+            ipdb.sset_trace()
         return super().serialize()
 
 
@@ -166,20 +172,8 @@ class Migration(migrations.Migration):
             return self.replace_in_migration()
 
         variables = []
-        custom_naming_function = utils.get_custom_rename_function()
-        unique_names = utils.UniqueVariableName(
-            {"app": self.migration.app_label}, naming_function=custom_naming_function
-        )
+        unique_names = utils.UniqueVariableName()
         for operation in self.migration.operations:
-            unique_names.update_context(
-                {
-                    "new_migration": self.migration,
-                    "operation": operation,
-                    "migration": (
-                        operation._original_migration if hasattr(operation, "_original_migration") else self.migration
-                    ),
-                }
-            )
             operation._deconstruct = operation.__class__.deconstruct
 
             def deconstruct(self):
@@ -191,14 +185,12 @@ class Migration(migrations.Migration):
                 # Bind the deconstruct() to the instance to get the elidable
                 operation.deconstruct = deconstruct.__get__(operation, operation.__class__)
                 if not utils.is_code_in_site_packages(operation.code.__module__):
-                    code_name = utils.normalize_function_name(unique_names.function(operation.code))
+                    code_name = unique_names.function(operation.code)
                     operation.code = utils.copy_func(operation.code, code_name)
                     operation.code.__in_migration_file__ = True
                 if operation.reverse_code:
                     if not utils.is_code_in_site_packages(operation.reverse_code.__module__):
-                        reversed_code_name = utils.normalize_function_name(
-                            unique_names.function(operation.reverse_code)
-                        )
+                        reversed_code_name = unique_names.function(operation.reverse_code)
                         operation.reverse_code = utils.copy_func(operation.reverse_code, reversed_code_name)
                         operation.reverse_code.__in_migration_file__ = True
             elif isinstance(operation, dj_migrations.RunSQL):
@@ -231,7 +223,7 @@ class Migration(migrations.Migration):
             source = utils.replace_migration_attribute(source, "replaces", self.migration.replaces)
             changed = True
         if not changed:
-            raise NotImplementedError()  # pragma: no cover
+            raise NotImplementedError()
 
         return source
 
@@ -270,9 +262,6 @@ class Migration(migrations.Migration):
                     variables.append(
                         self.template_variable % (operation.reverse_sql.name, repr(operation.reverse_sql.value))
                     )
-            elif isinstance(operation, postgres.PGCreateExtension):
-                if not utils.is_code_in_site_packages(operation.__class__.__module__):
-                    functions.append(textwrap.dedent(inspect.getsource(operation.__class__)))
 
         kwargs["functions"] = ("\n\n" if functions else "") + "\n\n".join(functions)
         kwargs["variables"] = ("\n\n" if variables else "") + "\n\n".join(variables)
