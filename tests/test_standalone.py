@@ -1,5 +1,6 @@
 import contextlib
 import os
+import sqlite3
 import tarfile
 import tempfile
 import urllib.request
@@ -36,10 +37,7 @@ def download_and_extract_tar(url):
 
         # Download the file using urllib
         with urllib.request.urlopen(url) as response, open(filepath, "wb") as f:
-            for chunk in iter(lambda: response.read(1024), b""):
-                if not chunk:
-                    break
-                f.write(chunk)
+            f.write(response.read())
 
         # Extract the tar.gz file
         with tarfile.open(filepath, "r:gz") as tar:
@@ -60,19 +58,40 @@ def download_and_extract_tar(url):
 
 
 @pytest.mark.slow
-def test_standalone_app(capsys):
+def test_standalone_app():
+    """
+    Test that a standalone (django sample poll) app can be installed using venv.
+
+    This test is slow because it downloads a tar.gz file from the internet, extracts it and
+    pip installs django + dependencies. After runs migrations, squashes them, and runs them again!
+    """
     url = "https://github.com/consideratecode/django-tutorial-step-by-step/archive/refs/tags/2.0/7.4.tar.gz"
-    with download_and_extract_tar(url) as tmp_dir:
-        django_squash = os.getcwd()
-        with contextlib.chdir(tmp_dir):
-            assert os.system("python -m venv venv") == 0
-            assert os.system(f"venv/bin/pip install django {django_squash}") == 0
+    django_squash = os.getcwd()
+    with download_and_extract_tar(url) as tmp_dir, contextlib.chdir(tmp_dir):
+        # Setup
+        assert os.system("python -m venv venv") == 0
+        assert os.system(f"venv/bin/pip install django {django_squash}") == 0
 
-            # Everything works as expected
-            assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
-            os.remove("db.sqlite3")
+        # Everything works as expected
+        assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
+        os.rename("db.sqlite3", "db_original.sqlite3")
 
-            # Squash and run the migrations
-            assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py squash_migrations") == 0
-            assert sorted(os.listdir("polls/migrations")) == ["0001_initial.py", "0002_squashed.py", "__init__.py"]
-            assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
+        # Squash and run the migrations
+        assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py squash_migrations") == 0
+        assert sorted(os.listdir("polls/migrations")) == ["0001_initial.py", "0002_squashed.py", "__init__.py"]
+        assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
+
+        # Check that the squashed migrations schema is the same as the original ones
+        original_con = sqlite3.connect("db_original.sqlite3")
+        squashed_con = sqlite3.connect("db.sqlite3")
+        ocur = original_con.cursor()
+        scur = original_con.cursor()
+
+        ores = ocur.execute("select * from sqlite_schema")
+        sres = scur.execute("select * from sqlite_schema")
+        assert ores.fetchall() == sres.fetchall()
+
+        ocur.close()
+        scur.close()
+        original_con.close()
+        squashed_con.close()
