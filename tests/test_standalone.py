@@ -7,6 +7,20 @@ import urllib.request
 
 import pytest
 
+try:
+    from contextlib import chdir
+except ImportError:
+    # Delete after python 3.10 is no longer supported (31 Oct 2026)
+    @contextlib.contextmanager
+    def chdir(path):
+        prev_cwd = os.getcwd()
+        os.chdir(path)
+        try:
+            yield
+        finally:
+            os.chdir(prev_cwd)
+
+
 SETTINGS_PY_DIFF = """\
 --- original.py	2024-03-19 13:32:55
 +++ diff.py	2024-03-19 13:33:05
@@ -67,7 +81,7 @@ def test_standalone_app():
     """
     url = "https://github.com/consideratecode/django-tutorial-step-by-step/archive/refs/tags/2.0/7.4.tar.gz"
     django_squash = os.getcwd()
-    with download_and_extract_tar(url) as tmp_dir, contextlib.chdir(tmp_dir):
+    with download_and_extract_tar(url) as tmp_dir, chdir(tmp_dir):
         # Setup
         assert os.system("python -m venv venv") == 0
         assert os.system(f"venv/bin/pip install django {django_squash}") == 0
