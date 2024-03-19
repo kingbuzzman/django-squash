@@ -93,7 +93,8 @@ def test_standalone_app():
         # Squash and run the migrations
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py squash_migrations") == 0
         # __pycache__ can be present in the migrations folder. We don't care about it.
-        assert set(os.listdir("polls/migrations")) == set(["0001_initial.py", "0002_squashed.py", "__init__.py"])
+        actual = set(os.listdir("polls/migrations")) - set(["__pycache__"])
+        assert actual == set(["0001_initial.py", "0002_squashed.py", "__init__.py"])
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
 
         # Check that the squashed migrations schema is the same as the original ones
