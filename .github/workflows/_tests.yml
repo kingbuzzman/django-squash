@@ -27,20 +27,28 @@ jobs:
           echo "matrix=$(<matrix.json)" >> $GITHUB_OUTPUT
       - name: Check version EOF
         run: |
-          set -x
           python -c "import json
           from urllib.request import Request, urlopen
           from datetime import date, datetime, timedelta
-          from itertools import chain, zip_longest
           from setup import DJANGO_VERSIONS, PYTHON_VERSIONS
           today = date.today()
           WARNING_DAYS = timedelta(days=90)
-          versions = chain.from_iterable([zip_longest(['django'] * len(DJANGO_VERSIONS), DJANGO_VERSIONS), zip_longest(['python'] * len(PYTHON_VERSIONS), PYTHON_VERSIONS)])
-          for product, version in versions:
-              url = f'https://endoflife.date/api/{product}/{version}.json'
+          version_by_product = {
+              'django': DJANGO_VERSIONS,
+              'python': PYTHON_VERSIONS
+          }
+          for product, supported_versions in version_by_product.items():
+              url = f'https://endoflife.date/api/{product}.json'
               with urlopen(Request(url)) as httpresponse:
-                  eol = json.loads(httpresponse.read())['eol']
+                  data = json.loads(httpresponse.read())
+              for detail in data:
+                  version = detail['cycle']
+                  eol = detail['eol']
                   eol_date = datetime.strptime(eol, '%Y-%m-%d').date()
+                  if version not in supported_versions:
+                      if eol_date > today:
+                          print(f'::error ::{product} v{version}: is not in the supported versions list')
+                      continue
                   if eol_date < today:
                       print(f'::error ::{product} v{version}: EOL was {eol}')
                   elif eol_date - today < WARNING_DAYS:
