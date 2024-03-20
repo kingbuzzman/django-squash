@@ -103,15 +103,25 @@ def test_standalone_app():
         assert actual == set(["0001_initial.py", "0002_squashed.py", "__init__.py"])
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
 
-        # Check that the squashed migrations schema is the same as the original ones
         original_con = sqlite3.connect("db_original.sqlite3")
         squashed_con = sqlite3.connect("db.sqlite3")
         ocur = original_con.cursor()
-        scur = original_con.cursor()
+        scur = squashed_con.cursor()
 
-        ores = ocur.execute("select * from sqlite_schema")
-        sres = scur.execute("select * from sqlite_schema")
-        assert ores.fetchall() == sres.fetchall()
+        # Check that the squashed migrations schema is the same as the original ones
+        oschema = ocur.execute("select name, tbl_name, sql from sqlite_schema").fetchall()
+        sschema = scur.execute("select name, tbl_name, sql from sqlite_schema").fetchall()
+        assert oschema == sschema
+
+        # Check that the migrations were applied
+        actual_migrations_applied = ocur.execute(
+            "select name from django_migrations where app = 'polls' order by name"
+        ).fetchall()
+        assert actual_migrations_applied == [("0001_initial",)]
+        actual_migrations_applied = scur.execute(
+            "select name from django_migrations where app = 'polls' order by name"
+        ).fetchall()
+        assert actual_migrations_applied == [("0001_initial",), ("0002_squashed",)]
 
         ocur.close()
         scur.close()
