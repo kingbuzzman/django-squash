@@ -1,4 +1,4 @@
-import inspect
+import logging
 import os
 import tempfile
 from contextlib import ExitStack
@@ -8,6 +8,8 @@ from django.conf import settings
 from django.db.migrations.loader import MigrationLoader
 
 from django_squash.db.migrations import utils
+
+logger = logging.getLogger(__name__)
 
 
 class SquashMigrationLoader(MigrationLoader):
@@ -23,10 +25,11 @@ class SquashMigrationLoader(MigrationLoader):
             # directory inside each app that will tell django we don't have any migrations at all.
             for app_config in apps.get_app_configs():
                 # absolute path to the app
-                app_path = os.path.dirname(os.path.abspath(inspect.getsourcefile(app_config.module)))
+                app_path = utils.source_directory(app_config.module)
 
                 if app_path.startswith(site_packages_path):
                     # ignore any apps in inside site-packages
+                    logger.debug("Ignoring app %s inside site-packages: %s", app_config.label, app_path)
                     continue
 
                 temp_dir = stack.enter_context(tempfile.TemporaryDirectory(prefix="migrations_", dir=app_path))

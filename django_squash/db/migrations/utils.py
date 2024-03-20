@@ -44,6 +44,9 @@ def file_hash(file_path):
 
 
 def source_directory(module):
+    """
+    Return the absolute path of a module
+    """
     return os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
 
 
