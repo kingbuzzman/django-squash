@@ -7,7 +7,7 @@ from django.apps import apps
 from django.conf import settings
 from django.db.migrations.loader import MigrationLoader
 
-from . import utils
+from django_squash.db.migrations import utils
 
 
 class SquashMigrationLoader(MigrationLoader):

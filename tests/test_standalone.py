@@ -7,7 +7,7 @@ import urllib.request
 
 import pytest
 
-from . import utils
+from tests import utils
 
 if utils.is_pyvsupported("3.11"):
     try:
