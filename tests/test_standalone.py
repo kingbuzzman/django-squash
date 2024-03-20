@@ -74,7 +74,8 @@ def download_and_extract_tar(url):
             f.write(SETTINGS_PY_DIFF)
         os.system(f"patch {tmp_dir}/mysite/settings.py {tmp_dir}/diff.patch")
 
-        yield tmp_dir
+        with chdir(tmp_dir):
+            yield tmp_dir
 
 
 @pytest.mark.slow
@@ -85,19 +86,18 @@ def test_standalone_app():
     This test is slow because it downloads a tar.gz file from the internet, extracts it and
     pip installs django + dependencies. After runs migrations, squashes them, and runs them again!
     """
-
-    # Build the package from scratch
-    assert os.system("python3 -m build") == 0
-    assert sorted(os.listdir("dist")) == ["django_squash-0.0.10-py3-none-any.whl", "django_squash-0.0.10.tar.gz"]
-
     url = "https://github.com/consideratecode/django-tutorial-step-by-step/archive/refs/tags/2.0/7.4.tar.gz"
     # This is a full django_squash package, with a copy of all the code, crucial for testing
     # This will alert us if a new module is added but not included in the final package
-    django_squash = os.getcwd() + "/dist/django_squash-0.0.10-py3-none-any.whl"
-    with download_and_extract_tar(url) as tmp_dir, chdir(tmp_dir):
+    project_path = os.getcwd()
+    with download_and_extract_tar(url):
+        # Build the package from scratch
+        assert os.system(f"python3 -m build {project_path} --outdir=./dist") == 0
+        assert sorted(os.listdir("dist")) == ["django_squash-0.0.10-py3-none-any.whl", "django_squash-0.0.10.tar.gz"]
+
         # Setup
         assert os.system("python -m venv venv") == 0
-        assert os.system(f"venv/bin/pip install django {django_squash}") == 0
+        assert os.system("venv/bin/pip install django dist/django_squash-0.0.10-py3-none-any.whl") == 0
 
         # Everything works as expected
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
