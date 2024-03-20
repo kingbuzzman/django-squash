@@ -7,8 +7,11 @@ import black
 import libcst
 import pytest
 from django.contrib.postgres.indexes import GinIndex
-from django.core.management import CommandError
+from django.core.management import CommandError, call_command
 from django.db import models
+from django.db.migrations.recorder import MigrationRecorder
+
+DjangoMigrationModel = MigrationRecorder.Migration
 
 
 def load_migration_module(path):
@@ -663,13 +666,17 @@ def test_with_first(migration_app_dir, migration_app2_dir, call_squash_migration
         class Meta:
             app_label = "app"
 
-    # import ipdb; print('\a'); ipdb.sset_trace()
-    # call_squash_migrations()
-    from django.core.management import call_command
+    qs = DjangoMigrationModel.objects.values_list("name", flat=True).order_by("name")
 
     call_command("migrate")
+    assert list(qs.filter(app="app")) == ["0001_initial"]
+    assert list(qs.filter(app="app2")) == ["0001_initial", "0002_add_fields", "0003_add_more_fields"]
 
-    # a=a
+    call_squash_migrations()
+
+    call_command("migrate")
+    assert list(qs.filter(app="app")) == ["0001_initial", "0002_squashed"]
+    assert list(qs.filter(app="app2")) == ["0001_initial", "0002_add_fields", "0003_add_more_fields", "0004_squashed"]
 
 
 @pytest.mark.usefixtures("clean_db")
@@ -688,13 +695,17 @@ def test_with_lastest(migration_app_dir, migration_app2_dir, call_squash_migrati
         class Meta:
             app_label = "app"
 
-    # import ipdb; print('\a'); ipdb.sset_trace()
-    # call_squash_migrations()
-    from django.core.management import call_command
+    qs = DjangoMigrationModel.objects.values_list("name", flat=True).order_by("name")
 
     call_command("migrate")
+    assert list(qs.filter(app="app")) == ["0001_initial"]
+    assert list(qs.filter(app="app2")) == ["0001_initial", "0002_add_fields", "0003_add_more_fields"]
 
-    # a=a
+    call_squash_migrations()
+
+    call_command("migrate")
+    assert list(qs.filter(app="app")) == ["0001_initial", "0002_squashed"]
+    assert list(qs.filter(app="app2")) == ["0001_initial", "0002_add_fields", "0003_add_more_fields", "0004_squashed"]
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.pg_indexes", app_label="app")
