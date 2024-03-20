@@ -85,8 +85,15 @@ def test_standalone_app():
     This test is slow because it downloads a tar.gz file from the internet, extracts it and
     pip installs django + dependencies. After runs migrations, squashes them, and runs them again!
     """
+
+    # Build the package from scratch
+    assert os.system("python3 -m build") == 0
+    assert sorted(os.listdir("dist")) == ["django_squash-0.0.10-py3-none-any.whl", "django_squash-0.0.10.tar.gz"]
+
     url = "https://github.com/consideratecode/django-tutorial-step-by-step/archive/refs/tags/2.0/7.4.tar.gz"
-    django_squash = os.getcwd()
+    # This is a full django_squash package, with a copy of all the code, crucial for testing
+    # This will alert us if a new module is added but not included in the final package
+    django_squash = os.getcwd() + "/dist/django_squash-0.0.10-py3-none-any.whl"
     with download_and_extract_tar(url) as tmp_dir, chdir(tmp_dir):
         # Setup
         assert os.system("python -m venv venv") == 0
@@ -99,8 +106,8 @@ def test_standalone_app():
         # Squash and run the migrations
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py squash_migrations") == 0
         # __pycache__ can be present in the migrations folder. We don't care about it.
-        actual = set(os.listdir("polls/migrations")) - set(["__pycache__"])
-        assert actual == set(["0001_initial.py", "0002_squashed.py", "__init__.py"])
+        actual_files = sorted(set(os.listdir("polls/migrations")) - set(["__pycache__"]))
+        assert actual_files == ["0001_initial.py", "0002_squashed.py", "__init__.py"]
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
 
         original_con = sqlite3.connect("db_original.sqlite3")
