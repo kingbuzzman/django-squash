@@ -105,19 +105,15 @@ def test_standalone_app():
 
         original_con = sqlite3.connect("db_original.sqlite3")
         squashed_con = sqlite3.connect("db.sqlite3")
-        ocur = original_con.cursor()
-        scur = squashed_con.cursor()
 
         # Check that the squashed migrations schema is the same as the original ones
         sql = "select name, tbl_name, sql from sqlite_schema"
-        assert ocur.execute(sql).fetchall() == scur.execute(sql).fetchall()
+        assert original_con.execute(sql).fetchall() == squashed_con.execute(sql).fetchall()
 
         # Check that the migrations were applied
         sql = "select name from django_migrations where app = 'polls' order by name"
-        assert ocur.execute(sql).fetchall() == [("0001_initial",)]
-        assert scur.execute(sql).fetchall() == [("0001_initial",), ("0002_squashed",)]
+        assert original_con.execute(sql).fetchall() == [("0001_initial",)]
+        assert squashed_con.execute(sql).fetchall() == [("0001_initial",), ("0002_squashed",)]
 
-        ocur.close()
-        scur.close()
         original_con.close()
         squashed_con.close()
