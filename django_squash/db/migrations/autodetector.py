@@ -10,8 +10,7 @@ from django.db import migrations as dj_migrations
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
 from django_squash.contrib import postgres
-
-from . import utils
+from django_squash.db.migrations import utils
 
 RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
 

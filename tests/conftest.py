@@ -15,8 +15,7 @@ from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
 
 from django_squash.db.migrations.utils import get_custom_rename_function
-
-from . import utils
+from tests import utils
 
 
 class MigrationPath(Path):
