@@ -7,18 +7,24 @@ import urllib.request
 
 import pytest
 
-try:
-    from contextlib import chdir
-except ImportError:
-    # Delete after python 3.10 is no longer supported (31 Oct 2026)
-    @contextlib.contextmanager
-    def chdir(path):
-        prev_cwd = os.getcwd()
-        os.chdir(path)
-        try:
-            yield
-        finally:
-            os.chdir(prev_cwd)
+from . import utils
+
+if utils.is_pyvsupported("3.11"):
+    try:
+        from contextlib import chdir
+    except ImportError:
+        # Delete after python 3.10 is no longer supported (31 Oct 2026)
+        @contextlib.contextmanager
+        def chdir(path):
+            prev_cwd = os.getcwd()
+            os.chdir(path)
+            try:
+                yield
+            finally:
+                os.chdir(prev_cwd)
+
+else:
+    raise Exception("Remove this whole block please! and use contextlib.chdir instead.")
 
 
 SETTINGS_PY_DIFF = """\

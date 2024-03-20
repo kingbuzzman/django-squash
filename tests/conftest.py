@@ -24,7 +24,7 @@ class MigrationPath(Path):
     A subclass of Path that provides a method to list migration files.
     """
 
-    if utils.is_pyvsuported("3.11"):
+    if utils.is_pyvsupported("3.11"):
         try:
             from pathlib import _PosixFlavour, _WindowsFlavour
 
