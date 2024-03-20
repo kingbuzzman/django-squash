@@ -7,6 +7,7 @@ import urllib.request
 
 import pytest
 
+from django_squash import __version__ as version
 from tests import utils
 
 if utils.is_pyvsupported("3.11"):
@@ -93,11 +94,14 @@ def test_standalone_app():
     with download_and_extract_tar(url):
         # Build the package from scratch
         assert os.system(f"python3 -m build {project_path} --outdir=./dist") == 0
-        assert sorted(os.listdir("dist")) == ["django_squash-0.0.10-py3-none-any.whl", "django_squash-0.0.10.tar.gz"]
+        assert sorted(os.listdir("dist")) == [
+            f"django_squash-{version}-py3-none-any.whl",
+            f"django_squash-{version}.tar.gz",
+        ]
 
         # Setup
         assert os.system("python -m venv venv") == 0
-        assert os.system("venv/bin/pip install django dist/django_squash-0.0.10-py3-none-any.whl") == 0
+        assert os.system(f"venv/bin/pip install django dist/django_squash-{version}-py3-none-any.whl") == 0
 
         # Everything works as expected
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
