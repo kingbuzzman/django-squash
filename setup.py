@@ -68,6 +68,7 @@ if __name__ == "__main__":
             "test": [
                 "black",
                 "flake8",
+                "flake8-tidy-imports",
                 "ipdb",
                 "isort",
                 "libcst",
