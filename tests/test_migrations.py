@@ -1,69 +1,10 @@
-import importlib.util
-import inspect
 import textwrap
 import unittest.mock
 
-import black
-import libcst
 import pytest
 from django.contrib.postgres.indexes import GinIndex
 from django.core.management import CommandError
 from django.db import models
-
-
-def load_migration_module(path):
-    spec = importlib.util.spec_from_file_location("__module__", path)
-    module = importlib.util.module_from_spec(spec)
-    try:
-        spec.loader.exec_module(module)
-    except Exception as e:
-        with open(path) as f:
-            lines = f.readlines()
-            formatted_lines = "".join(f"{i}: {line}" for i, line in enumerate(lines, start=1))
-            raise type(e)(f"{e}.\nError loading module file containing:\n\n{formatted_lines}") from e
-    return module
-
-
-def pretty_extract_piece(module, traverse):
-    """Format the code extracted from the module, so it can be compared to the expected output"""
-    return format_code(extract_piece(module, traverse))
-
-
-def extract_piece(module, traverse):
-    """Extract a piece of code from a module"""
-    source_code = inspect.getsource(module)
-    tree = libcst.parse_module(source_code).body
-
-    for looking_for in traverse.split("."):
-        if looking_for:
-            tree = traverse_node(tree, looking_for)
-
-    if not isinstance(tree, tuple):
-        tree = (tree,)
-    return libcst.Module(body=tree).code
-
-
-def format_code(code_string):
-    """Format the code so it's reproducible"""
-    mode = black.FileMode(line_length=10_000)
-    return black.format_str(code_string, mode=mode)
-
-
-def traverse_node(nodes, looking_for):
-    """Traverse the tree looking for a node"""
-    if not isinstance(nodes, (list, tuple)):
-        nodes = [nodes]
-
-    for node in nodes:
-        if isinstance(node, (libcst.ClassDef, libcst.FunctionDef)) and node.name.value == looking_for:
-            return node
-        if isinstance(node, libcst.Assign) and looking_for in [n.target.value for n in node.targets]:
-            return node
-
-        for child in node.children:
-            result = traverse_node(child, looking_for)
-            if result:
-                return result
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.elidable", app_label="app")
@@ -77,10 +18,6 @@ def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migr
 
     call_squash_migrations()
 
-    files_in_app = migration_app_dir.migration_files()
-    assert "0004_squashed.py" in files_in_app
-
-    app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
     expected = textwrap.dedent(
         """\
         import datetime
@@ -182,7 +119,7 @@ def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migr
             ]
         """  # noqa
     )
-    assert pretty_extract_piece(app_squash, "") == expected
+    assert migration_app_dir.migration_read("0004_squashed.py", "") == expected
 
 
 def custom_func_naming(original_name, context):
@@ -210,8 +147,7 @@ def test_squashing_elidable_migration_unique_name_formatting(migration_app_dir, 
 
     call_squash_migrations()
 
-    app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
-    source = pretty_extract_piece(app_squash, "")
+    source = migration_app_dir.migration_read("0004_squashed.py", "")
     assert source.count("f_0002_person_age_same_name(") == 1
     assert source.count("code=f_0002_person_age_same_name,") == 1
     assert source.count("f_0002_person_age_same_name_2(") == 1
@@ -254,8 +190,8 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
     assert "0004_squashed.py" in files_in_app
     assert "0002_squashed.py" in files_in_app2
 
-    app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
-    app2_squash = load_migration_module(migration_app2_dir / "0002_squashed.py")
+    app_squash = migration_app_dir.migration_load("0004_squashed.py")
+    app2_squash = migration_app2_dir.migration_load("0002_squashed.py")
 
     assert app_squash.Migration.replaces == [
         ("app", "0001_initial"),
@@ -378,7 +314,7 @@ def test_simple_delete_squashing_migrations(migration_app_dir, call_squash_migra
         class Meta:
             app_label = "app"
 
-    original_app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
+    original_app_squash = migration_app_dir.migration_load("0004_squashed.py")
     assert original_app_squash.Migration.replaces == [
         ("app", "0001_initial"),
         ("app", "0002_person_age"),
@@ -388,8 +324,8 @@ def test_simple_delete_squashing_migrations(migration_app_dir, call_squash_migra
     call_squash_migrations()
 
     files_in_app = migration_app_dir.migration_files()
-    old_app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
-    new_app_squash = load_migration_module(migration_app_dir / "0005_squashed.py")
+    old_app_squash = migration_app_dir.migration_load("0004_squashed.py")
+    new_app_squash = migration_app_dir.migration_load("0005_squashed.py")
 
     # We altered an existing file, and removed all the "replaces" items
     assert old_app_squash.Migration.replaces == []
@@ -407,7 +343,7 @@ def test_empty_models_migrations(migration_app_dir, call_squash_migrations):
     call_squash_migrations()
     files_in_app = migration_app_dir.migration_files()
     assert "0004_squashed.py" in files_in_app
-    app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
+    app_squash = migration_app_dir.migration_load("0004_squashed.py")
 
     expected_files = [
         "0001_initial.py",
@@ -443,7 +379,7 @@ def test_squashing_migration_incorrect_name(migration_app_dir, call_squash_migra
     files_in_app = migration_app_dir.migration_files()
     assert "3001_squashed.py" in files_in_app
 
-    app_squash = load_migration_module(migration_app_dir / "3001_squashed.py")
+    app_squash = migration_app_dir.migration_load("3001_squashed.py")
 
     assert app_squash.Migration.replaces == [
         ("app", "2_person_age"),
@@ -467,7 +403,6 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
     ]
     assert files_in_app == expected_files
 
-    app_squash = load_migration_module(migration_app_dir / "0003_squashed.py")
     expected = textwrap.dedent(
         """\
         from django.db import migrations
@@ -528,7 +463,7 @@ def test_run_python_same_name_migrations(migration_app_dir, call_squash_migratio
             ]
         """  # noqa
     )
-    assert pretty_extract_piece(app_squash, "") == expected
+    assert migration_app_dir.migration_read("0003_squashed.py", "") == expected
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.swappable_dependency", app_label="app")
@@ -550,7 +485,6 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
         "__init__.py",
     ]
 
-    app_squash = load_migration_module(migration_app_dir / "0003_squashed.py")
     expected = textwrap.dedent(
         """\
         import datetime
@@ -580,7 +514,7 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
             ]
         """  # noqa
     )
-    assert pretty_extract_piece(app_squash, "") == expected
+    assert migration_app_dir.migration_read("0003_squashed.py", "") == expected
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.pg_indexes", app_label="app")
@@ -601,7 +535,6 @@ def test_squashing_migration_pg_indexes(migration_app_dir, call_squash_migration
         "0003_squashed.py",
         "__init__.py",
     ]
-    app_squash = load_migration_module(migration_app_dir / "0003_squashed.py")
     expected = textwrap.dedent(
         """\
         import django.contrib.postgres.indexes
@@ -632,7 +565,7 @@ def test_squashing_migration_pg_indexes(migration_app_dir, call_squash_migration
     )
     # NOTE: different django versions handle index differently, since the Index part is actually not
     #       being tested, it doesn't matter that is not checked
-    assert pretty_extract_piece(app_squash, "").startswith(expected)
+    assert migration_app_dir.migration_read("0003_squashed.py", "").startswith(expected)
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.pg_indexes_custom", app_label="app")
@@ -653,7 +586,6 @@ def test_squashing_migration_pg_indexes_custom(migration_app_dir, call_squash_mi
         "0003_squashed.py",
         "__init__.py",
     ]
-    app_squash = load_migration_module(migration_app_dir / "0003_squashed.py")
     expected = textwrap.dedent(
         """\
         import django.contrib.postgres.indexes
@@ -692,4 +624,4 @@ def test_squashing_migration_pg_indexes_custom(migration_app_dir, call_squash_mi
     )
     # NOTE: different django versions handle index differently, since the Index part is actually not
     #       being tested, it doesn't matter that is not checked
-    assert pretty_extract_piece(app_squash, "").startswith(expected)
+    assert migration_app_dir.migration_read("0003_squashed.py", "").startswith(expected)
