@@ -8,14 +8,14 @@ sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
 
-def is_pyvsuported(version):
+def is_pyvsupported(version):
     """
     Check if the Python version is supported by the package.
     """
     return version in module.PYTHON_VERSIONS
 
 
-def is_djvsuported(version):
+def is_djvsupported(version):
     """
     Check if the Django version is supported by the package.
     """
