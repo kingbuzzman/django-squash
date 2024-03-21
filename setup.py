@@ -67,15 +67,17 @@ if __name__ == "__main__":
         extras_require={
             "test": [
                 "black",
+                "build",
                 "flake8",
                 "flake8-tidy-imports",
                 "ipdb",
                 "isort",
                 "libcst",
-                "psycopg2",
+                "psycopg2-binary",
                 "pytest-cov",
                 "pytest-django",
                 "restructuredtext-lint",
+                "setuptools",
             ],
         },
     )
