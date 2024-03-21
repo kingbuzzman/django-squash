@@ -5,6 +5,7 @@ __pycache__
 .eggs
 .coverage
 coverage.xml
-htmlcov
-build
-dist
+htmlcov/
+build/
+dist/
+venv/

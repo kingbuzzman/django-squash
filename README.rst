@@ -66,6 +66,14 @@ Alternatively, you can also create a virtual environment and run
 
 .. code-block:: shell
 
+    python3 -m venv venv
+
+.. code-block:: shell
+
+    source venv/bin/activate
+
+.. code-block:: shell
+
     pip install -e '.[test]'
 
 4. Run tests

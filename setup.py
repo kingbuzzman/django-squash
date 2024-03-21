@@ -72,7 +72,7 @@ if __name__ == "__main__":
                 "ipdb",
                 "isort",
                 "libcst",
-                "psycopg2",
+                "psycopg2-binary",
                 "pytest-cov",
                 "pytest-django",
                 "restructuredtext-lint",
