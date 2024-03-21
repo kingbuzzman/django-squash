@@ -300,37 +300,10 @@ def test_invalid_apps_ignore(monkeypatch, call_squash_migrations):
 
 
 @pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_only_apps_with_ignored_app(call_squash_migrations, monkeypatch):
-    """
-    Edge case: if the app was previously ignored, remove it from the ignore list
-    """
-    mock_squash = unittest.mock.MagicMock()
-    monkeypatch.setattr(
-        "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
-        mock_squash,
-    )
-    with pytest.raises(CommandError) as error:
-        call_squash_migrations(
-            "--ignore-app",
-            "app2",
-            "app",
-            "--only",
-            "app2",
-            "app",
-        )
-    assert str(error.value) == "There are no migrations to squash."
-    assert mock_squash.called
-    assert set(mock_squash.call_args[1]["ignore_apps"]) == {"auth", "contenttypes", "django_squash", "app3"}
-
-
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
 def test_ignore_apps_argument(call_squash_migrations, monkeypatch):
 
     mock_squash = unittest.mock.MagicMock()
-    monkeypatch.setattr(
-        "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
-        mock_squash,
-    )
+    monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--ignore-app",
@@ -346,10 +319,7 @@ def test_ignore_apps_argument(call_squash_migrations, monkeypatch):
 def test_only_argument(call_squash_migrations, settings, monkeypatch):
 
     mock_squash = unittest.mock.MagicMock()
-    monkeypatch.setattr(
-        "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
-        mock_squash,
-    )
+    monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--only",
@@ -366,10 +336,7 @@ def test_only_argument(call_squash_migrations, settings, monkeypatch):
 def test_only_argument_with_invalid_apps(call_squash_migrations, monkeypatch):
 
     mock_squash = unittest.mock.MagicMock()
-    monkeypatch.setattr(
-        "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
-        mock_squash,
-    )
+    monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--only",

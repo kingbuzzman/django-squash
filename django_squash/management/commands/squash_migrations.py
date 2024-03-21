@@ -60,9 +60,6 @@ class Command(BaseCommand):
                 try:
                     apps.get_app_config(app_label)
                     only_apps.append(app_label)
-                    # Edge case: if the app was previously ignored, remove it from the ignore list
-                    if app_label in ignore_apps:
-                        ignore_apps.remove(app_label)
                 except (LookupError, TypeError):
                     bad_apps.append(app_label)
 
