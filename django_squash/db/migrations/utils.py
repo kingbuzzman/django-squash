@@ -44,6 +44,9 @@ def file_hash(file_path):
 
 
 def source_directory(module):
+    """
+    Return the absolute path of a module
+    """
     return os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
 
 
@@ -161,12 +164,18 @@ def find_brackets(line, p_count, b_count):
 
 def is_code_in_site_packages(module_name):
     # Find the module in the site-packages directory
-    site_packages_path = sysconfig.get_path("purelib")  # returns the "../site-packages" directory
+    site_packages_path_ = site_packages_path()
     try:
         loader = importlib.util.find_spec(module_name)
-        return site_packages_path in loader.origin
+        return site_packages_path_ in loader.origin
     except ImportError:
         return False
+
+
+@functools.lru_cache(maxsize=1)
+def site_packages_path():
+    # returns the "../site-packages" directory
+    return sysconfig.get_path("purelib")
 
 
 def replace_migration_attribute(source, attr, value):

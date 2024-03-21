@@ -2,9 +2,11 @@ __pycache__
 *.pyc
 *.egg-info
 *.sqlite3
+.DS_Store
 .eggs
 .coverage
 coverage.xml
-htmlcov
-build
-dist
+htmlcov/
+build/
+dist/
+venv/
