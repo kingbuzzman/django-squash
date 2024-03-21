@@ -60,7 +60,7 @@ Developing
 
 .. code-block:: shell
 
-    docker run --rm -it -v .:/app -v django-squash-pip-cache:/root/.cache/pip -e PYTHONDONTWRITEBYTECODE=1 python:3.12 bash -c "cd app; pip install -e .[test]; echo \"alias linters=\\\"git diff origin/master --name-only | grep '\.py$' | tee >(xargs black --config .black) >(xargs isort) >(xargs flake8)\\\"\" >> ~/.bash_profile; printf '\n\n\nrun **pytest** to run tests, **linters** to run linters\n\n'; exec bash --init-file ~/.bash_profile"
+    docker run --rm -it -v .:/app -v django-squash-pip-cache:/root/.cache/pip -e PYTHONDONTWRITEBYTECODE=1 python:3.12 bash -c "cd app; pip install -e .[test]; echo \"alias linters=\\\"echo '> isort'; isort .; echo '> black'; black --config .black .; echo '> flake8'; flake8 .; echo '> rst-lint'; rst-lint README.rst docs/*\\\"\" >> ~/.bash_profile; printf '\n\n\nrun **pytest** to run tests, **linters** to run linters\n\n'; exec bash --init-file ~/.bash_profile"
 
 Alternatively, you can also create a virtual environment and run
 
