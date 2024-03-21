@@ -33,6 +33,18 @@ class MigrationPath(Path):
     else:
         raise Exception("Remove this whole block please!")
 
+    def migration_load(self, file_name):
+        """
+        Returns the migration module object.
+        """
+        return utils.load_migration_module(self / file_name)
+
+    def migration_read(self, file_name, traverse):
+        """
+        Returns the string contents of the migration file.
+        """
+        return utils.pretty_extract_piece(self.migration_load(file_name), traverse=traverse)
+
     def migration_files(self):
         """
         Returns a list of migration files in this directory.
@@ -42,12 +54,20 @@ class MigrationPath(Path):
 
 @pytest.fixture
 def migration_app_dir(request, isolated_apps, settings):
+    del isolated_apps
     yield from _migration_app_dir("temporary_migration_module", request, settings)
 
 
 @pytest.fixture
 def migration_app2_dir(request, isolated_apps, settings):
+    del isolated_apps
     yield from _migration_app_dir("temporary_migration_module2", request, settings)
+
+
+@pytest.fixture
+def migration_app3_dir(request, isolated_apps, settings):
+    del isolated_apps
+    yield from _migration_app_dir("temporary_migration_module3", request, settings)
 
 
 def _migration_app_dir(marker_name, request, settings):
