@@ -172,8 +172,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                     # Technically, the terms '__first__' and '__latest__' could apply to dependencies. However, these
                     # are not labels that Django assigns automatically. Instead, they would be manually specified by
                     # the developer after Django has generated the necessary files. Given that our focus is solely
-                    # on handling migrations created by Django, there is no practical need to account for these
-                    # manually set designations.
+                    # on handling migrations created by Django, there is no practical need to account for these.
 
                     migration_id = dependency
                     if migration_id not in migrations_by_name:
