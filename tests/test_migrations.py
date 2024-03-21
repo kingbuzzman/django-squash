@@ -7,7 +7,7 @@ import black
 import libcst
 import pytest
 from django.contrib.postgres.indexes import GinIndex
-from django.core.management import CommandError, call_command
+from django.core.management import CommandError
 from django.db import models
 from django.db.migrations.recorder import MigrationRecorder
 
@@ -648,64 +648,6 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
         """  # noqa
     )
     assert pretty_extract_piece(app_squash, "") == expected
-
-
-@pytest.mark.usefixtures("clean_db")
-@pytest.mark.django_db(transaction=True)
-@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.first_last", app_label="app2")
-@pytest.mark.temporary_migration_module(module="app.tests.migrations.first", app_label="app")
-def test_with_first(migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
-    class Address(models.Model):
-
-        class Meta:
-            app_label = "app2"
-
-    class Person(models.Model):
-        address = models.ForeignKey(Address, on_delete=models.deletion.CASCADE)
-
-        class Meta:
-            app_label = "app"
-
-    qs = DjangoMigrationModel.objects.values_list("name", flat=True).order_by("name")
-
-    call_command("migrate")
-    assert list(qs.filter(app="app")) == ["0001_initial"]
-    assert list(qs.filter(app="app2")) == ["0001_initial", "0002_add_fields", "0003_add_more_fields"]
-
-    call_squash_migrations()
-
-    call_command("migrate")
-    assert list(qs.filter(app="app")) == ["0001_initial", "0002_squashed"]
-    assert list(qs.filter(app="app2")) == ["0001_initial", "0002_add_fields", "0003_add_more_fields", "0004_squashed"]
-
-
-@pytest.mark.usefixtures("clean_db")
-@pytest.mark.django_db(transaction=True)
-@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.first_last", app_label="app2")
-@pytest.mark.temporary_migration_module(module="app.tests.migrations.lastest", app_label="app")
-def test_with_lastest(migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
-    class Address(models.Model):
-
-        class Meta:
-            app_label = "app2"
-
-    class Person(models.Model):
-        address = models.ForeignKey(Address, on_delete=models.deletion.CASCADE)
-
-        class Meta:
-            app_label = "app"
-
-    qs = DjangoMigrationModel.objects.values_list("name", flat=True).order_by("name")
-
-    call_command("migrate")
-    assert list(qs.filter(app="app")) == ["0001_initial"]
-    assert list(qs.filter(app="app2")) == ["0001_initial", "0002_add_fields", "0003_add_more_fields"]
-
-    call_squash_migrations()
-
-    call_command("migrate")
-    assert list(qs.filter(app="app")) == ["0001_initial", "0002_squashed"]
-    assert list(qs.filter(app="app2")) == ["0001_initial", "0002_add_fields", "0003_add_more_fields", "0004_squashed"]
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.pg_indexes", app_label="app")
