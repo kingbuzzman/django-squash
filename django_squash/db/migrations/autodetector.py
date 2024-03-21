@@ -160,7 +160,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 for dependency in migration.dependencies:
                     dep_app_label, dep_migration = dependency
                     if dep_app_label in ignore_apps:
-                        new_dependencies.append(original.graph.leaf_nodes(dependency[0])[0])
+                        new_dependencies.append(original.graph.leaf_nodes(dep_app_label)[0])
                         continue
 
                     if dep_app_label == "__setting__":
@@ -174,10 +174,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                             # Leave as is, the django's migration writer will handle this by default
                             new_dependencies.append(dependency)
                             continue
-                    elif dep_migration == "__first__":
-                        dependency = original.graph.root_nodes(dep_app_label)[0]
-                    elif dep_migration == "__latest__":
-                        dependency = original.graph.leaf_nodes(dep_app_label)[0]
+                    # Technically, the terms '__first__' and '__latest__' could apply to dependencies. However, these
+                    # are not labels that Django assigns automatically. Instead, they would be manually specified by
+                    # the developer after Django has generated the necessary files. Given that our focus is solely
+                    # on handling migrations created by Django, there is no practical need to account for these.
 
                     migration_id = dependency
                     if migration_id not in migrations_by_name:
