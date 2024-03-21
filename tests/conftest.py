@@ -1,4 +1,3 @@
-import io
 import os
 import shutil
 import tempfile
@@ -138,11 +137,9 @@ def call_squash_migrations():
     """
     Returns a function that calls squashmigrations.
     """
-    output = io.StringIO()
 
     def _call_squash_migrations(*args, **kwargs):
         kwargs["verbosity"] = kwargs.get("verbosity", 1)
-        kwargs["stdout"] = kwargs.get("stdout", output)
         kwargs["no_color"] = kwargs.get("no_color", True)
 
         call_command("squash_migrations", *args, **kwargs)
