@@ -320,7 +320,7 @@ def test_only_apps_with_ignored_app(call_squash_migrations, monkeypatch):
         )
     assert str(error.value) == "There are no migrations to squash."
     assert mock_squash.called
-    assert set(mock_squash.call_args[1]["ignore_apps"]) == {"django_squash", "app3"}
+    assert set(mock_squash.call_args[1]["ignore_apps"]) == {"auth", "contenttypes", "django_squash", "app3"}
 
 
 @pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
