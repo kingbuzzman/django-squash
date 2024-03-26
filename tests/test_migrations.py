@@ -202,8 +202,10 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
     assert app2_squash.Migration.replaces == [("app2", "0001_initial")]
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_squashing_migration_empty(call_squash_migrations):
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_squashing_migration_empty(migration_app_dir, call_squash_migrations):
+    del migration_app_dir
+
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -216,8 +218,9 @@ def test_squashing_migration_empty(call_squash_migrations):
     assert str(error.value) == "There are no migrations to squash."
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_invalid_apps(call_squash_migrations):
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_invalid_apps(migration_app_dir, call_squash_migrations):
+    del migration_app_dir
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--ignore-app",
@@ -227,17 +230,18 @@ def test_invalid_apps(call_squash_migrations):
     assert str(error.value) == "The following apps are not valid: aaa, bbb"
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_invalid_apps_ignore(monkeypatch, call_squash_migrations):
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_invalid_apps_ignore(migration_app_dir, monkeypatch, call_squash_migrations):
+    del migration_app_dir
     monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_IGNORE_APPS", ["aaa", "bbb"])
     with pytest.raises(CommandError) as error:
         call_squash_migrations()
     assert str(error.value) == "The following apps are not valid: aaa, bbb"
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_ignore_apps_argument(call_squash_migrations, monkeypatch):
-
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_ignore_apps_argument(migration_app_dir, call_squash_migrations, monkeypatch):
+    del migration_app_dir
     mock_squash = unittest.mock.MagicMock()
     monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
     with pytest.raises(CommandError) as error:
@@ -251,9 +255,9 @@ def test_ignore_apps_argument(call_squash_migrations, monkeypatch):
     assert set(mock_squash.call_args[1]["ignore_apps"]) == {"app2", "app"}
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_only_argument(call_squash_migrations, settings, monkeypatch):
-
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_only_argument(migration_app_dir, call_squash_migrations, settings, monkeypatch):
+    del migration_app_dir
     mock_squash = unittest.mock.MagicMock()
     monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
     with pytest.raises(CommandError) as error:
@@ -268,9 +272,9 @@ def test_only_argument(call_squash_migrations, settings, monkeypatch):
     assert set(mock_squash.call_args[1]["ignore_apps"]) == installed_apps - {"app2", "app"}
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_only_argument_with_invalid_apps(call_squash_migrations, monkeypatch):
-
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_only_argument_with_invalid_apps(migration_app_dir, call_squash_migrations, monkeypatch):
+    del migration_app_dir
     mock_squash = unittest.mock.MagicMock()
     monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
     with pytest.raises(CommandError) as error:
