@@ -208,6 +208,10 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
 def test_squashing_migration_simple_ignore(migration_app_dir, migration_app2_dir, call_squash_migrations):
+    """
+    Test that "app" gets ignored correctly, nothing changes inside it's migration directory. "app2" gets squashed,
+    and points to the latest "app" migration as a dependency.
+    """
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
