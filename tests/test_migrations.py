@@ -5,6 +5,9 @@ import pytest
 from django.contrib.postgres.indexes import GinIndex
 from django.core.management import CommandError
 from django.db import models
+from django.db.migrations.recorder import MigrationRecorder
+
+DjangoMigrationModel = MigrationRecorder.Migration
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.elidable", app_label="app")
@@ -202,8 +205,54 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
     assert app2_squash.Migration.replaces == [("app2", "0001_initial")]
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_squashing_migration_empty(call_squash_migrations):
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
+@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
+def test_squashing_migration_simple_ignore(migration_app_dir, migration_app2_dir, call_squash_migrations):
+    """
+    Test that "app" gets ignored correctly, nothing changes inside it's migration directory. "app2" gets squashed,
+    and points to the latest "app" migration as a dependency.
+    """
+
+    class Person(models.Model):
+        name = models.CharField(max_length=10)
+        dob = models.DateField()
+        # place_of_birth = models.CharField(max_length=100, blank=True)
+
+        class Meta:
+            app_label = "app"
+
+    class Address(models.Model):
+        person = models.ForeignKey("app.Person", on_delete=models.deletion.CASCADE)
+        address1 = models.CharField(max_length=100)
+        address2 = models.CharField(max_length=100)
+        city = models.CharField(max_length=50)
+        postal_code = models.CharField(max_length=50)
+        province = models.CharField(max_length=50)
+        country = models.CharField(max_length=50)
+
+        class Meta:
+            app_label = "app2"
+
+    call_squash_migrations(
+        "--ignore-app",
+        "app",
+    )
+
+    files_in_app = migration_app_dir.migration_files()
+    assert files_in_app == ["0001_initial.py", "0002_person_age.py", "0003_auto_20190518_1524.py", "__init__.py"]
+
+    files_in_app2 = migration_app2_dir.migration_files()
+    assert files_in_app2 == ["0001_initial.py", "0002_squashed.py", "__init__.py"]
+
+    app2_squash = migration_app2_dir.migration_load("0002_squashed.py")
+    assert app2_squash.Migration.replaces == [("app2", "0001_initial")]
+    assert app2_squash.Migration.dependencies == [("app", "0003_auto_20190518_1524")]
+
+
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_squashing_migration_empty(migration_app_dir, call_squash_migrations):
+    del migration_app_dir
+
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -216,8 +265,9 @@ def test_squashing_migration_empty(call_squash_migrations):
     assert str(error.value) == "There are no migrations to squash."
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_invalid_apps(call_squash_migrations):
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_invalid_apps(migration_app_dir, call_squash_migrations):
+    del migration_app_dir
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--ignore-app",
@@ -227,19 +277,39 @@ def test_invalid_apps(call_squash_migrations):
     assert str(error.value) == "The following apps are not valid: aaa, bbb"
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_invalid_apps_ignore(monkeypatch, call_squash_migrations):
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_invalid_apps_ignore(migration_app_dir, monkeypatch, call_squash_migrations):
+    del migration_app_dir
     monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_IGNORE_APPS", ["aaa", "bbb"])
     with pytest.raises(CommandError) as error:
         call_squash_migrations()
     assert str(error.value) == "The following apps are not valid: aaa, bbb"
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_ignore_apps_argument(call_squash_migrations, monkeypatch):
+@pytest.mark.filterwarnings("ignore")
+def test_only_apps_with_ignored_app(call_squash_migrations):
+    """
+    Edge case: if the app was previously ignored, remove it from the ignore list
+    """
+    with pytest.raises(CommandError) as error:
+        call_squash_migrations(
+            "--ignore-app",
+            "app2",
+            "app",
+            "--only",
+            "app2",
+        )
+    assert str(error.value) == "The following app cannot be ignored and selected at the same time: app2"
 
+
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_ignore_apps_argument(migration_app_dir, call_squash_migrations, monkeypatch):
+    del migration_app_dir
     mock_squash = unittest.mock.MagicMock()
-    monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
+    monkeypatch.setattr(
+        "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
+        mock_squash,
+    )
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--ignore-app",
@@ -251,11 +321,14 @@ def test_ignore_apps_argument(call_squash_migrations, monkeypatch):
     assert set(mock_squash.call_args[1]["ignore_apps"]) == {"app2", "app"}
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_only_argument(call_squash_migrations, settings, monkeypatch):
-
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_only_argument(migration_app_dir, call_squash_migrations, settings, monkeypatch):
+    del migration_app_dir
     mock_squash = unittest.mock.MagicMock()
-    monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
+    monkeypatch.setattr(
+        "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
+        mock_squash,
+    )
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--only",
@@ -268,11 +341,14 @@ def test_only_argument(call_squash_migrations, settings, monkeypatch):
     assert set(mock_squash.call_args[1]["ignore_apps"]) == installed_apps - {"app2", "app"}
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_only_argument_with_invalid_apps(call_squash_migrations, monkeypatch):
-
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
+def test_only_argument_with_invalid_apps(migration_app_dir, call_squash_migrations, monkeypatch):
+    del migration_app_dir
     mock_squash = unittest.mock.MagicMock()
-    monkeypatch.setattr("django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash", mock_squash)
+    monkeypatch.setattr(
+        "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
+        mock_squash,
+    )
     with pytest.raises(CommandError) as error:
         call_squash_migrations(
             "--only",

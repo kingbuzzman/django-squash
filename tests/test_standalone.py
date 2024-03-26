@@ -52,6 +52,9 @@ SETTINGS_PY_DIFF = """\
 
 @contextlib.contextmanager
 def download_and_extract_tar(url):
+    """Downloads and extracts the url into a temporary directory."""
+    # An attempt was made to introduce etag support to this function and was removed as the
+    # benefits where sub 1 second and the amount of code added was not justifiable.
     with tempfile.TemporaryDirectory() as tmp_dir:
         filename = os.path.basename(url)
         filepath = os.path.join(tmp_dir, filename)
