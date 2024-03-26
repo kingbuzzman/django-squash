@@ -99,6 +99,35 @@ def _migration_app_dir(marker_name, request, settings):
     yield MigrationPath(target_module_path)
 
 
+def pytest_collection_modifyitems(config, items):
+    """
+    Prevents issues from being ignored.
+
+    Meta test to ensure we define `@pytest.mark.temporary_migration_module` and use `migration_app_dir` in the
+    function arguments/signature.
+    """
+    del config
+    required_function_argument_by_markers = {
+        "temporary_migration_module": "migration_app_dir",
+        "temporary_migration_module2": "migration_app2_dir",
+        "temporary_migration_module3": "migration_app3_dir",
+    }
+    for test_function in items:
+        markers = {m.name: m for m in test_function.iter_markers()}
+        markers_found = required_function_argument_by_markers.keys() & markers.keys()
+        if not markers_found:
+            continue
+
+        for marker in markers_found:
+            argument_name = required_function_argument_by_markers[marker]
+            if argument_name not in test_function.fixturenames:
+                message = (
+                    f"Test {test_function.name} uses @pytest.mark.{marker} but does not "
+                    f"have '{argument_name}' argument."
+                )
+                pytest.fail(message, pytrace=False)
+
+
 @pytest.fixture(autouse=True)
 def isolated_apps(settings, monkeypatch):
     """

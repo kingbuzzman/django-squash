@@ -60,6 +60,10 @@ class Command(BaseCommand):
                 try:
                     apps.get_app_config(app_label)
                     only_apps.append(app_label)
+                    if app_label in ignore_apps:
+                        raise CommandError(
+                            "The following app cannot be ignored and selected at the same time: %s" % app_label
+                        )
                 except (LookupError, TypeError):
                     bad_apps.append(app_label)
 
