@@ -1,9 +1,13 @@
 import contextlib
+from functools import lru_cache
 import os
 import sqlite3
 import tarfile
 import tempfile
 import urllib.request
+import http
+import hashlib
+import pathlib
 
 import pytest
 
@@ -50,15 +54,56 @@ SETTINGS_PY_DIFF = """\
 """
 
 
-@contextlib.contextmanager
-def download_and_extract_tar(url):
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        filename = os.path.basename(url)
-        filepath = os.path.join(tmp_dir, filename)
+@lru_cache(maxsize=1)
+def temp_global_file():
+    hash_object = hashlib.sha256()
 
-        # Download the file using urllib
-        with urllib.request.urlopen(url) as response, open(filepath, "wb") as f:
-            f.write(response.read())
+    # Update the hash object with the bytes of the input string
+    hash_object.update(version.encode('utf-8'))
+
+    # Obtain the hexadecimal representation of the digest
+    hex_dig = hash_object.hexdigest()
+
+    path = pathlib.Path(tempfile.gettempdir()) / f'django_squash_{hex_dig}'
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+@contextlib.contextmanager
+def download_and_extract_tar(url, filename):
+    filepath = temp_global_file() / filename
+    etag_path = temp_global_file() / 'etag.txt'
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # Try to load the ETag from a local file (etag.txt)
+        if os.path.exists(etag_path):
+            with open(etag_path, "r") as f:
+                etag = f.read().strip()
+        else:
+            etag = None
+
+        request = urllib.request.Request(url)
+
+        # If we have an ETag, add an If-None-Match header to the request
+        if etag:
+            request.add_header('If-None-Match', etag)
+
+        try:
+            # Download the file using urllib
+            with urllib.request.urlopen(request) as response, open(filepath, "wb") as f:
+                if response.status != http.HTTPStatus.OK:
+                    raise Exception('Download error!')
+
+                f.write(response.read())
+
+                new_etag = response.headers.get('ETag')
+
+                # Save the new ETag for next time
+                if new_etag:
+                    with open(etag_path, "w") as f:
+                        f.write(new_etag)
+        except urllib.error.HTTPError as e:
+            if e.code != http.HTTPStatus.NOT_MODIFIED:
+                raise
 
         # Extract the tar.gz file
         with tarfile.open(filepath, "r:gz") as tar:
@@ -91,7 +136,7 @@ def test_standalone_app():
     # This is a full django_squash package, with a copy of all the code, crucial for testing
     # This will alert us if a new module is added but not included in the final package
     project_path = os.getcwd()
-    with download_and_extract_tar(url):
+    with download_and_extract_tar(url, 'django-tutorial.tar'):
         # Build the package from scratch
         assert os.system(f"python3 -m build {project_path} --outdir=./dist") == 0
         assert sorted(os.listdir("dist")) == [
