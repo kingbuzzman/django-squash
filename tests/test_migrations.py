@@ -207,46 +207,7 @@ def test_squashing_migration_simple(migration_app_dir, migration_app2_dir, call_
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
 @pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
-def test_squashing_migration_simple_ignore(migration_app_dir, call_squash_migrations):
-    class Person(models.Model):
-        name = models.CharField(max_length=10)
-        dob = models.DateField()
-        # place_of_birth = models.CharField(max_length=100, blank=True)
-
-        class Meta:
-            app_label = "app"
-
-    class Address(models.Model):
-        person = models.ForeignKey("app.Person", on_delete=models.deletion.CASCADE)
-        address1 = models.CharField(max_length=100)
-        address2 = models.CharField(max_length=100)
-        city = models.CharField(max_length=50)
-        postal_code = models.CharField(max_length=50)
-        province = models.CharField(max_length=50)
-        country = models.CharField(max_length=50)
-
-        class Meta:
-            app_label = "app2"
-
-    call_squash_migrations(
-        "--ignore-app",
-        "app2",
-    )
-
-    files_in_app = migration_app_dir.migration_files()
-    assert "0004_squashed.py" in files_in_app
-
-    app_squash = migration_app_dir.migration_load("0004_squashed.py")
-    assert app_squash.Migration.replaces == [
-        ("app", "0001_initial"),
-        ("app", "0002_person_age"),
-        ("app", "0003_auto_20190518_1524"),
-    ]
-
-
-@pytest.mark.temporary_migration_module(module="app.tests.migrations.simple", app_label="app")
-@pytest.mark.temporary_migration_module2(module="app2.tests.migrations.foreign_key", app_label="app2", join=True)
-def test_squashing_migration_simple_ignore2(migration_app_dir, migration_app2_dir, call_squash_migrations):
+def test_squashing_migration_simple_ignore(migration_app_dir, migration_app2_dir, call_squash_migrations):
     class Person(models.Model):
         name = models.CharField(max_length=10)
         dob = models.DateField()
@@ -273,14 +234,14 @@ def test_squashing_migration_simple_ignore2(migration_app_dir, migration_app2_di
     )
 
     files_in_app = migration_app_dir.migration_files()
-    assert "0004_squashed.py" in files_in_app
+    assert files_in_app == ["0001_initial.py", "0002_person_age.py", "0003_auto_20190518_1524.py", "__init__.py"]
 
-    app_squash = migration_app_dir.migration_load("0004_squashed.py")
-    assert app_squash.Migration.replaces == [
-        ("app", "0001_initial"),
-        ("app", "0002_person_age"),
-        ("app", "0003_auto_20190518_1524"),
-    ]
+    files_in_app2 = migration_app2_dir.migration_files()
+    assert files_in_app2 == ["0001_initial.py", "0002_squashed.py", "__init__.py"]
+
+    app2_squash = migration_app2_dir.migration_load("0002_squashed.py")
+    assert app2_squash.Migration.replaces == [("app2", "0001_initial")]
+    assert app2_squash.Migration.dependencies == [("app", "0003_auto_20190518_1524")]
 
 
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
@@ -320,7 +281,6 @@ def test_invalid_apps_ignore(migration_app_dir, monkeypatch, call_squash_migrati
     assert str(error.value) == "The following apps are not valid: aaa, bbb"
 
 
-<<<<<<< HEAD
 @pytest.mark.filterwarnings("ignore")
 def test_only_apps_with_ignored_app(call_squash_migrations):
     """
@@ -337,14 +297,9 @@ def test_only_apps_with_ignored_app(call_squash_migrations):
     assert str(error.value) == "The following app cannot be ignored and selected at the same time: app2"
 
 
-@pytest.mark.temporary_migration_module(module="app.test_empty", app_label="app")
-def test_ignore_apps_argument(call_squash_migrations, monkeypatch):
-
-=======
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.empty", app_label="app")
 def test_ignore_apps_argument(migration_app_dir, call_squash_migrations, monkeypatch):
     del migration_app_dir
->>>>>>> @{-1}
     mock_squash = unittest.mock.MagicMock()
     monkeypatch.setattr(
         "django_squash.db.migrations.autodetector.SquashMigrationAutodetector.squash",
