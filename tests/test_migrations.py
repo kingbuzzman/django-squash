@@ -236,7 +236,7 @@ def test_squashing_migration_simple_ignore(migration_app_dir, call_squash_migrat
     files_in_app = migration_app_dir.migration_files()
     assert "0004_squashed.py" in files_in_app
 
-    app_squash = load_migration_module(migration_app_dir / "0004_squashed.py")
+    app_squash = migration_app_dir.migration_load("0004_squashed.py")
     assert app_squash.Migration.replaces == [
         ("app", "0001_initial"),
         ("app", "0002_person_age"),
