@@ -33,6 +33,7 @@ if __name__ == "__main__":
             "flake8",
             "flake8-tidy-imports",
             "isort",
+            "pygments",
             "restructuredtext-lint",
             "ruff",
         ],
