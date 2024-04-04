@@ -72,6 +72,8 @@ jobs:
       - name: rst check
         if: always()
         run: rst-lint .
+      - name: Continue
+        run: exit 0
 
   tests:
     runs-on: ubuntu-latest
