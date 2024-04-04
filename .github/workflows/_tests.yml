@@ -73,6 +73,7 @@ jobs:
         if: always()
         run: rst-lint .
       - name: Continue
+        if: always()
         run: exit 0
 
   tests:
