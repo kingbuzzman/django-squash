@@ -37,6 +37,7 @@ if __name__ == "__main__":
             "ruff",
         ],
         "test": [
+            "black",  # tests need black also.
             "build",
             "ipdb",
             "libcst",
