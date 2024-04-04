@@ -11,6 +11,7 @@ jobs:
   prepare-matrix:
     name: Prepare Python/Django matrix
     runs-on: ubuntu-latest
+    continue-on-error: true
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
