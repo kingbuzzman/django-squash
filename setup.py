@@ -51,8 +51,8 @@ if __name__ == "__main__":
         """Custom build command to install ONLY the liners."""
 
         def run(self):
-            req = ' '.join(extras_require['lint'])
-            os.system(f'pip install {req}')
+            req = " ".join(extras_require["lint"])
+            os.system(f"pip install {req}")
 
     setup(
         name="django_squash",
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         description="A migration squasher that doesn't care how Humpty Dumpty was put together.",
         long_description=README,
         cmdclass={
-            'install_linters': InstallLintersCommand,
+            "install_linters": InstallLintersCommand,
         },
         classifiers=[
             # See https://pypi.org/pypi?%3Aaction=list_classifiers
