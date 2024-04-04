@@ -25,12 +25,44 @@ GITHUB_MATRIX = json.dumps(
 
 if __name__ == "__main__":
     from setuptools import find_packages, setup
+    from setuptools.command.build_py import build_py as Command
+
+    extras_require = {
+        "lint": [
+            "black",
+            "flake8",
+            "flake8-tidy-imports",
+            "isort",
+            "pygments",
+            "restructuredtext-lint",
+            "ruff",
+        ],
+        "test": [
+            "black",  # tests need black also.
+            "build",
+            "ipdb",
+            "libcst",
+            "psycopg2-binary",
+            "pytest-cov",
+            "pytest-django",
+        ],
+    }
+
+    class InstallLintersCommand(Command):
+        """Custom build command to install ONLY the liners."""
+
+        def run(self):
+            req = " ".join(extras_require["lint"])
+            os.system(f"pip install {req}")
 
     setup(
         name="django_squash",
         version="0.0.11",
         description="A migration squasher that doesn't care how Humpty Dumpty was put together.",
         long_description=README,
+        cmdclass={
+            "install_linters": InstallLintersCommand,
+        },
         classifiers=[
             # See https://pypi.org/pypi?%3Aaction=list_classifiers
             "Development Status :: 5 - Production/Stable",
@@ -64,20 +96,5 @@ if __name__ == "__main__":
             f"django>={MIN_DJANGO_VERSION}",
         ],
         tests_require=[],
-        extras_require={
-            "test": [
-                "black",
-                "build",
-                "flake8",
-                "flake8-tidy-imports",
-                "ipdb",
-                "isort",
-                "libcst",
-                "psycopg2-binary",
-                "pytest-cov",
-                "pytest-django",
-                "restructuredtext-lint",
-                "setuptools",
-            ],
-        },
+        extras_require=extras_require,
     )
