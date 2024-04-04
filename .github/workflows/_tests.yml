@@ -21,7 +21,9 @@ jobs:
         with:
           python-version: 3.12
       - name: Install the linters
-        run: python setup.py install_linters
+        run: |
+          pip install --upgrade setuptools
+          python setup.py install_linters
       - name: Generate matrix from setup.py
         id: set-matrix
         run: |
