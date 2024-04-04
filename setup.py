@@ -33,6 +33,7 @@ if __name__ == "__main__":
             "flake8",
             "flake8-tidy-imports",
             "isort",
+            "restructuredtext-lint",
             "ruff",
         ],
         "test": [
@@ -42,8 +43,6 @@ if __name__ == "__main__":
             "psycopg2-binary",
             "pytest-cov",
             "pytest-django",
-            "restructuredtext-lint",
-            "setuptools",
         ],
     }
 
