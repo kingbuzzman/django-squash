@@ -1,5 +1,5 @@
-import itertools
 import os
+import itertools
 
 from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError, no_translations
@@ -25,7 +25,7 @@ class Command(BaseCommand):
             "(default: %(default)s)",
         )
         parser.add_argument(
-            "--dry-run",
+            '--dry-run',
             action="store_true",
             dest="dry_run",
             help="Just show what migrations would be made; don't actually write them.",
