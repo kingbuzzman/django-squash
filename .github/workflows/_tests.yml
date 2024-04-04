@@ -58,19 +58,19 @@ jobs:
                   elif eol_date - today < WARNING_DAYS:
                       print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')"
       - name: iSort check
-        continue-on-error: true
+        if: always
         run: isort --check .
       - name: Black check
-        continue-on-error: true
+        if: always
         run: black --config .black --check .
       - name: Flake8 check
-        continue-on-error: true
+        if: always
         run: flake8 .
       - name: Ruff check
-        continue-on-error: true
+        if: always
         run: ruff check .
       - name: rst check
-        continue-on-error: true
+        if: always
         run: rst-lint .
 
   tests:
