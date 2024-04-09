@@ -106,12 +106,8 @@ jobs:
           python -m pip install --upgrade pip setuptools codecov pip install codecov $DJANGO
       - name: Install packages
         run: pip install -e '.[test]'
-      - name: before tests
-        run: ls -lash
       - name: Run tests
         run: pytest --cov django_squash --cov-report=term -m 'not slow'
-      - name: after tests
-        run: ls -lash
       - name: Upload coverage artifacts
         if: success() || failure()
         uses: actions/upload-artifact@v4
@@ -132,6 +128,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: downloaded_artifacts
+      - uses: geekyeggo/delete-artifact@v5
       - name: what we got
         run: find .
 
