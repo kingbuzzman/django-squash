@@ -148,19 +148,10 @@ jobs:
           path: .coverage
           retention-days: 1
 
-      # - name: Place reports' artifacts
-      #   run: rsync -av downloaded_artifacts/*/*/ unit_test_reports/
-      # - name: Check reports existence
-      #   id: check_files
-      #   uses: andstor/file-existence-action@v1
-      #   with:
-      #     files: 'unit_test_reports/**/test-*.xml'
-      # - name: Import results to Xray
-      #   run: ls -R unit_test_reports/
-
-      # - name: Upload coverage to Codecov
-      #   uses: codecov/codecov-action@v4
-      #   with:
-      #     fail_ci_if_error: true
-      #     token: ${{ secrets.CODECOV_TOKEN }}
-      #     env_vars: OS,RUST
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          env_vars: OS,RUST
