@@ -108,12 +108,10 @@ jobs:
         run: pip install -e '.[test]'
       - name: Run tests
         run: pytest --cov django_squash --cov-report=term -m 'not slow'
-      - name: Upload coverage artifacts
-        if: success() || failure()
+      - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          if-no-files-found: ignore
           path: .coverage
           retention-days: 1
 
@@ -136,10 +134,16 @@ jobs:
         uses: geekyeggo/delete-artifact@v5
         with:
             name: coverage_*
-      - name: what we got
+      - name: Combine coverage.py
         run: |
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
-          find .
+          coverage xml
+      - name: Upload single coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: .coverage
+          path: .coverage
+          retention-days: 1
 
       # - name: Place reports' artifacts
       #   run: rsync -av downloaded_artifacts/*/*/ unit_test_reports/
