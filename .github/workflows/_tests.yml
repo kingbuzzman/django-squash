@@ -138,7 +138,7 @@ jobs:
             name: coverage_*
       - name: what we got
         run: |
-          coverage combine $(find downloaded_artifacts/ type f | xargs)
+          coverage combine $(find downloaded_artifacts/ -type f | xargs)
           find .
 
       # - name: Place reports' artifacts
