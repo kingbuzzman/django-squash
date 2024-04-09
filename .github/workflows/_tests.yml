@@ -128,16 +128,17 @@ jobs:
           python-version: 3.12
       - name: Install coverage
         run: pip install coverage
-      - name: Download reports' artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: downloaded_artifacts
-      - uses: geekyeggo/delete-artifact@v5
+      - name: Clean up temporary artifacts
+        uses: geekyeggo/delete-artifact@v5
         with:
             name: coverage_*
       - name: what we got
         run: |
-          coverage combine downloaded_artifacts/
+          coverage combine $(find downloaded_artifacts/ type f | xargs)
           find .
 
       # - name: Place reports' artifacts
