@@ -108,7 +108,7 @@ jobs:
       - name: before tests
         run: ls -lash
       - name: Run tests
-        run: pytest --cov django_squash --cov-report=xml --cov-report=term -m 'not slow'
+        run: pytest --cov django_squash --cov-report=term -m 'not slow'
       - name: after tests
         run: ls -lash
       - name: Upload coverage artifacts
@@ -117,7 +117,7 @@ jobs:
         with:
           name: ${{ env.RUN_UNIQUE_ID }}_artifact_${{ matrix.step }}
           if-no-files-found: ignore
-          path: coverage
+          path: .coverage
           retention-days: 1
 
   coverage:
