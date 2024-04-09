@@ -128,7 +128,7 @@ jobs:
         with:
           python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
       - name: Install coverage
-        run: pip install coverage
+        run: pip install coverage diff-cover
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -141,17 +141,28 @@ jobs:
         run: |
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
           coverage xml
+          mv .coverage .coverage
       - name: Upload single coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: .coverage
           path: .coverage
           retention-days: 1
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        continue-on-error: true
+      - name: Download artifact
+        uses: dawidd6/action-download-artifact@v3
         with:
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-          env_vars: OS,RUST
+          branch: master
+          event: push,schedule
+          name: .coverage
+          path: .master_coverage
+      - name: Diff coverage
+        run: |
+          coverage xml --data-file=.master_coverage -o master_coverage.xml
+          diff-cover master_coverage.xml coverage.xml
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v4
+      #   continue-on-error: true
+      #   with:
+      #     fail_ci_if_error: true
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     env_vars: OS,RUST
