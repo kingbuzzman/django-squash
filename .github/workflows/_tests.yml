@@ -110,7 +110,7 @@ jobs:
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
-        run: pytest --cov django_squash --cov-report=term -m 'not slow'
+        run: pytest --cov django_squash --cov-report=term
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
