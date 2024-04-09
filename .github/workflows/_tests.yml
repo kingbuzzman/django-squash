@@ -98,7 +98,7 @@ jobs:
           key: ${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }}
       - name: Install prerequisites
         run: |
-          echo ARTIFACT_NAME=artifact_${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }} | sed 's|\.\*||g' >> "$GITHUB_ENV"
+          echo ARTIFACT_NAME=coverage_${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }} | sed 's|\.\*||g' >> "$GITHUB_ENV"
           DJANGO="django==${{ matrix.django-version }}"
           if [[ "${{ matrix.django-version }}" == "main" ]]; then
             DJANGO="git+https://github.com/django/django.git@main"
@@ -129,8 +129,12 @@ jobs:
         with:
           path: downloaded_artifacts
       - uses: geekyeggo/delete-artifact@v5
+        with:
+            name: coverage_*
       - name: what we got
-        run: find .
+        run: |
+          coverage combine downloaded_artifacts/
+          find .
 
       # - name: Place reports' artifacts
       #   run: rsync -av downloaded_artifacts/*/*/ unit_test_reports/
