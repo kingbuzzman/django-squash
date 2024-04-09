@@ -98,6 +98,7 @@ jobs:
           key: ${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }}
       - name: Install prerequisites
         run: |
+          echo ARTIFACT_NAME=artifact_${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }} | sed 's|\.\*||g' >> "$GITHUB_ENV"
           DJANGO="django==${{ matrix.django-version }}"
           if [[ "${{ matrix.django-version }}" == "main" ]]; then
             DJANGO="git+https://github.com/django/django.git@main"
@@ -115,7 +116,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: artifact_${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }}
+          name: ${{ env.ARTIFACT_NAME }}
           if-no-files-found: ignore
           path: .coverage
           retention-days: 1
