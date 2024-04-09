@@ -151,7 +151,8 @@ jobs:
         uses: dawidd6/action-download-artifact@v3
         with:
           branch: master
-          event: push,schedule
+          event: push
+          #,schedule
           name: .coverage
           path: .master_coverage
       - name: Diff coverage
