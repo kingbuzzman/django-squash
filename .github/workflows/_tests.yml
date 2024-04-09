@@ -141,7 +141,6 @@ jobs:
         run: |
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
           coverage xml
-          mv .coverage .coverage
       - name: Upload single coverage artifact
         uses: actions/upload-artifact@v4
         with:
