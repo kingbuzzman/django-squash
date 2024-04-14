@@ -7,10 +7,14 @@ on:
         required: true
         type: string
 
+env:
+  DEFAULT_PYTHON_VERSION: 3.12
+
 jobs:
   prepare-matrix:
     name: Prepare Python/Django matrix
     runs-on: ubuntu-latest
+    continue-on-error: true
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
@@ -19,7 +23,11 @@ jobs:
           ref: ${{ inputs.ref }}
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
+      - name: Install the linters
+        run: |
+          pip install --upgrade setuptools
+          python setup.py install_linters
       - name: Generate matrix from setup.py
         id: set-matrix
         run: |
@@ -53,6 +61,24 @@ jobs:
                       print(f'::error ::{product} v{version}: EOL was {eol}')
                   elif eol_date - today < WARNING_DAYS:
                       print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')"
+      - name: iSort check
+        if: always()
+        run: isort --check .
+      - name: Black check
+        if: always()
+        run: black --config .black --check .
+      - name: Flake8 check
+        if: always()
+        run: flake8 .
+      - name: Ruff check
+        if: always()
+        run: ruff check .
+      - name: rst check
+        if: always()
+        run: rst-lint .
+      - name: Continue
+        if: always()
+        run: exit 0
 
   tests:
     runs-on: ubuntu-latest
@@ -75,6 +101,7 @@ jobs:
           key: ${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }}
       - name: Install prerequisites
         run: |
+          echo ARTIFACT_NAME=coverage_${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }} | sed 's|\.\*||g' >> "$GITHUB_ENV"
           DJANGO="django==${{ matrix.django-version }}"
           if [[ "${{ matrix.django-version }}" == "main" ]]; then
             DJANGO="git+https://github.com/django/django.git@main"
@@ -83,18 +110,48 @@ jobs:
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
-        run: pytest --cov django_squash --cov-report=xml --cov-report=term
+        run: pytest --cov django_squash --cov-report=term
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: .coverage
+          retention-days: 1
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: tests
+    if: success() || failure()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
+      - name: Install coverage
+        run: pip install coverage
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded_artifacts
+      - name: Clean up temporary artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+            name: coverage_*
+      - name: Combine coverage.py
+        run: |
+          coverage combine $(find downloaded_artifacts/ -type f | xargs)
+          coverage xml
+      - name: Upload single coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: .coverage
+          path: .coverage
+          retention-days: 1
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
+        continue-on-error: true
         with:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
           env_vars: OS,RUST
-      - name: Flake8 check
-        run: flake8
-      - name: iSort check
-        run: isort --check .
-      - name: Black check
-        run: black --config .black --check .
-      - name: rst check
-        run: rst-lint .
