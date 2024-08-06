@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -45,21 +45,21 @@ requires-python = ">=3.8"
 [project.optional-dependencies]
 lint = [
     "black",
-    "pflake8",
+    "flake8-pyproject",
     "flake8-tidy-imports",
     "isort",
     "pygments",
     "restructuredtext-lint",
-    "ruff",
+    "ruff"
 ]
 test = [
-    "black",  # tests need black also.
+    "black",
     "build",
     "ipdb",
     "libcst",
     "psycopg2-binary",
     "pytest-cov",
-    "pytest-django",
+    "pytest-django"
 ]
 
 [project.urls]
@@ -98,9 +98,6 @@ source = ["django_squash"]
 omit = ["*/migrations_*/*"]
 show_missing = true
 fail_under = 95
-
-[tool.distutils]
-index-servers = "pypi"
 
 [tool.pypi]
 repository = "https://upload.pypi.org/legacy/"

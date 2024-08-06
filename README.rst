@@ -87,7 +87,7 @@ Alternatively, you can also create a virtual environment and run
 .. code-block:: shell
 
     isort .
-    black --config .black .
+    black .
     flake8 .
     ruff check .
     rst-lint .
