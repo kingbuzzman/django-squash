@@ -1,0 +1,138 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "django_squash"
+version = "0.0.11"
+description = "A migration squasher that doesn't care how Humpty Dumpty was put together."
+readme = "README.rst"
+keywords = ["django", "migration", "squashing", "squash"]
+authors = [
+    {name = "Javier Buzzi", email = "buzzi.javier@gmail.com"},
+]
+license = {text = "MIT"}
+classifiers = [
+    # See https://pypi.org/pypi?%3Aaction=list_classifiers
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Framework :: Django",
+    # Django versions
+    "Framework :: Django :: 3.2",
+    "Framework :: Django :: 4.1",
+    "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.0",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    # Python versions
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "django >=3.2",
+]
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+lint = [
+    "black",
+    "pflake8",
+    "flake8-tidy-imports",
+    "isort",
+    "pygments",
+    "restructuredtext-lint",
+    "ruff",
+]
+test = [
+    "black",  # tests need black also.
+    "build",
+    "ipdb",
+    "libcst",
+    "psycopg2-binary",
+    "pytest-cov",
+    "pytest-django",
+]
+
+[project.urls]
+homepage = "https://github.com/kingbuzzman/django-squash"
+
+[tool.setuptools.packages.find]
+exclude = ["tests*", "docs*"]
+
+[tool.setuptools]
+zip-safe = true
+platforms = ["any"]
+
+[tool.black]
+line-length = 119
+exclude = "venv/"
+
+[tool.flake8]
+max-line-length = 119
+exclude = ["*/migrations_*/*", "venv/*", "build/*"]
+ban-relative-imports = true
+
+[tool.isort]
+combine_as_imports = true
+line_length = 119
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+skip_glob = ["venv/**"]
+
+[tool.coverage.run]
+source = ["django_squash"]
+
+[tool.coverage.report]
+omit = ["*/migrations_*/*"]
+show_missing = true
+fail_under = 95
+
+[tool.distutils]
+index-servers = "pypi"
+
+[tool.pypi]
+repository = "https://upload.pypi.org/legacy/"
+username = "kingbuzzman"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "settings"
+pythonpath = "tests"
+addopts = "--pdbcls=IPython.terminal.debugger:TerminalPdb"
+python_files = ["test_*.py", "*_tests.py"]
+
+# Custom markers for pytest
+markers = [
+    "temporary_migration_module",
+    "temporary_migration_module2",
+    "temporary_migration_module3",
+    "slow: marks tests as slow"
+]
+
+filterwarnings = [
+    "error",
+
+    # Internal warning to tell the user that the writer.py file has changed, and may not be compatible.
+    "ignore:Django migrations writer file has changed and may not be compatible with django-squash",
+
+    # Warning: django.utils.deprecation.RemovedInDjango50Warning: The USE_L10N setting is deprecated. Starting with Django 5.0, localized formatting of data will always be enabled. For example Django will display numbers and dates using the format of the current locale.
+    # Don't specify the exact warning (django.utils.deprecation.RemovedInDjango50Warning) as not all version of Django know it and pytest will fail
+    "ignore:The USE_L10N setting is deprecated:",
+
+    # Warning: cgi is only being used by Django 3.2
+    "ignore:'cgi' is deprecated and slated for removal in Python 3.13",
+
+    # Django 3.2 throws a warning about the USE_I18N setting being deprecated
+    "ignore:datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects .*"
+]
