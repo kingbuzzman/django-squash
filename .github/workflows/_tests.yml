@@ -106,7 +106,8 @@ jobs:
           if [[ "${{ matrix.django-version }}" == "main" ]]; then
             DJANGO="git+https://github.com/django/django.git@main"
           fi
-          python -m pip install --upgrade pip setuptools codecov pip install codecov $DJANGO
+          python -m pip install --upgrade pip setuptools 
+          python -m codecov pip install codecov $DJANGO
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
