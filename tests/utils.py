@@ -7,24 +7,98 @@ from pathlib import Path
 import black
 import libcst
 
-spec = importlib.util.spec_from_file_location("dj_squash_setup", Path().resolve() / "setup.py")
-module = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = module
-spec.loader.exec_module(module)
+try:
+    import tomllib
+
+    with open("pyproject.toml", "r") as f:  # pragma: no cover
+        if "Programming Language :: Python :: 3.10" not in f.read():
+            raise Exception("Delete this try/except block and leave the just the 'import tomllib'.")
+except ImportError:
+    # Python 3.10 does not support tomllib
+    import tomli as tomllib
+
+import warnings
+
+from django import VERSION as _DJANGO_FULL_VERSION
+from packaging.version import Version
 
 
 def is_pyvsupported(version):
     """
     Check if the Python version is supported by the package.
     """
-    return version in module.PYTHON_VERSIONS
+    return Version(version) in SUPPORTED_PYTHON_VERSIONS
 
 
 def is_djvsupported(version):
     """
     Check if the Django version is supported by the package.
     """
-    return version in module.DJANGO_VERSIONS
+    return Version(version) in SUPPORTED_DJANGO_VERSIONS
+
+
+def is_number(s):
+    """Returns True if string is a number."""
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+def shorten_version(version):
+    parts = version.split(".")
+    return ".".join(parts[:2])
+
+
+def is_supported_version(supported_versions, version_to_check):
+    if version_to_check.is_prerelease:
+        return True
+
+    for base_version in supported_versions:
+        if version_to_check.major == base_version.major and version_to_check.minor == base_version.minor:
+            return True
+
+    return False
+
+
+SUPPORTED_PYTHON_VERSIONS = []
+SUPPORTED_DJANGO_VERSIONS = []
+
+with open(Path().resolve() / "pyproject.toml", "rb") as f:
+    conf = tomllib.load(f)
+for classifier in conf["project"]["classifiers"]:
+    if "Framework :: Django ::" in classifier:
+        version = classifier.split("::")[-1].strip()
+        if is_number(version):
+            SUPPORTED_DJANGO_VERSIONS.append(Version(version))
+            globals()["DJ" + version.replace(".", "")] = False
+    elif "Programming Language :: Python ::" in classifier:
+        version = classifier.split("::")[-1].strip()
+        if is_number(version) and "." in version:
+            SUPPORTED_PYTHON_VERSIONS.append(Version(version))
+            globals()["PY" + version.replace(".", "")] = False
+
+current_python_version = Version(f"{sys.version_info.major}.{sys.version_info.minor}")
+pre_release_map = {"alpha": "a", "beta": "b", "rc": "rc"}
+# Extract the components of the tuple
+major, minor, micro, pre_release, pre_release_num = _DJANGO_FULL_VERSION
+# Get the corresponding identifier
+pre_release_identifier = pre_release_map.get(pre_release, "")
+# Construct the version string
+_DJANGO_VERSION = f"{major}.{minor}.{micro}{pre_release_identifier}.{pre_release_num}"
+current_django_version = Version(_DJANGO_VERSION)
+
+globals()["DJ" + shorten_version(str(current_django_version).replace(".", ""))] = True
+globals()["PY" + shorten_version(str(current_python_version).replace(".", ""))] = True
+
+if not is_supported_version(SUPPORTED_DJANGO_VERSIONS, current_django_version):
+    versions = ", ".join([str(v) for v in SUPPORTED_DJANGO_VERSIONS])
+    warnings.warn(f"Current Django version {current_django_version} is not in" f" the supported versions: {versions}")
+
+if not is_supported_version(SUPPORTED_PYTHON_VERSIONS, current_python_version):
+    versions = ", ".join([str(v) for v in SUPPORTED_PYTHON_VERSIONS])
+    warnings.warn(f"Current Python version {current_python_version} is not in" f" the supported versions: {versions}")
 
 
 def load_migration_module(path):
