@@ -31,46 +31,46 @@ jobs:
       - name: Generate matrix
         id: set-matrix
         run: |
-        python -c '
-        import toml
-        import itertools
-        import json
+          python -c '
+          import toml
+          import itertools
+          import json
 
-        DJANGO_VERSIONS = []
-        PYTHON_VERSIONS = []
-        EXCLUDE_MATRIX = (["3.8", "3.9"], ["5.0.*", "main"])
+          DJANGO_VERSIONS = []
+          PYTHON_VERSIONS = []
+          EXCLUDE_MATRIX = (["3.8", "3.9"], ["5.0.*", "main"])
 
-        def is_number(s):
-            try:
-                float(s)
-                return True
-            except ValueError:
-                return False
+          def is_number(s):
+              try:
+                  float(s)
+                  return True
+              except ValueError:
+                  return False
 
-        with open("pyproject.toml") as f:
-            conf = toml.load(f)
-        for classifier in conf["project"]["classifiers"]:
-            if "Framework :: Django ::" in classifier:
-                version = classifier.split("::")[-1].strip()
-                if "." in version and is_number(version):
-                    DJANGO_VERSIONS.append(version)
-            elif "Programming Language :: Python ::" in classifier:
-                version = classifier.split("::")[-1].strip()
-                if "." in version and is_number(version):
-                    PYTHON_VERSIONS.append(version)
+          with open("pyproject.toml") as f:
+              conf = toml.load(f)
+          for classifier in conf["project"]["classifiers"]:
+              if "Framework :: Django ::" in classifier:
+                  version = classifier.split("::")[-1].strip()
+                  if "." in version and is_number(version):
+                      DJANGO_VERSIONS.append(version)
+              elif "Programming Language :: Python ::" in classifier:
+                  version = classifier.split("::")[-1].strip()
+                  if "." in version and is_number(version):
+                      PYTHON_VERSIONS.append(version)
 
-        matrix = {
-            "python-version": PYTHON_VERSIONS,
-            "django-version": [f"{v}.*" for v in DJANGO_VERSIONS] + ["main"],
-            "exclude": [{"django-version": d, "python-version": p} for p, d in itertools.product(*EXCLUDE_MATRIX)],
-        }
+          matrix = {
+              "python-version": PYTHON_VERSIONS,
+              "django-version": [f"{v}.*" for v in DJANGO_VERSIONS] + ["main"],
+              "exclude": [{"django-version": d, "python-version": p} for p, d in itertools.product(*EXCLUDE_MATRIX)],
+          }
 
-        pretty = " ".join(DJANGO_VERSIONS)
-        print(f"::set-output name=django::{pretty}")
-        pretty = " ".join(PYTHON_VERSIONS)
-        print(f"::set-output name=python::{pretty}")
-        print(f"::set-output name=matrix::{json.dumps(matrix)}")
-        '
+          pretty = " ".join(DJANGO_VERSIONS)
+          print(f"::set-output name=django::{pretty}")
+          pretty = " ".join(PYTHON_VERSIONS)
+          print(f"::set-output name=python::{pretty}")
+          print(f"::set-output name=matrix::{json.dumps(matrix)}")
+          '
       - name: Check version EOF
         run: |
           python -c "
