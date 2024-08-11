@@ -15,8 +15,6 @@ jobs:
     name: Prepare Python/Django matrix
     runs-on: ubuntu-latest
     continue-on-error: true
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -105,7 +103,8 @@ jobs:
                   if eol_date < today:
                       print(f'::error ::{product} v{version}: EOL was {eol}')
                   elif eol_date - today < WARNING_DAYS:
-                      print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')"
+                      print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')
+          "
       - name: iSort check
         if: always()
         run: isort --check .
@@ -130,7 +129,7 @@ jobs:
     needs: prepare-matrix
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
+      matrix: ${{fromJson(env.matrix)}}
     name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}
     steps:
       - uses: actions/checkout@v4
