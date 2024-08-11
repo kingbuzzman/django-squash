@@ -26,19 +26,65 @@ jobs:
           python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
       - name: Install the linters
         run: |
-          pip install --upgrade setuptools
-          python setup.py install_linters
-      - name: Generate matrix from setup.py
+          pip install --upgrade setuptools toml
+          pip install $(python -c 'import toml; conf = toml.load(open("pyproject.toml")); print(" ".join(conf["project"]["optional-dependencies"]["lint"]))')
+      - name: Generate matrix
+        run: |
+          python -c '
+          import toml
+          import itertools
+          import json
+          import os
+
+          DJANGO_VERSIONS = []
+          PYTHON_VERSIONS = []
+          EXCLUDE_MATRIX = (["3.8", "3.9"], ["5.0.*", "5.1.*", "main"])
+
+          def is_number(s):
+              try:
+                  float(s)
+                  return True
+              except ValueError:
+                  return False
+
+          with open("pyproject.toml") as f:
+              conf = toml.load(f)
+          for classifier in conf["project"]["classifiers"]:
+              if "Framework :: Django ::" in classifier:
+                  version = classifier.split("::")[-1].strip()
+                  if "." in version and is_number(version):
+                      DJANGO_VERSIONS.append(version)
+              elif "Programming Language :: Python ::" in classifier:
+                  version = classifier.split("::")[-1].strip()
+                  if "." in version and is_number(version):
+                      PYTHON_VERSIONS.append(version)
+
+          matrix = {
+              "python-version": PYTHON_VERSIONS,
+              "django-version": [f"{v}.*" for v in DJANGO_VERSIONS] + ["main"],
+              "exclude": [{"django-version": d, "python-version": p} for p, d in itertools.product(*EXCLUDE_MATRIX)],
+          }
+
+          with open(os.getenv("GITHUB_ENV"), "a") as env_file:
+              pretty = " ".join(DJANGO_VERSIONS)
+              env_file.write(f"django={pretty}\n")
+              pretty = " ".join(PYTHON_VERSIONS)
+              env_file.write(f"python={pretty}\n")
+              env_file.write(f"matrix={json.dumps(matrix)}\n")
+          '
+      - name: Check version EOF
         id: set-matrix
         run: |
-          python -c "from setup import GITHUB_MATRIX; print(GITHUB_MATRIX)" > matrix.json
-          echo "matrix=$(<matrix.json)" >> $GITHUB_OUTPUT
-      - name: Check version EOF
-        run: |
-          python -c "import json
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+          python -c "
+          import os
+          import json
           from urllib.request import Request, urlopen
           from datetime import date, datetime, timedelta
-          from setup import DJANGO_VERSIONS, PYTHON_VERSIONS
+
+          DJANGO_VERSIONS = os.getenv('django').split()
+          PYTHON_VERSIONS = os.getenv('python').split()
+
           today = date.today()
           WARNING_DAYS = timedelta(days=90)
           version_by_product = {
@@ -47,8 +93,8 @@ jobs:
           }
           for product, supported_versions in version_by_product.items():
               url = f'https://endoflife.date/api/{product}.json'
-              with urlopen(Request(url)) as httpresponse:
-                  data = json.loads(httpresponse.read())
+              with urlopen(Request(url)) as response:
+                  data = json.loads(response.read())
               for detail in data:
                   version = detail['cycle']
                   eol = detail['eol']
@@ -60,13 +106,14 @@ jobs:
                   if eol_date < today:
                       print(f'::error ::{product} v{version}: EOL was {eol}')
                   elif eol_date - today < WARNING_DAYS:
-                      print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')"
+                      print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')
+          "
       - name: iSort check
         if: always()
         run: isort --check .
       - name: Black check
         if: always()
-        run: black --config .black --check .
+        run: black --check .
       - name: Flake8 check
         if: always()
         run: flake8 .
@@ -136,7 +183,7 @@ jobs:
       - name: Clean up temporary artifacts
         uses: geekyeggo/delete-artifact@v5
         with:
-            name: coverage_*
+          name: coverage_*
       - name: Combine coverage.py
         run: |
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
