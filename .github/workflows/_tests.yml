@@ -15,6 +15,8 @@ jobs:
     name: Prepare Python/Django matrix
     runs-on: ubuntu-latest
     continue-on-error: true
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,7 +29,6 @@ jobs:
           pip install --upgrade setuptools toml
           pip install $(python -c 'import toml; conf = toml.load(open("pyproject.toml")); print(" ".join(conf["project"]["optional-dependencies"]["lint"]))')
       - name: Generate matrix
-        id: set-matrix
         run: |
           python -c '
           import toml
@@ -72,7 +73,9 @@ jobs:
               env_file.write(f"matrix={json.dumps(matrix)}\n")
           '
       - name: Check version EOF
+        id: set-matrix
         run: |
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
           python -c "
           import os
           import json
@@ -129,7 +132,7 @@ jobs:
     needs: prepare-matrix
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(env.matrix)}}
+      matrix: ${{fromJson(needs.prepare-matrix.outputs.matrix)}}
     name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}
     steps:
       - uses: actions/checkout@v4
