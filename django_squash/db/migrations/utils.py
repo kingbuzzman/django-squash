@@ -167,9 +167,9 @@ def is_code_in_site_packages(module_name):
     site_packages_path_ = site_packages_path()
     try:
         loader = importlib.util.find_spec(module_name)
-        return site_packages_path_ in loader.origin
     except ImportError:
         return False
+    return loader.origin.startswith(site_packages_path_)
 
 
 @functools.lru_cache(maxsize=1)
