@@ -71,7 +71,7 @@ jobs:
               env_file.write(f"django={pretty}\n")
               pretty = " ".join(PYTHON_VERSIONS)
               env_file.write(f"python={pretty}\n")
-              env_file.write(f"matrix::{json.dumps(matrix)}\n")
+              env_file.write(f"matrix={json.dumps(matrix)}\n")
           '
       - name: Check version EOF
         run: |
