@@ -35,6 +35,7 @@ jobs:
           import toml
           import itertools
           import json
+          import os
 
           DJANGO_VERSIONS = []
           PYTHON_VERSIONS = []
@@ -65,7 +66,7 @@ jobs:
               "exclude": [{"django-version": d, "python-version": p} for p, d in itertools.product(*EXCLUDE_MATRIX)],
           }
 
-          with open("GITHUB_ENV", "a") as env_file:
+          with open(os.getenv("GITHUB_ENV"), "a") as env_file:
               pretty = " ".join(DJANGO_VERSIONS)
               env_file.write(f"django={pretty}\n")
               pretty = " ".join(PYTHON_VERSIONS)
