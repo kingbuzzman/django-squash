@@ -27,7 +27,7 @@ jobs:
       - name: Install the linters
         run: |
           pip install --upgrade setuptools toml
-          pip install $(python -c 'import toml; conf = toml.load(open("pyproject.toml")); print(" ".join(conf["project"]["optional-dependencies"]["lint"]))')
+          pip install $(python -c 'import toml; print(" ".join(toml.load(open("pyproject.toml"))["project"]["optional-dependencies"]["lint"]))')
       - name: Generate matrix
         run: |
           python -c '
