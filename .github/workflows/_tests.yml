@@ -161,8 +161,6 @@ jobs:
           pytest --cov django_squash --cov-report=term
           # There is an issue with "upload-artifact" that does not like files that start with a dot.
           cp .coverage dotcoverage
-      - name: temp
-        run: pwd; ls -lsash
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
