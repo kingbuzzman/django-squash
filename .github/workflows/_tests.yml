@@ -162,6 +162,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
+          if-no-files-found: error
           name: ${{ env.ARTIFACT_NAME }}
           path: .coverage
           retention-days: 1
@@ -194,6 +195,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           include-hidden-files: true
+          if-no-files-found: error
           name: .coverage
           path: .coverage
           retention-days: 1
