@@ -157,7 +157,10 @@ jobs:
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
-        run: pytest --cov django_squash --cov-report=term --cov-report=annotate:dotcoverage
+        run: |
+          pytest --cov django_squash --cov-report=term
+          # There is an issue with "upload-artifact" that does not like files that start with a dot.
+          cp .coverage dotcoverage
       - name: temp
         run: pwd; ls -lsash
       - name: Upload coverage artifact
