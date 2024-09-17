@@ -157,14 +157,14 @@ jobs:
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
-        run: pytest --cov django_squash --cov-report=term
+        run: pytest --cov django_squash --cov-report=term --cov-report=annotate:dotcoverage
       - name: temp
         run: pwd; ls -lsash
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ./.coverage
+          path: dotcoverage
           retention-days: 1
 
   coverage:
