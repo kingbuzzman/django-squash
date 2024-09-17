@@ -190,12 +190,15 @@ jobs:
       - name: Combine coverage.py
         run: |
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
+          # Used by codecov
           coverage xml
+          # There is an issue with "upload-artifact" that does not like files that start with a dot.
+          cp .coverage dotcoverage
       - name: Upload single coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: .coverage
-          path: .coverage
+          path: dotcoverage
           retention-days: 1
 
       - name: Upload coverage to Codecov
