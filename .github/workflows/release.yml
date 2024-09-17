@@ -28,12 +28,12 @@ jobs:
         with:
           python-version: "3.x"
       - name: Install pypa/build
-        run: python3 -m pip install build setuptools
+        run: python3 -m pip install build setuptools toml
       - name: Build a binary wheel and a source tarball
         run: python3 -m build
       - name: Extract django-squash version
         run: |
-          SQUASH_VERSION=$(python3 setup.py --version)
+          SQUASH_VERSION=$(python -c 'import toml; print(toml.load(open("pyproject.toml"))["project"]["version"])')
           echo "SQUASH_VERSION=$SQUASH_VERSION" >> "$GITHUB_ENV"
       - name: Package version has corresponding git tag
         id: tagged
