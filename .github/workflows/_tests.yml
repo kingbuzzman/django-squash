@@ -157,15 +157,13 @@ jobs:
       - name: Install packages
         run: pip install -e '.[test]'
       - name: Run tests
-        run: |
-          pytest --cov django_squash --cov-report=term
-          # There is an issue with "upload-artifact" that does not like files that start with a dot.
-          cp .coverage dotcoverage
+        run: pytest --cov django_squash --cov-report=term
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
+          include-hidden-files: true
           name: ${{ env.ARTIFACT_NAME }}
-          path: dotcoverage
+          path: .coverage
           retention-days: 1
 
   coverage:
@@ -192,13 +190,12 @@ jobs:
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
           # Used by codecov
           coverage xml
-          # There is an issue with "upload-artifact" that does not like files that start with a dot.
-          cp .coverage dotcoverage
       - name: Upload single coverage artifact
         uses: actions/upload-artifact@v4
         with:
+          include-hidden-files: true
           name: .coverage
-          path: dotcoverage
+          path: .coverage
           retention-days: 1
 
       - name: Upload coverage to Codecov
