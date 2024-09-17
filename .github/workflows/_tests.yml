@@ -161,6 +161,8 @@ jobs:
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
+          include-hidden-files: true
+          if-no-files-found: error
           name: ${{ env.ARTIFACT_NAME }}
           path: .coverage
           retention-days: 1
@@ -187,10 +189,13 @@ jobs:
       - name: Combine coverage.py
         run: |
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
+          # Used by codecov
           coverage xml
       - name: Upload single coverage artifact
         uses: actions/upload-artifact@v4
         with:
+          include-hidden-files: true
+          if-no-files-found: error
           name: .coverage
           path: .coverage
           retention-days: 1
