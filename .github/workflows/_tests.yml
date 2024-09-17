@@ -186,6 +186,7 @@ jobs:
           name: coverage_*
       - name: Combine coverage.py
         run: |
+          ls -ls downloaded_artifacts
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
           coverage xml
       - name: Upload single coverage artifact
