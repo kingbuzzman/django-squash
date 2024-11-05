@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django_squash"
-version = "0.0.11"
+version = "0.0.12"
 description = "A migration squasher that doesn't care how Humpty Dumpty was put together."
 readme = "README.rst"
 keywords = ["django", "migration", "squashing", "squash"]
