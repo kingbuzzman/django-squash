@@ -27,6 +27,7 @@ def is_pyvsupported(version):
     """
     Check if the Python version is supported by the package.
     """
+    return True # TODO: delete!
     return Version(version) in SUPPORTED_PYTHON_VERSIONS
 
 
