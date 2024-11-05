@@ -144,7 +144,10 @@ def copy_func(f, name):
     func.__qualname__ = name
     func.__original__ = f
     func.__source__ = re.sub(
-        rf"(def\s+){normalize_function_name(f.__qualname__)}", rf"\1{name}", inspect.getsource(f), 1
+        pattern=rf"(def\s+){normalize_function_name(f.__qualname__)}",
+        repl=rf"\1{name}",
+        string=inspect.getsource(f),
+        count=1,
     )
     return func
 
