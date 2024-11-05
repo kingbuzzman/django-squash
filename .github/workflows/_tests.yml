@@ -37,7 +37,7 @@ jobs:
 
           DJANGO_VERSIONS = []
           PYTHON_VERSIONS = []
-          EXCLUDE_MATRIX = {'3.8': ['5.0.*', '5.1.*', 'main'], '3.9': ['5.0.*', '5.1.*', 'main'], '3.13': ['3.2.*']}
+          EXCLUDE_MATRIX = {"3.8": ["5.0.*", "5.1.*", "main"], "3.9": ["5.0.*", "5.1.*", "main"], "3.13": ["3.2.*"]}
 
           def is_number(s):
               try:
