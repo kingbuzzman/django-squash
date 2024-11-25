@@ -81,3 +81,5 @@ class Command(BaseCommand):
                     print(
                         f"  references {model._meta.app_label}.{model._meta.object_name} via {model_name}.{field_name}"
                     )
+                if references_found:
+                    raise CommandError("Bad dependencies found")
