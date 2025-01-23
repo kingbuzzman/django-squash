@@ -112,7 +112,7 @@ jobs:
       - name: Ruff check
         if: always()
         run: |
-          ruff check .
+          ruff check --extend-select I .
           ruff format --check .
       - name: rst check
         if: always()
