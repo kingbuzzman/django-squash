@@ -27,8 +27,8 @@ jobs:
       - name: Install the linters
         run: |
           pip install uv
-          uv pip install --upgrade setuptools toml
-          uv pip install $(python -c 'import toml; print(" ".join(toml.load(open("pyproject.toml"))["project"]["optional-dependencies"]["lint"]))')
+          uv pip install --system --upgrade setuptools toml
+          uv pip install --system $(python -c 'import toml; print(" ".join(toml.load(open("pyproject.toml"))["project"]["optional-dependencies"]["lint"]))')
       - name: Generate matrix
         run: |
           python -c '
@@ -154,7 +154,7 @@ jobs:
             DJANGO="git+https://github.com/django/django.git@main"
           fi
           pip install uv
-          uv pip install --upgrade pip setuptools codecov-cli $DJANGO
+          uv pip install --system --upgrade setuptools codecov-cli $DJANGO
       - name: Install packages
         run: uv pip install -e '.[test]'
       - name: Run tests
