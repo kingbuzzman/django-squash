@@ -48,6 +48,7 @@ lint = [
     "ruff"
 ]
 test = [
+    "black",
     "build",
     "ipdb",
     "libcst",
