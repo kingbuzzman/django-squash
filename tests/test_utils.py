@@ -1,13 +1,16 @@
+# ruff: noqa: N805
+from __future__ import annotations
+
 import tempfile
 
 import django
-import pytest
 from django.db import migrations
+import pytest
 
 import django_squash
 from django_squash.db.migrations import utils
 
-func = lambda: 1  # noqa
+func = lambda: 1  # noqa: E731
 
 
 def func2():
@@ -54,6 +57,7 @@ class D(migrations.Migration):
         return 6
 
     def func2(apps, schema_editor):
+        del schema_editor
         return 61
 
 
@@ -171,9 +175,7 @@ def test_normalize_function_name():
 
 
 def test_get_custom_rename_function(monkeypatch):
-    """
-    Cover all cases where DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION can go wrong
-    """
+    """Cover all cases where DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION can go wrong"""
     assert not utils.get_custom_rename_function()
     utils.get_custom_rename_function.cache_clear()
 
