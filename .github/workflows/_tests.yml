@@ -156,7 +156,7 @@ jobs:
           pip install uv
           uv pip install --system --upgrade setuptools codecov-cli $DJANGO
       - name: Install packages
-        run: uv pip install -e '.[test]'
+        run: uv pip install --system -e '.[test]'
       - name: Run tests
         run: pytest --cov django_squash --cov-report=term
       - name: Upload coverage artifact
