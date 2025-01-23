@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.conf import settings as global_settings
 
 DJANGO_SQUASH_IGNORE_APPS = getattr(global_settings, "DJANGO_SQUASH_IGNORE_APPS", None) or []
