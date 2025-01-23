@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db.migrations.migration import Migration, swappable_dependency
 from django.db.migrations.operations.special import RunPython
 from django.db.models.base import Model
