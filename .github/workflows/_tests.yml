@@ -28,6 +28,7 @@ jobs:
         run: |
           pip install uv
           uv pip install --system --upgrade setuptools toml
+          # Note that we don't install .[lint] becuase we don't want to install "this" pakage + lint. We ONLY want to install the "lint"
           uv pip install --system $(python -c 'import toml; print(" ".join(toml.load(open("pyproject.toml"))["project"]["optional-dependencies"]["lint"]))')
       - name: Generate matrix
         run: |
@@ -108,18 +109,11 @@ jobs:
                   elif eol_date - today < WARNING_DAYS:
                       print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')
           "
-      - name: iSort check
-        if: always()
-        run: isort --check .
-      - name: Black check
-        if: always()
-        run: black --check .
-      - name: Flake8 check
-        if: always()
-        run: flake8 .
       - name: Ruff check
         if: always()
-        run: ruff check .
+        run: |
+          ruff check .
+          ruff format --check .
       - name: rst check
         if: always()
         run: rst-lint .

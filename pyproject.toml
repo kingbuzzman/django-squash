@@ -43,16 +43,11 @@ requires-python = ">=3.8"
 
 [project.optional-dependencies]
 lint = [
-    "black",
-    "flake8-pyproject",
-    "flake8-tidy-imports",
-    "isort",
     "pygments",
     "restructuredtext-lint",
     "ruff"
 ]
 test = [
-    "black",
     "build",
     "ipdb",
     "libcst",
@@ -71,24 +66,30 @@ exclude = ["tests*", "docs*"]
 zip-safe = true
 platforms = ["any"]
 
-[tool.black]
+[tool.ruff]
+exclude = ["*migrations*", ".*", "/usr/local/lib", "dist", "venv"]
 line-length = 119
-exclude = "venv/"
+target-version = "py38"
 
-[tool.flake8]
-max-line-length = 119
-exclude = ["*/migrations_*/*", "venv/*", "build/*"]
-ban-relative-imports = true
+[tool.ruff.lint]
+select = ["ALL"]
 
-[tool.isort]
-combine_as_imports = true
-line_length = 119
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-skip_glob = ["venv/**"]
+[tool.ruff.lint.isort]
+order-by-type = true
+force-sort-within-sections = true
+required-imports = [
+    "from __future__ import annotations",
+]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 
 [tool.coverage.run]
 source = ["django_squash"]
