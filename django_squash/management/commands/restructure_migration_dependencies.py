@@ -16,26 +16,7 @@ from django_squash.db.migrations.writer import MigrationWriter
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument("--only", nargs="*", help="Only squash the specified apps")
-        parser.add_argument(
-            "--ignore-app",
-            nargs="*",
-            default=app_settings.DJANGO_SQUASH_IGNORE_APPS,
-            help="Ignore app name from quashing, ensure that there is nothing dependent on these apps. "
-            "(default: %(default)s)",
-        )
-        parser.add_argument(
-            "--dry-run",
-            action="store_true",
-            dest="dry_run",
-            help="Just show what migrations would be made; don't actually write them.",
-        )
-        parser.add_argument(
-            "--squashed-name",
-            default=app_settings.DJANGO_SQUASH_MIGRATION_NAME,
-            help="Sets the name of the new squashed migration. Also accepted are the standard datetime parse "
-            'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
-        )
+        pass
 
     @no_translations
     def handle(self, **kwargs):
@@ -60,11 +41,6 @@ class Command(BaseCommand):
                 try:
                     apps.get_app_config(app_label)
                     only_apps.append(app_label)
-                    # Edge case: if the app was previously ignored, remove it from the ignore list
-                    if app_label in ignore_apps:
-                        raise CommandError(
-                            "The following app cannot be ignored and selected at the same time: %s" % app_label
-                        )
                 except (LookupError, TypeError):
                     bad_apps.append(app_label)
 
