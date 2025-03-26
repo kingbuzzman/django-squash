@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import importlib
 import importlib.util
 import inspect
-import sys
 from pathlib import Path
+import sys
 
 import black
 import libcst
@@ -10,7 +12,7 @@ import libcst
 try:
     import tomllib
 
-    with open("pyproject.toml", "r") as f:  # pragma: no cover
+    with open("pyproject.toml") as f:  # pragma: no cover
         if "Programming Language :: Python :: 3.10" not in f.read():
             raise Exception("Delete this try/except block and leave the just the 'import tomllib'.")
 except ImportError:
@@ -24,16 +26,12 @@ from packaging.version import Version
 
 
 def is_pyvsupported(version):
-    """
-    Check if the Python version is supported by the package.
-    """
+    """Check if the Python version is supported by the package."""
     return Version(version) in SUPPORTED_PYTHON_VERSIONS
 
 
 def is_djvsupported(version):
-    """
-    Check if the Django version is supported by the package.
-    """
+    """Check if the Django version is supported by the package."""
     return Version(version) in SUPPORTED_DJANGO_VERSIONS
 
 
@@ -41,9 +39,10 @@ def is_number(s):
     """Returns True if string is a number."""
     try:
         float(s)
-        return True
     except ValueError:
         return False
+    else:
+        return True
 
 
 def shorten_version(version):
@@ -94,11 +93,17 @@ globals()["PY" + shorten_version(str(current_python_version).replace(".", ""))] 
 
 if not is_supported_version(SUPPORTED_DJANGO_VERSIONS, current_django_version):
     versions = ", ".join([str(v) for v in SUPPORTED_DJANGO_VERSIONS])
-    warnings.warn(f"Current Django version {current_django_version} is not in" f" the supported versions: {versions}")
+    warnings.warn(
+        f"Current Django version {current_django_version} is not in the supported versions: {versions}",
+        stacklevel=0,
+    )
 
 if not is_supported_version(SUPPORTED_PYTHON_VERSIONS, current_python_version):
     versions = ", ".join([str(v) for v in SUPPORTED_PYTHON_VERSIONS])
-    warnings.warn(f"Current Python version {current_python_version} is not in" f" the supported versions: {versions}")
+    warnings.warn(
+        f"Current Python version {current_python_version} is not in the supported versions: {versions}",
+        stacklevel=0,
+    )
 
 
 def load_migration_module(path):
@@ -154,3 +159,5 @@ def traverse_node(nodes, looking_for):
             result = traverse_node(child, looking_for)
             if result:
                 return result
+
+    return None
