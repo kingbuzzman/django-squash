@@ -194,18 +194,18 @@ jobs:
           name: .coverage
           path: .coverage
           retention-days: 1
-      - name: Download artifact
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          branch: master
-          event: schedule
-          #push,schedule
-          name: .coverage
-          path: .master_coverage
+      #- name: Download artifact
+      #  uses: dawidd6/action-download-artifact@v3
+      #  with:
+      #    branch: master
+      #    event: schedule
+      #    #push,schedule
+      #    name: .coverage
+      #    path: .master_coverage
       - name: Diff coverage
         run: |
-          coverage xml --data-file=.master_coverage -o master_coverage.xml
-          diff-cover master_coverage.xml coverage.xml
+          coverage xml # --data-file=.master_coverage -o master_coverage.xml
+          diff-cover coverage.xml
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v4
       #   continue-on-error: true
