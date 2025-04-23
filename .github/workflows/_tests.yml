@@ -205,7 +205,7 @@ jobs:
       - name: Diff coverage
         run: |
           coverage xml # --data-file=.master_coverage -o master_coverage.xml
-          diff-cover coverage.xml
+          diff-cover coverage.xml --compare-branch origin/master
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v4
       #   continue-on-error: true
