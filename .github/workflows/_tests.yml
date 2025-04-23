@@ -26,8 +26,10 @@ jobs:
           python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
       - name: Install the linters
         run: |
-          pip install --upgrade setuptools toml
-          pip install $(python -c 'import toml; print(" ".join(toml.load(open("pyproject.toml"))["project"]["optional-dependencies"]["lint"]))')
+          pip install uv
+          uv pip install --system --upgrade setuptools toml
+          # Note that we don't install .[lint] becuase we don't want to install "this" pakage + lint. We ONLY want to install the "lint"
+          uv pip install --system $(python -c 'import toml; print(" ".join(toml.load(open("pyproject.toml"))["project"]["optional-dependencies"]["lint"]))')
       - name: Generate matrix
         run: |
           python -c '
@@ -37,7 +39,7 @@ jobs:
 
           DJANGO_VERSIONS = []
           PYTHON_VERSIONS = []
-          EXCLUDE_MATRIX = {"3.8": ["5.0.*", "5.1.*", "main"], "3.9": ["5.0.*", "5.1.*", "main"], "3.13": ["3.2.*"]}
+          EXCLUDE_MATRIX = {"3.9": ["5.0.*", "5.1.*", "5.2.*", "main"], "3.10": ["5.2.*", "main"], "3.11": ["5.2.*", "main"]}
 
           def is_number(s):
               try:
@@ -107,18 +109,11 @@ jobs:
                   elif eol_date - today < WARNING_DAYS:
                       print(f'::warning ::{product} v{version}: EOL is coming up on the {eol}')
           "
-      - name: iSort check
-        if: always()
-        run: isort --check .
-      - name: Black check
-        if: always()
-        run: black --check .
-      - name: Flake8 check
-        if: always()
-        run: flake8 .
       - name: Ruff check
         if: always()
-        run: ruff check .
+        run: |
+          ruff check --extend-select I .
+          ruff format --check .
       - name: rst check
         if: always()
         run: rst-lint .
@@ -152,9 +147,10 @@ jobs:
           if [[ "${{ matrix.django-version }}" == "main" ]]; then
             DJANGO="git+https://github.com/django/django.git@main"
           fi
-          python -m pip install --upgrade pip setuptools codecov-cli $DJANGO
+          pip install uv
+          uv pip install --system --upgrade setuptools codecov-cli $DJANGO
       - name: Install packages
-        run: pip install -e '.[test]'
+        run: uv pip install --system -e '.[test]'
       - name: Run tests
         run: pytest --cov django_squash --cov-report=term
       - name: Upload coverage artifact

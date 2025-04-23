@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import os
 import sqlite3
@@ -84,8 +86,7 @@ def download_and_extract_tar(url):
 
 @pytest.mark.slow
 def test_standalone_app():
-    """
-    Test that a standalone (django sample poll) app can be installed using venv.
+    """Test that a standalone (django sample poll) app can be installed using venv.
 
     This test is slow because it downloads a tar.gz file from the internet, extracts it and
     pip installs django + dependencies. After runs migrations, squashes them, and runs them again!
@@ -113,7 +114,7 @@ def test_standalone_app():
         # Squash and run the migrations
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py squash_migrations") == 0
         # __pycache__ can be present in the migrations folder. We don't care about it.
-        actual_files = sorted(set(os.listdir("polls/migrations")) - set(["__pycache__"]))
+        actual_files = sorted(set(os.listdir("polls/migrations")) - {"__pycache__"})
         assert actual_files == ["0001_initial.py", "0002_squashed.py", "__init__.py"]
         assert os.system("DJANGO_SETTINGS_MODULE=mysite.settings venv/bin/python manage.py migrate") == 0
 

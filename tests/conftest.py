@@ -1,26 +1,27 @@
-import os
-import shutil
-import tempfile
+# ruff: noqa: TD002, TD003, FIX002, TRY003, EM101, EM102, D401, PTH102, PTH118, PTH119
+from __future__ import annotations
+
 from collections import defaultdict
 from contextlib import ExitStack
 from importlib import import_module
+import os
 from pathlib import Path
+import shutil
+import tempfile
 
-import pytest
 from django.core.management import call_command
 from django.db import connections
 from django.db.models.options import Options
 from django.test.utils import extend_sys_path
 from django.utils.module_loading import module_dir
+import pytest
 
 from django_squash.db.migrations.utils import get_custom_rename_function
 from tests import utils
 
 
 class MigrationPath(Path):
-    """
-    A subclass of Path that provides a method to list migration files.
-    """
+    """A subclass of Path that provides a method to list migration files."""
 
     if utils.is_pyvsupported("3.11"):
         try:
@@ -34,21 +35,15 @@ class MigrationPath(Path):
         raise Exception("Remove this whole block please!")
 
     def migration_load(self, file_name):
-        """
-        Returns the migration module object.
-        """
+        """Returns the migration module object."""
         return utils.load_migration_module(self / file_name)
 
     def migration_read(self, file_name, traverse):
-        """
-        Returns the string contents of the migration file.
-        """
+        """Returns the string contents of the migration file."""
         return utils.pretty_extract_piece(self.migration_load(file_name), traverse=traverse)
 
     def migration_files(self):
-        """
-        Returns a list of migration files in this directory.
-        """
+        """Returns a list of migration files in this directory."""
         return sorted(p.name for p in self.glob("*.py"))
 
 
@@ -71,8 +66,8 @@ def migration_app3_dir(request, isolated_apps, settings):
 
 
 def _migration_app_dir(marker_name, request, settings):
-    """
-    Allows testing management commands in a temporary migrations module.
+    """Allows testing management commands in a temporary migrations module.
+
     Wrap all invocations to makemigrations and squashmigrations with this
     context manager in order to avoid creating migration files in your
     source tree inadvertently.
@@ -100,8 +95,7 @@ def _migration_app_dir(marker_name, request, settings):
 
 
 def pytest_collection_modifyitems(config, items):
-    """
-    Prevents issues from being ignored.
+    """Prevents issues from being ignored.
 
     Meta test to ensure we define `@pytest.mark.temporary_migration_module` and use `migration_app_dir` in the
     function arguments/signature.
@@ -130,9 +124,10 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(autouse=True)
 def isolated_apps(settings, monkeypatch):
-    """
-    Django registers models in the apps cache, this is a helper to remove them, otherwise django throws warnings
-    that this model already exists.
+    """Isolate the apps between tests.
+
+    Django registers models in the apps cache, this is a helper to remove them, otherwise
+    django throws warnings that this model already exists.
     """
     with ExitStack() as stack:
         original_apps = Options.default_apps
@@ -155,7 +150,7 @@ def isolated_apps(settings, monkeypatch):
         _installed_app.remove("django.contrib.contenttypes")
         original_apps.populate(_installed_app)
 
-        for app_label in {"auth", "contenttypes"}:
+        for app_label in ("auth", "contenttypes"):
             new_all_models[app_label] = original_all_models[app_label]
             new_app_configs[app_label] = original_app_configs[app_label]
 
@@ -183,9 +178,7 @@ def isolated_apps(settings, monkeypatch):
 
 @pytest.fixture
 def call_squash_migrations():
-    """
-    Returns a function that calls squashmigrations.
-    """
+    """Returns a function that calls squashmigrations."""
 
     def _call_squash_migrations(*args, **kwargs):
         kwargs["verbosity"] = kwargs.get("verbosity", 1)
@@ -193,12 +186,13 @@ def call_squash_migrations():
 
         call_command("squash_migrations", *args, **kwargs)
 
-    yield _call_squash_migrations
+    return _call_squash_migrations
 
 
 @pytest.fixture(autouse=True)
 def clear_get_custom_rename_function_cache():
-    """
+    """Remove the rename function cache between runs.
+
     To ensure that this function doesn't get cached with the wrong value and breaks tests,
     we always clear it before and after each test.
     """
@@ -209,8 +203,7 @@ def clear_get_custom_rename_function_cache():
 
 @pytest.fixture
 def clean_db(django_db_blocker):
-    """
-    Clean the database after each test. As in a new database.
+    """Clean the database after each test. As in a new database.
 
     Usage:
 
