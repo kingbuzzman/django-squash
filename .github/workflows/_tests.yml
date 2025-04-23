@@ -168,6 +168,8 @@ jobs:
     if: success() || failure()
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
@@ -204,7 +206,6 @@ jobs:
       #    path: .master_coverage
       - name: Diff coverage
         run: |
-          git fetch origin master
           coverage xml
           diff-cover coverage.xml --compare-branch origin/master
       # - name: Upload coverage to Codecov
