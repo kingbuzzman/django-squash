@@ -168,11 +168,13 @@ jobs:
     if: success() || failure()
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
       - name: Install coverage
-        run: pip install coverage
+        run: pip install coverage diff-cover
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -194,11 +196,22 @@ jobs:
           name: .coverage
           path: .coverage
           retention-days: 1
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        continue-on-error: true
-        with:
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-          env_vars: OS,RUST
+      #- name: Download artifact
+      #  uses: dawidd6/action-download-artifact@v3
+      #  with:
+      #    branch: master
+      #    event: schedule
+      #    #push,schedule
+      #    name: .coverage
+      #    path: .master_coverage
+      - name: Diff coverage
+        run: |
+          coverage xml
+          diff-cover coverage.xml --compare-branch origin/master
+      # - name: Upload coverage to Codecov
+      #   uses: codecov/codecov-action@v4
+      #   continue-on-error: true
+      #   with:
+      #     fail_ci_if_error: true
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     env_vars: OS,RUST
