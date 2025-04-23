@@ -204,7 +204,8 @@ jobs:
       #    path: .master_coverage
       - name: Diff coverage
         run: |
-          coverage xml # --data-file=.master_coverage -o master_coverage.xml
+          git fetch origin/master
+          coverage xml
           diff-cover coverage.xml --compare-branch origin/master
       # - name: Upload coverage to Codecov
       #   uses: codecov/codecov-action@v4
