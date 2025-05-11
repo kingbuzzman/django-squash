@@ -175,12 +175,18 @@ section-order = [
 max-complexity = 10
 
 [tool.coverage.run]
+branch = true
+relative_files = true
 source = ["django_squash"]
+omit = ["*/migrations_*/*", "./tests/*"]
 
 [tool.coverage.report]
-omit = ["*/migrations_*/*"]
 show_missing = true
-fail_under = 95
+fail_under = 90
+
+[tool.coverage.html]
+show_contexts = true
+skip_covered = false
 
 [tool.pypi]
 repository = "https://upload.pypi.org/legacy/"
