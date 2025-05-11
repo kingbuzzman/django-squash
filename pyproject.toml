@@ -211,7 +211,8 @@ markers = [
     "temporary_migration_module",
     "temporary_migration_module2",
     "temporary_migration_module3",
-    "slow: marks tests as slow"
+    "slow: marks tests as slow",
+    "no_cover: marks tests to be excluded from coverage"
 ]
 
 filterwarnings = [

@@ -85,6 +85,7 @@ def download_and_extract_tar(url):
 
 
 @pytest.mark.slow
+@pytest.mark.no_cover
 def test_standalone_app():
     """Test that a standalone (django sample poll) app can be installed using venv.
 
