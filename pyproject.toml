@@ -187,9 +187,6 @@ repository = "https://upload.pypi.org/legacy/"
 username = "kingbuzzman"
 
 [tool.vulture]
-# exclude = ["*file*.py", "dir/"]
-# ignore_decorators = ["@app.route", "@require_*"]
-# ignore_names = ["visit_*", "do_*"]
 make_whitelist = false
 min_confidence = 80
 paths = ["django_squash"]
