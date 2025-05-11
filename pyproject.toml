@@ -177,6 +177,7 @@ max-complexity = 10
 [tool.coverage.run]
 branch = true
 relative_files = true
+parallel = true
 source = ["django_squash"]
 omit = ["*/migrations_*/*", "./tests/*"]
 
