@@ -44,7 +44,8 @@ requires-python = ">=3.9"
 lint = [
     "pygments",
     "restructuredtext-lint",
-    "ruff"
+    "ruff",
+    "vulture"
 ]
 test = [
     "black",
@@ -184,6 +185,16 @@ fail_under = 95
 [tool.pypi]
 repository = "https://upload.pypi.org/legacy/"
 username = "kingbuzzman"
+
+[tool.vulture]
+# exclude = ["*file*.py", "dir/"]
+# ignore_decorators = ["@app.route", "@require_*"]
+# ignore_names = ["visit_*", "do_*"]
+make_whitelist = false
+min_confidence = 80
+paths = ["django_squash"]
+sort_by_size = true
+verbose = false
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "settings"

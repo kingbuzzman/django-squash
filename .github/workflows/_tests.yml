@@ -114,6 +114,10 @@ jobs:
         run: |
           ruff check --extend-select I .
           ruff format --check .
+      - name: Vulture check
+        if: always()
+        run: |
+          vulture
       - name: rst check
         if: always()
         run: rst-lint .

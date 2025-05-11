@@ -59,7 +59,7 @@ class UniqueVariableName:
         self.names = defaultdict(int)
         self.functions = {}
         self.context = context
-        self.naming_function = naming_function or (lambda n, c: n)
+        self.naming_function = naming_function or (lambda n, _: n)
 
     def update_context(self, context):
         self.context.update(context)
