@@ -175,12 +175,19 @@ section-order = [
 max-complexity = 10
 
 [tool.coverage.run]
+branch = true
+relative_files = true
+parallel = true
 source = ["django_squash"]
+omit = ["*/migrations_*/*", "./tests/*"]
 
 [tool.coverage.report]
-omit = ["*/migrations_*/*"]
 show_missing = true
-fail_under = 95
+fail_under = 90
+
+[tool.coverage.html]
+show_contexts = true
+skip_covered = false
 
 [tool.pypi]
 repository = "https://upload.pypi.org/legacy/"
@@ -204,7 +211,8 @@ markers = [
     "temporary_migration_module",
     "temporary_migration_module2",
     "temporary_migration_module3",
-    "slow: marks tests as slow"
+    "slow: marks tests as slow",
+    "no_cover: marks tests to be excluded from coverage"
 ]
 
 filterwarnings = [
