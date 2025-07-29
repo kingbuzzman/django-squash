@@ -1,4 +1,3 @@
-# ruff: noqa: N805
 from __future__ import annotations
 
 import tempfile
@@ -56,8 +55,8 @@ class D(migrations.Migration):
     def func(self):
         return 6
 
-    def func2(apps, schema_editor):
-        del schema_editor
+    def func2(apps, schema_editor):  # noqa: N805
+        del apps, schema_editor
         return 61
 
 
