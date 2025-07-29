@@ -1,4 +1,7 @@
 rules:
+  use-trusted-publishing:
+    ignore:
+      - release.yml:60:9
   unpinned-uses:
     ignore: []
     config:
