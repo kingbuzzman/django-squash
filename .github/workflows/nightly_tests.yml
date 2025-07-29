@@ -1,4 +1,4 @@
-name: Daily Tests
+name: Nightly Tests
 
 concurrency:
   group: django-squash-${{ github.head_ref }}
@@ -9,8 +9,8 @@ on:
     - cron: 0 0 * * *  # Run every day at midnight
 
 jobs:
-  daily-tests:
-    name: Django nightlies work
+  nightly-tests:
+    name: Django nightly
     uses: ./.github/workflows/_tests.yml
     secrets: inherit
     with:
