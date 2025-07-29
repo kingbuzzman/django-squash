@@ -39,19 +39,9 @@ def check_django_migration_hash():
 
 check_django_migration_hash()
 
-def funcxx():
-    if 3==2:
-        if True:
-            return
-
 
 class OperationWriter(dj_writer.OperationWriter):
     def serialize(self):
-        if 1==2:
-            a=1
-            b=2
-            if a==b:
-                a=a
         if isinstance(self.operation, postgres.PGCreateExtension):
             if not utils.is_code_in_site_packages(self.operation.__class__.__module__):
                 self.feed("%s()," % (self.operation.__class__.__name__))
