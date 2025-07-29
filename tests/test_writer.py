@@ -16,7 +16,7 @@ from django_squash.db.migrations import writer
 def test_check_django_migration_hash(response_hash, throws_warning, monkeypatch):
     monkeypatch.setattr("django_squash.db.migrations.writer.utils.file_hash", lambda _: response_hash)
     if throws_warning:
-        with pytest.warns(Warning):
+        with pytest.warns(Warning, match="file has changed and may not be compatible"):
             writer.check_django_migration_hash()
     else:
         writer.check_django_migration_hash()
