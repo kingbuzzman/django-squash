@@ -1,6 +1,7 @@
 rules:
   use-trusted-publishing:
     ignore:
+      # TODO: fix this later..
       - release.yml:60:9
   unpinned-uses:
     ignore: []
