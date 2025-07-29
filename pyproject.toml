@@ -11,7 +11,7 @@ keywords = ["django", "migration", "squashing", "squash"]
 authors = [
     {name = "Javier Buzzi", email = "buzzi.javier@gmail.com"},
 ]
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     # See https://pypi.org/pypi?%3Aaction=list_classifiers
     "Development Status :: 5 - Production/Stable",
