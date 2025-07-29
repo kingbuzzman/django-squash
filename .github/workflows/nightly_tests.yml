@@ -8,10 +8,14 @@ on:
   schedule:
     - cron: 0 0 * * *  # Run every day at midnight
 
+permissions:
+  contents: read
+
 jobs:
   nightly-tests:
     name: Django nightly
     uses: ./.github/workflows/_tests.yml
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       ref: master

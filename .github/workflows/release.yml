@@ -9,20 +9,29 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 jobs:
   django-squash:
     uses: ./.github/workflows/_tests.yml
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       ref: ${{ github.ref }}
 
   pypi-publish:
     name: Tag and Release
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     environment: deploy
     needs: django-squash
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

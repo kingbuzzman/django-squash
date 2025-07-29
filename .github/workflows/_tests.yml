@@ -6,6 +6,9 @@ on:
       ref:
         required: true
         type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: true
 
 env:
   DEFAULT_PYTHON_VERSION: 3.12
@@ -21,6 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
@@ -121,6 +125,8 @@ jobs:
       - name: rst check
         if: always()
         run: rst-lint .
+      - name: Zizmor
+        run: find .github/workflows -name '*.yml' | xargs zizmor --config .github/zizmor.yml
       - name: Continue
         if: always()
         run: exit 0
@@ -136,6 +142,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -146,13 +153,16 @@ jobs:
           key: ${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }}
       - name: Install prerequisites
         run: |
-          echo ARTIFACT_NAME=coverage_${{ runner.os }}-py-${{ matrix.python-version }}-dj-${{ matrix.django-version }} | sed 's|\.\*||g' >> "$GITHUB_ENV"
-          DJANGO="django==${{ matrix.django-version }}"
-          if [[ "${{ matrix.django-version }}" == "main" ]]; then
+          echo ARTIFACT_NAME=coverage_${{ runner.os }}-py-${MATRIX_PYTHON_VERSION}-dj-${MATRIX_DJANGO_VERSION} | sed 's|\.\*||g' >> "$GITHUB_ENV"
+          DJANGO="django==${MATRIX_DJANGO_VERSION}"
+          if [[ "${MATRIX_DJANGO_VERSION}" == "main" ]]; then
             DJANGO="git+https://github.com/django/django.git@main"
           fi
           pip install uv
           uv pip install --system --upgrade setuptools codecov-cli $DJANGO
+        env:
+          MATRIX_PYTHON_VERSION: ${{ matrix.python-version }}
+          MATRIX_DJANGO_VERSION: ${{ matrix.django-version }}
       - name: Install packages
         run: uv pip install --system -e '.[test]'
       - name: Run tests
@@ -175,6 +185,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
@@ -185,7 +196,7 @@ jobs:
         with:
           path: downloaded_artifacts
       - name: Clean up temporary artifacts
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b  # v5.1.0
         with:
           name: coverage_*
       - name: Combine coverage.py
