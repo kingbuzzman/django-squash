@@ -1,4 +1,3 @@
-# ruff: noqa: TD002, TD003, FIX002, TRY003, EM101, EM102, D401, PTH102, PTH118, PTH119
 from __future__ import annotations
 
 from collections import defaultdict
@@ -25,7 +24,7 @@ class MigrationPath(Path):
 
     if utils.is_pyvsupported("3.11"):
         try:
-            from pathlib import _PosixFlavour, _WindowsFlavour
+            from pathlib import _PosixFlavour, _WindowsFlavour  # noqa: PLC0415
 
             # TODO: delete after python 3.11 is no longer supported
             _flavour = _PosixFlavour() if os.name == "posix" else _WindowsFlavour()
@@ -66,7 +65,8 @@ def migration_app3_dir(request, isolated_apps, settings):
 
 
 def _migration_app_dir(marker_name, request, settings):
-    """Allows testing management commands in a temporary migrations module.
+    """
+    Allows testing management commands in a temporary migrations module.
 
     Wrap all invocations to makemigrations and squashmigrations with this
     context manager in order to avoid creating migration files in your
@@ -95,7 +95,8 @@ def _migration_app_dir(marker_name, request, settings):
 
 
 def pytest_collection_modifyitems(config, items):
-    """Prevents issues from being ignored.
+    """
+    Prevents issues from being ignored.
 
     Meta test to ensure we define `@pytest.mark.temporary_migration_module` and use `migration_app_dir` in the
     function arguments/signature.
@@ -124,7 +125,8 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(autouse=True)
 def isolated_apps(settings, monkeypatch):
-    """Isolate the apps between tests.
+    """
+    Isolate the apps between tests.
 
     Django registers models in the apps cache, this is a helper to remove them, otherwise
     django throws warnings that this model already exists.
@@ -191,7 +193,8 @@ def call_squash_migrations():
 
 @pytest.fixture(autouse=True)
 def clear_get_custom_rename_function_cache():
-    """Remove the rename function cache between runs.
+    """
+    Remove the rename function cache between runs.
 
     To ensure that this function doesn't get cached with the wrong value and breaks tests,
     we always clear it before and after each test.
@@ -203,7 +206,8 @@ def clear_get_custom_rename_function_cache():
 
 @pytest.fixture
 def clean_db(django_db_blocker):
-    """Clean the database after each test. As in a new database.
+    """
+    Clean the database after each test. As in a new database.
 
     Usage:
 

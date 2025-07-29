@@ -1,4 +1,3 @@
-# ruff: noqa: ERA001
 # from django.db import models
 
 
