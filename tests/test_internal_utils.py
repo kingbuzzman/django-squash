@@ -1,6 +1,10 @@
-from tests import utils
-from packaging.version import Version
+from __future__ import annotations
+
 from functools import partial
+
+from packaging.version import Version
+
+from tests import utils
 
 
 def test_is_pyvsupported(monkeypatch):
