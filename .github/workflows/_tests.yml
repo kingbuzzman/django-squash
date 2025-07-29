@@ -6,6 +6,9 @@ on:
       ref:
         required: true
         type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 env:
   DEFAULT_PYTHON_VERSION: 3.12
