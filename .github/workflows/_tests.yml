@@ -121,6 +121,8 @@ jobs:
       - name: rst check
         if: always()
         run: rst-lint .
+      - name: Zizmor
+        run: find .github/workflows -name '*.yml' | xargs zizmor --config .github/zizmor.yml
       - name: Continue
         if: always()
         run: exit 0
@@ -185,7 +187,7 @@ jobs:
         with:
           path: downloaded_artifacts
       - name: Clean up temporary artifacts
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b  # v5.1.0
         with:
           name: coverage_*
       - name: Combine coverage.py
