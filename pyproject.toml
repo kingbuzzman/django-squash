@@ -149,7 +149,6 @@ branch = true
 relative_files = true
 parallel = true
 source = ["django_squash"]
-omit = ["*/migrations_*/*", "./tests/*"]
 
 [tool.coverage.report]
 show_missing = true
