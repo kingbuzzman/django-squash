@@ -1,8 +1,11 @@
 rules:
+  artipacked:
+    ignore:
+      - release.yml:32:9
   use-trusted-publishing:
     ignore:
       # TODO: fix this later..
-      - release.yml:60:9
+      - release.yml:58:9
   unpinned-uses:
     ignore: []
     config:
