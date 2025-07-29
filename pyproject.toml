@@ -19,7 +19,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Framework :: Django",
     "Framework :: Django :: 4.2",
-    "Framework :: Django :: 5.0",
     "Framework :: Django :: 5.1",
     "Framework :: Django :: 5.2",
     "Programming Language :: Python",
@@ -191,13 +190,6 @@ filterwarnings = [
     # Internal warning to tell the user that the writer.py file has changed, and may not be compatible.
     "ignore:Django migrations writer file has changed and may not be compatible with django-squash",
 
-    # Warning: django.utils.deprecation.RemovedInDjango50Warning: The USE_L10N setting is deprecated. Starting with Django 5.0, localized formatting of data will always be enabled. For example Django will display numbers and dates using the format of the current locale.
     # Don't specify the exact warning (django.utils.deprecation.RemovedInDjango50Warning) as not all version of Django know it and pytest will fail
     "ignore:The USE_L10N setting is deprecated:",
-
-    # Warning: cgi is only being used by Django 3.2
-    "ignore:'cgi' is deprecated and slated for removal in Python 3.13",
-
-    # Django 3.2 throws a warning about the USE_I18N setting being deprecated
-    "ignore:datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects .*"
 ]
