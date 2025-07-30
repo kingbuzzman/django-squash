@@ -166,6 +166,8 @@ jobs:
       - name: Install packages
         run: uv pip install --system -e '.[test]'
       - name: Run tests
+        id: pytest
+        continue-on-error: true
         run: pytest --cov .
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
@@ -175,6 +177,14 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: .coverage
           retention-days: 1
+      - name: Validate run
+        run: |
+          if [ "${STEPS_PYTEST_OUTCOME}" != "success" ]; then
+            echo "Tests failed!"
+            exit 1
+          fi
+        env:
+          STEPS_PYTEST_OUTCOME: ${{ steps.pytest.outcome }}
 
   coverage:
     runs-on: ubuntu-latest
