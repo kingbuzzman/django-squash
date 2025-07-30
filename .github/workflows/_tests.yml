@@ -214,7 +214,6 @@ jobs:
           coverage combine $(find downloaded_artifacts/ -type f | xargs)
           # Used by codecov
           coverage xml
-          coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
       - name: Upload single coverage artifact
         uses: actions/upload-artifact@v4
         with:
@@ -225,7 +224,6 @@ jobs:
           retention-days: 1
       - name: Diff coverage
         run: |
-          coverage xml
           diff-cover coverage.xml --compare-branch origin/master --format github-annotations:warning
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -234,3 +232,5 @@ jobs:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
           env_vars: OS,RUST
+      - name: Check
+        run: coverage report --format=markdown --fail-under=90 >> $GITHUB_STEP_SUMMARY
