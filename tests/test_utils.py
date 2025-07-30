@@ -68,14 +68,14 @@ def test_is_code_in_site_packages():
 
 
 def test_unique_names():
-    names = utils.UniqueVariableName({})
+    names = utils.UniqueVariableName({}, lambda n, _: n)
     assert names("var") == "var"
     assert names("var") == "var_2"
     assert names("var_2") == "var_2_2"
 
 
 def test_unique_function_names_errors():
-    names = utils.UniqueVariableName({})
+    names = utils.UniqueVariableName({}, lambda n, _: n)
 
     with pytest.raises(ValueError):
         names.function("not-a-function")
@@ -118,8 +118,8 @@ def test_unique_function_names_context():
 
 
 def test_unique_function_names():
-    uniq1 = utils.UniqueVariableName({})
-    uniq2 = utils.UniqueVariableName({})
+    uniq1 = utils.UniqueVariableName({}, lambda n, _: n)
+    uniq2 = utils.UniqueVariableName({}, lambda n, _: n)
 
     reassigned_func2 = func2
     reassigned_func2_impostor = func2_impostor
@@ -175,11 +175,11 @@ def test_normalize_function_name():
 
 def test_get_custom_rename_function(monkeypatch):
     """Cover all cases where DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION can go wrong"""
-    assert not utils.get_custom_rename_function()
+    assert callable(utils.get_custom_rename_function())
     utils.get_custom_rename_function.cache_clear()
 
     monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "")
-    assert not utils.get_custom_rename_function()
+    assert callable(utils.get_custom_rename_function())
     utils.get_custom_rename_function.cache_clear()
 
     monkeypatch.setattr("django_squash.settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION", "tests.test_utils.func2")

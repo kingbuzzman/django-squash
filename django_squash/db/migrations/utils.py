@@ -12,6 +12,20 @@ from collections import defaultdict
 from django.db import migrations
 from django.utils.module_loading import import_string
 
+from django_squash import settings as app_settings
+
+
+@functools.lru_cache(maxsize=1)
+def get_custom_rename_function():
+    """
+    Custom function naming when copying elidable functions from one file to another.
+    """
+    custom_rename_function = app_settings.DJANGO_SQUASH_CUSTOM_RENAME_FUNCTION
+
+    if custom_rename_function:
+        return import_string(custom_rename_function)
+    return lambda n, _: n
+
 
 def file_hash(file_path):
     """
@@ -38,9 +52,14 @@ class UniqueVariableName:
     This class will return a unique name for a variable / function.
     """
 
-    def __init__(self):
+    def __init__(self, context, naming_function):
         self.names = defaultdict(int)
         self.functions = {}
+        self.context = context
+        self.naming_function = naming_function
+
+    def update_context(self, context):
+        self.context.update(context)
 
     def function(self, func):
         if not callable(func):

@@ -20,7 +20,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--ignore-app",
             nargs="*",
-            default=app_settings.DJANGO_SQUASH_IGNORE_APPS,
+            default=list(app_settings.DJANGO_SQUASH_IGNORE_APPS),
             help="Ignore app name from quashing, ensure that there is nothing dependent on these apps. "
             "(default: %(default)s)",
         )
@@ -32,7 +32,7 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             "--squashed-name",
-            default=app_settings.DJANGO_SQUASH_MIGRATION_NAME,
+            default=str(app_settings.DJANGO_SQUASH_MIGRATION_NAME),
             help="Sets the name of the new squashed migration. Also accepted are the standard datetime parse "
             'variables such as "%%Y%%m%%d". (default: "%(default)s" -> "xxxx_%(default)s")',
         )
