@@ -63,7 +63,7 @@ class Command(BaseCommand):
                                 (
                                     operation.model_name,
                                     operation.name,
-                                    operation.field.related_model,
+                                    get_related_model(operation.field.related_model),
                                 )
                             )
 
