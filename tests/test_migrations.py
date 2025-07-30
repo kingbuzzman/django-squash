@@ -593,6 +593,47 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
     assert migration_app_dir.migration_read("0003_squashed.py", "") == expected
 
 
+@pytest.mark.temporary_migration_module(module="app.tests.migrations.xxx", app_label="app")
+@pytest.mark.temporary_migration_module2(module="app3.tests.migrations.moved", app_label="app3")
+def test_nested(migration_app_dir, migration_app2_dir, call_squash_migrations, settings):
+    from django.contrib.contenttypes.fields import GenericForeignKey
+    from django.contrib.contenttypes.models import ContentType
+
+    class TranscodeJob(models.Model):
+
+        STATUS_CHOICES = (
+            ("R", "Ready"),
+            ("S", "Submitted"),
+            ("P", "Progressing"),
+            ("C", "Complete"),
+            ("X", "Canceled"),
+            ("E", "Error"),
+            ("U", "Unknown"),
+        )
+
+        content_type = models.IntegerField(ContentType, null=True)
+        object_id = models.BigIntegerField(null=True)
+        content_object = GenericForeignKey("content_type", "object_id")
+
+        video = models.OneToOneField("app3.Person", on_delete=models.CASCADE, null=True)
+        job_id = models.CharField(max_length=50, unique=True, null=True)
+        status = models.CharField(max_length=1, choices=STATUS_CHOICES, default="S")
+        initial_response_data = models.TextField()
+        final_response_data = models.TextField()
+
+        class Meta:
+            app_label = "app"
+
+    class Person(models.Model):
+        name = models.CharField(max_length=10)
+        dob = models.DateField()
+
+        class Meta:
+            app_label = "app3"
+
+    call_squash_migrations()
+
+
 @pytest.mark.temporary_migration_module(module="app.tests.migrations.pg_indexes", app_label="app")
 def test_squashing_migration_pg_indexes(migration_app_dir, call_squash_migrations):
 
