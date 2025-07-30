@@ -8,6 +8,7 @@ import re
 import sysconfig
 import types
 from collections import defaultdict
+import functools
 
 from django.db import migrations
 from django.utils.module_loading import import_string

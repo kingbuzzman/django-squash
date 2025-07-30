@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import os
 
@@ -6,7 +8,6 @@ from django.core.management.base import BaseCommand, CommandError, no_translatio
 from django.db.migrations.loader import MigrationLoader
 from django.db.migrations.state import ProjectState
 
-from django_squash import settings as app_settings
 from django_squash.db.migrations import serializer
 from django_squash.db.migrations.autodetector import SquashMigrationAutodetector
 from django_squash.db.migrations.loader import SquashMigrationLoader
