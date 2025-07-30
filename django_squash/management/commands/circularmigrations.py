@@ -58,7 +58,8 @@ class Command(BaseCommand):
                 references_found = []
                 for operation in migration.operations:
                     if hasattr(operation, "field") and hasattr(operation.field, "related_model"):
-                        if operation.field.related_model._meta.app_label in bad_dependencies:
+                        if apps.get_model(operation.field.related_model)._meta.app_label in bad_dependencies:
+                        # if operation.field.related_model._meta.app_label in bad_dependencies:
                             references_found.append(
                                 (
                                     operation.model_name,
@@ -74,7 +75,8 @@ class Command(BaseCommand):
                                 and field.related_model
                                 and not isinstance(field.related_model, str)
                             ):
-                                if field.related_model._meta.app_label in bad_dependencies:
+                                if apps.get_model(operation.field.related_model)._meta.app_label in bad_dependencies:
+                                # if field.related_model._meta.app_label in bad_dependencies:
                                     references_found.append((operation.name, name, field.related_model))
 
                 for model_name, field_name, model in references_found:
