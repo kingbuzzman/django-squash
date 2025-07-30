@@ -25,6 +25,7 @@ def get_custom_rename_function():
 
     if custom_rename_function:
         return import_string(custom_rename_function)
+    return lambda n, _: n
 
 
 def file_hash(file_path):
@@ -55,11 +56,11 @@ class UniqueVariableName:
     This class will return a unique name for a variable / function.
     """
 
-    def __init__(self, context, naming_function=None):
+    def __init__(self, context, naming_function):
         self.names = defaultdict(int)
         self.functions = {}
         self.context = context
-        self.naming_function = naming_function or (lambda n, _: n)
+        self.naming_function = naming_function
 
     def update_context(self, context):
         self.context.update(context)
