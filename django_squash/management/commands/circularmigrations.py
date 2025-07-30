@@ -58,8 +58,7 @@ class Command(BaseCommand):
                 references_found = []
                 for operation in migration.operations:
                     if hasattr(operation, "field") and hasattr(operation.field, "related_model"):
-                        if apps.get_model(operation.field.related_model)._meta.app_label in bad_dependencies:
-                        # if operation.field.related_model._meta.app_label in bad_dependencies:
+                        if get_related_model(operation.field.related_model)._meta.app_label in bad_dependencies:
                             references_found.append(
                                 (
                                     operation.model_name,
@@ -68,16 +67,10 @@ class Command(BaseCommand):
                                 )
                             )
 
-                    if hasattr(operation, "fields"):
-                        for name, field in operation.fields:
-                            if (
-                                hasattr(field, "related_model")
-                                and field.related_model
-                                and not isinstance(field.related_model, str)
-                            ):
-                                if apps.get_model(operation.field.related_model)._meta.app_label in bad_dependencies:
-                                # if field.related_model._meta.app_label in bad_dependencies:
-                                    references_found.append((operation.name, name, field.related_model))
+                    for name, field in getattr(operation, "fields", []):
+                        if (hasattr(field, "related_model")):
+                            if get_related_model(field.related_model)._meta.app_label in bad_dependencies:
+                                references_found.append((operation.name, name, get_related_model(field.related_model)))
 
                 for model_name, field_name, model in references_found:
                     print(
@@ -85,3 +78,9 @@ class Command(BaseCommand):
                     )
                 if references_found:
                     raise CommandError("Bad dependencies found")
+
+
+def get_related_model(model):
+    if isinstance(model, str):
+        return apps.get_model(model)
+    return model
