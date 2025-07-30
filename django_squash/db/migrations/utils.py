@@ -1,5 +1,4 @@
 import ast
-import functools
 import hashlib
 import importlib
 import inspect
@@ -9,6 +8,7 @@ import re
 import sysconfig
 import types
 from collections import defaultdict
+import functools
 
 from django.db import migrations
 from django.utils.module_loading import import_string
@@ -45,9 +45,6 @@ def file_hash(file_path):
 
 
 def source_directory(module):
-    """
-    Return the absolute path of a module
-    """
     return os.path.dirname(os.path.abspath(inspect.getsourcefile(module)))
 
 
@@ -75,37 +72,39 @@ class UniqueVariableName:
         if inspect.ismethod(func) or inspect.signature(func).parameters.get("self") is not None:
             raise ValueError("func cannot be part of an instance")
 
-        name = func.__qualname__
+        name = original_name = func.__qualname__
         if "." in name:
             parent_name, actual_name = name.rsplit(".", 1)
             parent = getattr(import_string(func.__module__), parent_name)
             if issubclass(parent, migrations.Migration):
-                name = actual_name
-
-        if func in self.functions:
+                name = name = original_name = actual_name
+        already_accounted = func in self.functions
+        if already_accounted:
             return self.functions[func]
 
-        name = self.naming_function(name, {**self.context, "type_": "function", "func": func})
-        new_name = self.functions[func] = self.uniq(name)
-
-        return new_name
-
-    def uniq(self, name, original_name=None):
-        original_name = original_name or name
         # Endless loop that will try different combinations until it finds a unique name
         for i, _ in enumerate(itertools.count(), 2):
             if self.names[name] == 0:
+                self.functions[func] = name
                 self.names[name] += 1
                 break
 
             name = "%s_%s" % (original_name, i)
+
+        self.functions[func] = name
+
         return name
 
     def __call__(self, name, force_number=False):
-        original_name = name
-        if force_number:
-            name = f"{name}_1"
-        return self.uniq(name, original_name)
+        self.names[name] += 1
+        count = self.names[name]
+        if not force_number and count == 1:
+            return name
+        else:
+            new_name = "%s_%s" % (name, count)
+            # Make sure that the function name is fully unique
+            # You can potentially have the same name already defined.
+            return self(new_name)
 
 
 def get_imports(module):
@@ -130,10 +129,9 @@ def get_imports(module):
 
 
 def normalize_function_name(name):
-    _, _, function_name = name.rpartition(".")
-    if function_name[0].isdigit():
-        # Functions CANNOT start with a number
-        function_name = "f_" + function_name
+    class_name, _, function_name = name.rpartition(".")
+    if class_name and not function_name:
+        function_name = class_name
     return function_name
 
 
@@ -145,10 +143,10 @@ def copy_func(f, name):
     func.__qualname__ = name
     func.__original__ = f
     func.__source__ = re.sub(
-        pattern=rf"(def\s+){normalize_function_name(f.__qualname__)}",
-        repl=rf"\1{name}",
-        string=inspect.getsource(f),
-        count=1,
+        rf"(def\s+){normalize_function_name(f.__qualname__)}",
+        rf"\1{normalize_function_name(name)}",
+        inspect.getsource(f),
+        1,
     )
     return func
 
@@ -168,18 +166,12 @@ def find_brackets(line, p_count, b_count):
 
 def is_code_in_site_packages(module_name):
     # Find the module in the site-packages directory
-    site_packages_path_ = site_packages_path()
+    site_packages_path = sysconfig.get_path("purelib")  # returns the "../site-packages" directory
     try:
         loader = importlib.util.find_spec(module_name)
+        return site_packages_path in loader.origin
     except ImportError:
         return False
-    return loader.origin.startswith(site_packages_path_)
-
-
-@functools.lru_cache(maxsize=1)
-def site_packages_path():
-    # returns the "../site-packages" directory
-    return sysconfig.get_path("purelib")
 
 
 def replace_migration_attribute(source, attr, value):

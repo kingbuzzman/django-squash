@@ -10,7 +10,8 @@ from django.db import migrations as dj_migrations
 from django.db.migrations.autodetector import MigrationAutodetector as MigrationAutodetectorBase
 
 from django_squash.contrib import postgres
-from django_squash.db.migrations import utils
+
+from . import utils
 
 RESERVED_MIGRATION_KEYWORDS = ("_deleted", "_dependencies_change", "_replaces_change", "_original_migration")
 
@@ -83,13 +84,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                         continue
 
                     if isinstance(operation, dj_migrations.RunSQL):
-                        operation._original_migration = migration
                         new_operations.append(operation)
                     elif isinstance(operation, dj_migrations.RunPython):
-                        operation._original_migration = migration
                         new_operations.append(operation)
                     elif isinstance(operation, postgres.PGCreateExtension):
-                        operation._original_migration = migration
                         new_operations_bubble_top.append(operation)
                     elif isinstance(operation, dj_migrations.SeparateDatabaseAndState):
                         # A valid use case for this should be given before any work is done.
@@ -160,7 +158,7 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                 for dependency in migration.dependencies:
                     dep_app_label, dep_migration = dependency
                     if dep_app_label in ignore_apps:
-                        new_dependencies.append(original.graph.leaf_nodes(dep_app_label)[0])
+                        new_dependencies.append(original.graph.leaf_nodes(dependency[0])[0])
                         continue
 
                     if dep_app_label == "__setting__":
@@ -174,10 +172,10 @@ class SquashMigrationAutodetector(MigrationAutodetectorBase):
                             # Leave as is, the django's migration writer will handle this by default
                             new_dependencies.append(dependency)
                             continue
-                    # Technically, the terms '__first__' and '__latest__' could apply to dependencies. However, these
-                    # are not labels that Django assigns automatically. Instead, they would be manually specified by
-                    # the developer after Django has generated the necessary files. Given that our focus is solely
-                    # on handling migrations created by Django, there is no practical need to account for these.
+                    elif dep_migration == "__first__":
+                        dependency = original.graph.root_nodes(dep_app_label)[0]
+                    elif dep_migration == "__latest__":
+                        dependency = original.graph.leaf_nodes(dep_app_label)[0]
 
                     migration_id = dependency
                     if migration_id not in migrations_by_name:
