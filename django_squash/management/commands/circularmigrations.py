@@ -1,6 +1,6 @@
 from django.apps import apps
 from django.conf import settings
-from django.core.management.base import BaseCommand, no_translations
+from django.core.management.base import BaseCommand, no_translations, CommandError
 from django.db.migrations.state import ProjectState
 
 from django_squash.db.migrations.autodetector import SquashMigrationAutodetector
