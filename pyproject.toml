@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "django_squash"
-version = "0.0.14"
+version = "0.0.15"
 description = "A migration squasher that doesn't care how Humpty Dumpty was put together."
 readme = "README.rst"
 keywords = ["django", "migration", "squashing", "squash"]
 authors = [
     {name = "Javier Buzzi", email = "buzzi.javier@gmail.com"},
 ]
-license = {text = "MIT"}
+license = "MIT"
 classifiers = [
     # See https://pypi.org/pypi?%3Aaction=list_classifiers
     "Development Status :: 5 - Production/Stable",
@@ -32,7 +32,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Utilities",
-    "License :: OSI Approved :: MIT License",
 ]
 dependencies = [
     "django>=4.2",
@@ -44,7 +43,8 @@ lint = [
     "pygments",
     "restructuredtext-lint",
     "ruff",
-    "vulture"
+    "vulture",
+    "zizmor",
 ]
 test = [
     "black",
@@ -148,7 +148,7 @@ branch = true
 relative_files = true
 parallel = true
 source = ["django_squash"]
-omit = ["*/migrations_*/*", "./tests/*"]
+omit = ["*/migrations_*/*"]
 
 [tool.coverage.report]
 show_missing = true

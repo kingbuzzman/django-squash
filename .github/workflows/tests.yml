@@ -9,10 +9,14 @@ on:
     branches:
       - "**"
 
+permissions:
+  contents: read
+
 jobs:
   django-squash:
     name: Tests
     uses: ./.github/workflows/_tests.yml
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       ref: ${{ github.ref }}

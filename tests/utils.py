@@ -15,7 +15,7 @@ try:
     with open("pyproject.toml") as f:  # pragma: no cover
         if "Programming Language :: Python :: 3.10" not in f.read():
             raise Exception("Delete this try/except block and leave the just the 'import tomllib'.")
-except ImportError:
+except ImportError:  # pragma: no cover
     # Python 3.10 does not support tomllib
     import tomli as tomllib
 
@@ -66,7 +66,7 @@ SUPPORTED_DJANGO_VERSIONS = []
 
 with open(Path().resolve() / "pyproject.toml", "rb") as f:
     conf = tomllib.load(f)
-for classifier in conf["project"]["classifiers"]:
+for classifier in conf["project"]["classifiers"]:  # pragma: no cover
     if "Framework :: Django ::" in classifier:
         version = classifier.split("::")[-1].strip()
         if is_number(version):
@@ -91,14 +91,14 @@ current_django_version = Version(_DJANGO_VERSION)
 globals()["DJ" + shorten_version(str(current_django_version).replace(".", ""))] = True
 globals()["PY" + shorten_version(str(current_python_version).replace(".", ""))] = True
 
-if not is_supported_version(SUPPORTED_DJANGO_VERSIONS, current_django_version):
+if not is_supported_version(SUPPORTED_DJANGO_VERSIONS, current_django_version):  # pragma: no cover
     versions = ", ".join([str(v) for v in SUPPORTED_DJANGO_VERSIONS])
     warnings.warn(
         f"Current Django version {current_django_version} is not in the supported versions: {versions}",
         stacklevel=0,
     )
 
-if not is_supported_version(SUPPORTED_PYTHON_VERSIONS, current_python_version):
+if not is_supported_version(SUPPORTED_PYTHON_VERSIONS, current_python_version):  # pragma: no cover
     versions = ", ".join([str(v) for v in SUPPORTED_PYTHON_VERSIONS])
     warnings.warn(
         f"Current Python version {current_python_version} is not in the supported versions: {versions}",

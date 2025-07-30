@@ -22,7 +22,7 @@ from tests import utils
 class MigrationPath(Path):
     """A subclass of Path that provides a method to list migration files."""
 
-    if utils.is_pyvsupported("3.11"):
+    if utils.is_pyvsupported("3.11"):  # pragma: no cover
         try:
             from pathlib import _PosixFlavour, _WindowsFlavour  # noqa: PLC0415
 
@@ -30,7 +30,7 @@ class MigrationPath(Path):
             _flavour = _PosixFlavour() if os.name == "posix" else _WindowsFlavour()
         except ImportError:
             pass
-    else:
+    else:  # pragma: no cover
         raise Exception("Remove this whole block please!")
 
     def migration_load(self, file_name):
@@ -58,12 +58,6 @@ def migration_app2_dir(request, isolated_apps, settings):
     yield from _migration_app_dir("temporary_migration_module2", request, settings)
 
 
-@pytest.fixture
-def migration_app3_dir(request, isolated_apps, settings):
-    del isolated_apps
-    yield from _migration_app_dir("temporary_migration_module3", request, settings)
-
-
 def _migration_app_dir(marker_name, request, settings):
     """
     Allows testing management commands in a temporary migrations module.
@@ -79,7 +73,7 @@ def _migration_app_dir(marker_name, request, settings):
     Returns the filesystem path to the temporary migrations module.
     """
     marks = list(request.node.iter_markers(marker_name))
-    if len(marks) != 1:
+    if len(marks) != 1:  # pragma: no cover
         raise ValueError(f"Expected exactly one {marker_name!r} marker")
     mark = marks[0]
 
@@ -105,7 +99,6 @@ def pytest_collection_modifyitems(config, items):
     required_function_argument_by_markers = {
         "temporary_migration_module": "migration_app_dir",
         "temporary_migration_module2": "migration_app2_dir",
-        "temporary_migration_module3": "migration_app3_dir",
     }
     for test_function in items:
         markers = {m.name: m for m in test_function.iter_markers()}

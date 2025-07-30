@@ -1,0 +1,15 @@
+rules:
+  artipacked:
+    ignore:
+      - release.yml:32:9
+  use-trusted-publishing:
+    ignore:
+      # TODO: fix this later..
+      - release.yml:58:9
+  unpinned-uses:
+    ignore: []
+    config:
+      policies:
+        actions/*: ref-pin
+        pypa/gh-action-pypi-publish: ref-pin
+        codecov/codecov-action: ref-pin
