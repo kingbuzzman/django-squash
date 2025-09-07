@@ -171,8 +171,8 @@ jobs:
         run: |
           python \
             -W error \
-            -w "ignore:Django migrations writer file has changed and may not be compatible with django-squash" \
-            -w "ignore:The USE_L10N setting is deprecated:" \
+            -W "ignore:Django migrations writer file has changed and may not be compatible with django-squash" \
+            -W "ignore:The USE_L10N setting is deprecated:" \
             -m coverage run \
             -m pytest
       - name: Upload coverage artifact
