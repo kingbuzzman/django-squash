@@ -182,13 +182,3 @@ markers = [
     "slow: marks tests as slow",
     "no_cover: marks tests to be excluded from coverage"
 ]
-
-filterwarnings = [
-    "error",
-
-    # Internal warning to tell the user that the writer.py file has changed, and may not be compatible.
-    "ignore:Django migrations writer file has changed and may not be compatible with django-squash",
-
-    # Don't specify the exact warning (django.utils.deprecation.RemovedInDjango50Warning) as not all version of Django know it and pytest will fail
-    "ignore:The USE_L10N setting is deprecated:",
-]
