@@ -175,6 +175,7 @@ jobs:
             -W "ignore:The USE_L10N setting is deprecated:" \
             -m coverage run \
             -m pytest
+          coverage combine
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
