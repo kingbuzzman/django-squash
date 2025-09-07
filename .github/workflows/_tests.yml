@@ -168,7 +168,13 @@ jobs:
       - name: Run tests
         id: pytest
         continue-on-error: true
-        run: coverage -m pytest
+        run: |
+          python \
+            -W error \
+            -W ignore:datetime.datetime.utcfromtimestamp:DeprecationWarning \
+            -W ignore:datetime.datetime.utcnow:DeprecationWarning \
+            -m coverage run \
+            -m pytest
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
