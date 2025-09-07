@@ -49,10 +49,10 @@ lint = [
 test = [
     "black",
     "build",
+    "coverage",
     "ipdb",
     "libcst",
     "psycopg2-binary",
-    "pytest-cov",
     "pytest-django"
 ]
 
@@ -147,7 +147,7 @@ max-complexity = 10
 branch = true
 relative_files = true
 parallel = true
-source = ["django_squash"]
+source = "."
 omit = ["*/migrations_*/*"]
 
 [tool.coverage.report]
