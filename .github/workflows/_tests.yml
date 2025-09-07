@@ -169,16 +169,11 @@ jobs:
         id: pytest
         continue-on-error: true
         run: |
-          python \
-            -W error \
-            # Internal warning to tell the user that the writer.py file has changed, and may not be compatible.
-            -W "ignore:Django migrations writer file has changed and may not be compatible with django-squash" \
-            # Don't specify the exact warning (django.utils.deprecation.RemovedInDjango50Warning) as not all version of Django know it and pytest will fail
-            -W "ignore:The USE_L10N setting is deprecated:" \
-            -m coverage run \
-            -m pytest
+          python -m coverage run -m pytest
           coverage combine
           coverage report --show-missing
+        env:
+          PYTHONWARNINGS: "error,ignore:Django migrations writer file has changed and may not be compatible with django-squash,ignore:The USE_L10N setting is deprecated:"
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
