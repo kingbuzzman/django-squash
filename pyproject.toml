@@ -147,7 +147,7 @@ max-complexity = 10
 branch = true
 relative_files = true
 parallel = true
-source = "."
+source = ["."]
 omit = ["*/migrations_*/*"]
 
 [tool.coverage.report]
