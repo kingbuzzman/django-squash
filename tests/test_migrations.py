@@ -87,7 +87,7 @@ def test_squashing_elidable_migration_simple(migration_app_dir, call_squash_migr
                 migrations.CreateModel(
                     name="Person",
                     fields=[
-                        ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                        ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                         ("name", models.CharField(max_length=10)),
                         ("dob", models.DateField()),
                     ],
@@ -582,7 +582,7 @@ def test_swappable_dependency_migrations(migration_app_dir, settings, call_squas
                 migrations.CreateModel(
                     name="UserProfile",
                     fields=[
-                        ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                        ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                         ("dob", models.DateField()),
                         ("user", models.ForeignKey(on_delete=models.CASCADE, to=settings.AUTH_USER_MODEL)),
                     ],
@@ -633,7 +633,7 @@ def test_squashing_migration_pg_indexes(migration_app_dir, call_squash_migration
                 migrations.CreateModel(
                     name="Message",
                     fields=[
-                        ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                        ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                         ("score", models.IntegerField(default=0)),
                         ("unicode_name", models.CharField(db_index=True, max_length=255)),
                     ],
@@ -692,7 +692,7 @@ def test_squashing_migration_pg_indexes_custom(migration_app_dir, call_squash_mi
                 migrations.CreateModel(
                     name="Message",
                     fields=[
-                        ("id", models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                        ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                         ("score", models.IntegerField(default=0)),
                         ("unicode_name", models.CharField(db_index=True, max_length=255)),
                     ],
