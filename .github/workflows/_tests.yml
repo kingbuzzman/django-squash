@@ -176,6 +176,7 @@ jobs:
             -m coverage run \
             -m pytest
           coverage combine
+          coverage report --show-missing
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
