@@ -173,6 +173,10 @@ jobs:
           coverage combine
           coverage report --show-missing
         env:
+          # PYTHONWARNINGS is a comma-separated list of warning filters.
+          # 1. "error": Treat all warnings as errors by default.
+          # 2. "ignore...django-squash": Ignore a known internal warning from django-squash.
+          # 3. "ignore...USE_L10N": Ignore deprecation warning for compatibility.
           PYTHONWARNINGS: "error,ignore:Django migrations writer file has changed and may not be compatible with django-squash,ignore:The USE_L10N setting is deprecated:"
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
