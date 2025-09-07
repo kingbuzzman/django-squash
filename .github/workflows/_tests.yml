@@ -178,7 +178,8 @@ jobs:
           # 2. "ignore...django-squash": Ignore a known internal warning from django-squash.
           # 3. "ignore...USE_L10N": Ignore deprecation warning for compatibility with older Django versions.
           # 4. "ignore...LegacyVersion": Ignore a deprecation warning from a dependency creating a LegacyVersion.
-          PYTHONWARNINGS: "error,ignore:Django migrations writer file has changed and may not be compatible with django-squash,ignore:The USE_L10N setting is deprecated:,ignore:Creating a LegacyVersion has been deprecated"
+          # 5. "ignore...pkg_resources": Ignore the deprecation of the pkg_resources API.
+          PYTHONWARNINGS: "error,ignore:Django migrations writer file has changed and may not be compatible with django-squash,ignore:The USE_L10N setting is deprecated:,ignore:Creating a LegacyVersion has been deprecated,ignore:pkg_resources is deprecated as an API"
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
