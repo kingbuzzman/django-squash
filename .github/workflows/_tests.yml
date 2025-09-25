@@ -174,11 +174,11 @@ jobs:
           coverage report --show-missing
         env:
           PYTHONWARNINGS: >-
-            error,
             ignore::django.utils.deprecation.RemovedInDjango50Warning:django.conf,
             ignore:Django migrations writer file has changed and may not be compatible with django-squash,
             ignore:Creating a LegacyVersion has been deprecated,
-            ignore:pkg_resources is deprecated as an API
+            ignore:pkg_resources is deprecated as an API,
+            error
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
