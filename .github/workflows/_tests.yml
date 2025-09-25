@@ -175,8 +175,8 @@ jobs:
         env:
           PYTHONWARNINGS: >-
             error,
+            ignore::django.utils.deprecation.RemovedInDjango50Warning:django.conf,
             ignore:Django migrations writer file has changed and may not be compatible with django-squash,
-            ignore:The USE_L10N setting is deprecated\:, 
             ignore:Creating a LegacyVersion has been deprecated,
             ignore:pkg_resources is deprecated as an API
       - name: Upload coverage artifact
