@@ -13,7 +13,6 @@ from django_squash.contrib import postgres
 from django_squash.db.migrations import operators, utils
 
 SUPPORTED_DJANGO_WRITER = (
-    # "1d95ead786c570a17712df2ba73be2534b1942133aeda17eed986d8bba9ad276",  # 6.1+
     "39645482d4eb04b9dd21478dc4bdfeea02393913dd2161bf272f4896e8b3b343",  # 5.x
     "2aab183776c34e31969eebd5be4023d3aaa4da584540b91a5acafd716fa85582",  # 4.2
 )
